@@ -1,6 +1,6 @@
 from iconservice import *
-from .iirc_token import IIRCToken
-from .itoken_holder import ITokenHolder
+from .iirc_token import IIRCToken, IRCTokenInterface
+from .itoken_holder import ITokenHolder, TokenHolderInterface
 
 
 # noinspection PyPep8Naming
@@ -27,7 +27,7 @@ class IIcxToken(IIRCToken, ITokenHolder):
         pass
 
     @abstractmethod
-    def withdrawTo(self, _amount: int, _to: Address) -> None:
+    def withdrawTo(self, _amount: int, _to: 'Address') -> None:
         """
         Withdraw ICX from the account to a target account(_to)
 
@@ -35,4 +35,18 @@ class IIcxToken(IIRCToken, ITokenHolder):
         :param _to: account to receive the ether
         :return:
         """
+        pass
+
+
+class IcxTokenInterface(IRCTokenInterface, TokenHolderInterface, IIcxToken):
+    @interface
+    def deposit(self) -> None:
+        pass
+
+    @interface
+    def withdraw(self, _amount: int) -> None:
+        pass
+
+    @interface
+    def withdrawTo(self, _amount: int, _to: 'Address') -> None:
         pass

@@ -46,7 +46,7 @@ class IIRCToken(ABC):
         pass
 
     @abstractmethod
-    def balanceOf(self, _owner: Address) -> int:
+    def balanceOf(self, _owner: 'Address') -> int:
         """
         Returns the balance of an account
 
@@ -57,7 +57,7 @@ class IIRCToken(ABC):
         pass
 
     @abstractmethod
-    def transfer(self, _to: Address, _value: int, _data: bytes = None):
+    def transfer(self, _to: 'Address', _value: int, _data: bytes = None):
         """
         Transfer token to an account
 
@@ -66,4 +66,30 @@ class IIRCToken(ABC):
         :param _data: bytes data
         :return:
         """
+        pass
+
+
+class IRCTokenInterface(InterfaceScore, IIRCToken):
+    @interface
+    def name(self) -> str:
+        pass
+
+    @interface
+    def symbol(self) -> str:
+        pass
+
+    @interface
+    def decimals(self) -> int:
+        pass
+
+    @interface
+    def totalSupply(self) -> int:
+        pass
+
+    @interface
+    def balanceOf(self, _owner: 'Address') -> int:
+        pass
+
+    @interface
+    def transfer(self, _to: 'Address', _value: int, _data: bytes = None):
         pass

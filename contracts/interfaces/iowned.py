@@ -17,7 +17,7 @@ class IOwned(ABC):
         pass
 
     @abstractmethod
-    def transferOwnerShip(self, _newOwner: Address) -> None:
+    def transferOwnerShip(self, _newOwner: 'Address') -> None:
         """
         Allows transferring the contract ownership
         the new owner still needs to accept the transfer
@@ -35,4 +35,18 @@ class IOwned(ABC):
 
         :return:
         """
+        pass
+
+
+class OwnedInterface(InterfaceScore, IOwned):
+    @interface
+    def owner(self) -> 'Address':
+        pass
+
+    @interface
+    def transferOwnerShip(self, _newOwner: 'Address') -> None:
+        pass
+
+    @interface
+    def acceptOwnerShip(self) -> None:
         pass

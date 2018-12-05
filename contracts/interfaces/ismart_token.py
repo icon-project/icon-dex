@@ -1,10 +1,10 @@
 from iconservice import *
-from .iowned import IOwned
-from .iirc_token import IIRCToken
+from .iirc_token import IIRCToken, IRCTokenInterface
+from .itoken_holder import ITokenHolder, TokenHolderInterface
 
 
 # noinspection PyPep8Naming
-class ISmartToken(IOwned, IIRCToken):
+class ISmartToken(IIRCToken, ITokenHolder):
     """
     ISmartToken interface
     """
@@ -42,4 +42,18 @@ class ISmartToken(IOwned, IIRCToken):
         :param _amount: amount to decrease the supply by
         :return:
         """
+        pass
+
+
+class SmartTokenInterface(IRCTokenInterface, TokenHolderInterface, ISmartToken):
+    @interface
+    def disableTransfer(self, _disable: bool) -> None:
+        pass
+
+    @interface
+    def issue(self, _to: Address, _amount: int) -> None:
+        pass
+
+    @interface
+    def destroy(self, _from: Address, _amount: int) -> None:
         pass
