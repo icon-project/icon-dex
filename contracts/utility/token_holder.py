@@ -10,6 +10,12 @@ class TokenHolder(Owned, ITokenHolder):
     def __init__(self, db: IconScoreDatabase):
         Owned.__init__(self, db)
 
+    def on_install(self) -> None:
+        super().on_install()
+
+    def on_update(self) -> None:
+        super().on_update()
+
     @external
     def withdrawTokens(self, _token: 'Address', _to: 'Address', _amount: int) -> None:
         Owned.owner_only(self)

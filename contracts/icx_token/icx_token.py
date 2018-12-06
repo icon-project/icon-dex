@@ -25,9 +25,11 @@ class IcxToken(IRCToken, TokenHolder, IIcxToken):
 
     def on_install(self) -> None:
         IRCToken.on_install(self, 'icx_token', 'ICX', 0, 18)
+        TokenHolder.on_install(self)
 
     def on_update(self) -> None:
         IRCToken.on_update(self)
+        TokenHolder.on_update(self)
 
     @payable
     def fallback(self):

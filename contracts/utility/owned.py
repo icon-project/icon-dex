@@ -15,15 +15,12 @@ class Owned(IconScoreBase, IOwned):
         # todo: check the need of calling __init__ method of IconScoreBase
         self._owner = VarDB(self._OWNER, db, value_type=Address)
         self._new_owner = VarDB(self._NEW_OWNER, db, value_type=Address)
-        self._owner.set(self.msg.sender)
 
     def on_install(self) -> None:
-        # this class doesn't need to call IconScoreBase's on_install method
-        pass
+        self._owner.set(self.msg.sender)
 
     def on_update(self) -> None:
-        # this class doesn't need to call IconScoreBase's on_update method
-        pass
+        IconScoreBase.on_update(self)
 
     def owner_only(self):
         if self.msg.sender != self._owner.get():
