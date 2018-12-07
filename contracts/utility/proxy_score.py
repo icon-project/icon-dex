@@ -1,4 +1,6 @@
-from iconservice import *
+from iconservice import InterfaceScore
+from iconservice import interface
+from iconservice.iconscore.icon_score_constant import T
 
 
 class ProxyScore(type):
@@ -11,7 +13,7 @@ class ProxyScore(type):
     """
 
     @classmethod
-    def _create_class_proxy(mcs, abc_class):
+    def _create_class_proxy(mcs, abc_class: T) -> T:
         """
         Creates an interface SCORE related in given abc class,
 
@@ -31,7 +33,7 @@ class ProxyScore(type):
         proxy_name = "%s(%s)" % (mcs.__name__, abc_class.__name__)
         return type(proxy_name, (InterfaceScore, abc_class), interface_functions)
 
-    def __new__(mcs, abc_class):
+    def __new__(mcs, abc_class: T) -> T:
         """
         Retrieves an interface SCORE related in given abc class if the cache exists,
         otherwise creates a new one
