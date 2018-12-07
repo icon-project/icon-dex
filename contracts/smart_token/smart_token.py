@@ -9,8 +9,7 @@ TAG = 'SmartToken'
 
 
 class SmartToken(IRCToken, TokenHolder, ISmartToken):
-    _VERSION = '0.3'
-    _TRANSFER_POSSIBILITY = 'transfer_possibility'
+    _VERSION = '0.1'
 
     @eventlog
     def NewSmartToken(self, _token: 'Address'):
@@ -28,12 +27,16 @@ class SmartToken(IRCToken, TokenHolder, ISmartToken):
         IRCToken.__init__(self, db)
         TokenHolder.__init__(self, db)
 
-        self._version = VarDB(self._VERSION, db, value_type=str)
-        self._transfer_possibility = VarDB(self._TRANSFER_POSSIBILITY, db, value_type=bool)
+        self._version = VarDB('version', db, value_type=str)
+        self._transfer_possibility = VarDB('transfer_possibility', db, value_type=bool)
 
     def on_install(self, _name: str, _symbol: str, _initialSupply: int, _decimals: int) -> None:
         IRCToken.on_install(self, _name, _symbol, _initialSupply, _decimals)
         TokenHolder.on_install(self)
+
+        self._version.set(self._VERSION)
+        self._transfer_possibility.set(False)
+
         self.NewSmartToken(self.address)
 
     def on_update(self) -> None:
