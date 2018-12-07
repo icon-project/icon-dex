@@ -11,10 +11,10 @@ class TokenHolder(Owned, ITokenHolder):
         Owned.__init__(self, db)
 
     def on_install(self) -> None:
-        super().on_install()
+        Owned.on_install(self)
 
     def on_update(self) -> None:
-        super().on_update()
+        Owned.on_update(self)
 
     @external
     def withdrawTokens(self, _token: 'Address', _to: 'Address', _amount: int) -> None:

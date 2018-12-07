@@ -8,7 +8,6 @@ TAG = 'IcxToken'
 
 
 class IcxToken(IRCToken, TokenHolder, IIcxToken):
-    # todo: specify token version
     # todo: implement transfer method which return boolean
 
     @eventlog
@@ -43,7 +42,6 @@ class IcxToken(IRCToken, TokenHolder, IIcxToken):
         self._total_supply.set(total_supply + self.msg.value)
 
         self.Issuance(self.msg.value)
-
         # todo: fix this event
         self.Transfer(self.address, self.msg.sender, self.msg.value, b'None')
 
@@ -55,9 +53,9 @@ class IcxToken(IRCToken, TokenHolder, IIcxToken):
     def withdrawTo(self, _amount: int, _to: 'Address'):
         if self._balances[self.msg.sender] < _amount:
             revert("Out of balance")
-        self.transfer(_to, _amount)
-        self._balances[self.msg.sender] -= _amount
 
+        self.icx.send(_to, _amount)
+        self._balances[self.msg.sender] -= _amount
         total_supply = self._total_supply.get()
         self._total_supply.set(total_supply - _amount)
 
