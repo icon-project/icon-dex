@@ -2,7 +2,7 @@ from iconservice import *
 
 
 # noinspection PyPep8Naming
-class IOwned(ABC):
+class ABCOwned(ABC):
     """
     Owned interface
     """
@@ -35,18 +35,4 @@ class IOwned(ABC):
 
         :return:
         """
-        pass
-
-
-class OwnedInterface(InterfaceScore, IOwned):
-    @interface
-    def owner(self) -> 'Address':
-        pass
-
-    @interface
-    def transferOwnerShip(self, _newOwner: 'Address') -> None:
-        pass
-
-    @interface
-    def acceptOwnerShip(self) -> None:
         pass

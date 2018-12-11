@@ -1,13 +1,13 @@
 from iconservice import *
 
-from contracts.interfaces.iicx_token import IIcxToken
+from contracts.interfaces.abc_icx_token import ABCIcxToken
 from contracts.irc_token.irc_token import IRCToken
 from contracts.utility.token_holder import TokenHolder
 
 TAG = 'IcxToken'
 
 
-class IcxToken(IRCToken, TokenHolder, IIcxToken):
+class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
     # todo: implement transfer method which return boolean
 
     @eventlog

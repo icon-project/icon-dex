@@ -214,7 +214,7 @@ class TestIntegrateSmartToken(TestIntegrateBase):
         self.assertEqual(total_supply_before_destroy - issue_balance, total_supply_after_destroy)
 
 
-def test_smart_token_transfer_ownership(self):
+    def test_smart_token_transfer_ownership(self):
         # failure case: only owner can transfer ownership
         send_tx_params = {"_newOwner": str(self._fee_treasury)}
         tx_result = self._call_score(self.smart_token_address, self._genesis, "transferOwnerShip", send_tx_params)
@@ -225,7 +225,7 @@ def test_smart_token_transfer_ownership(self):
         tx_result = self._call_score(self.smart_token_address, self._owner, "transferOwnerShip", send_tx_params)
         self.assertEqual(False, tx_result.status)
 
-        # success case: owner can transfer ownershipconfirm_transaction
+        # success case: owner can transfer ownership
         send_tx_params = {"_newOwner": str(self._fee_treasury)}
         tx_result = self._call_score(self.smart_token_address, self._owner, "transferOwnerShip", send_tx_params)
         self.assertEqual(True, tx_result.status)

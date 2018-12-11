@@ -1,9 +1,9 @@
 from iconservice import *
-from .iowned import IOwned, OwnedInterface
+from .abc_owned import ABCOwned
 
 
 # noinspection PyPep8Naming
-class ITokenHolder(IOwned):
+class ABCTokenHolder(ABCOwned):
     """
     TokenHolder interface
     """
@@ -19,10 +19,4 @@ class ITokenHolder(IOwned):
         :param _amount: amount to withdraw
         :return:
         """
-        pass
-
-
-class TokenHolderInterface(OwnedInterface, ITokenHolder):
-    @interface
-    def withdrawTokens(self, _token: 'Address', _to: 'Address', _amount: int) -> None:
         pass

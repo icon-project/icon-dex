@@ -2,7 +2,8 @@ from iconservice import *
 
 from .owned import Owned
 from .utils import Utils
-from .iirc_token import IRCTokenInterface
+from .proxy_score import ProxyScore
+from .abc_irc_token import ABCIRCToken
 
 
 class TokenHolder(Owned):
@@ -22,5 +23,5 @@ class TokenHolder(Owned):
         Utils.not_this(self.address, _to)
         Utils.valid_address(_to)
 
-        irc_token_score = self.create_interface_score(_token, IRCTokenInterface)
+        irc_token_score = self.create_interface_score(_token, ProxyScore(ABCIRCToken))
         irc_token_score.transfer(_to, _amount)

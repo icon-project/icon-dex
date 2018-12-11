@@ -1,12 +1,13 @@
 from iconservice import *
 
+from contracts.interfaces.abc_irc_token import ABCIRCToken
+from contracts.interfaces.abc_token_holder import ABCTokenHolder
+from contracts.utility.proxy_score import ProxyScore
 from .owned import Owned
 from .utils import Utils
-from contracts.interfaces.itoken_holder import ITokenHolder
-from contracts.interfaces.iirc_token import IRCTokenInterface
 
 
-class TokenHolder(Owned, ITokenHolder):
+class TokenHolder(Owned, ABCTokenHolder):
     def __init__(self, db: IconScoreDatabase):
         super().__init__(db)
 
@@ -23,5 +24,5 @@ class TokenHolder(Owned, ITokenHolder):
         Utils.not_this(self.address, _to)
         Utils.valid_address(_to)
 
-        irc_token_score = self.create_interface_score(_token, IRCTokenInterface)
+        irc_token_score = self.create_interface_score(_token, ProxyScore(ABCIRCToken))
         irc_token_score.transfer(_to, _amount)

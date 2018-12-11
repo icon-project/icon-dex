@@ -1,10 +1,10 @@
 from iconservice import *
-from .iirc_token import IIRCToken, IRCTokenInterface
-from .itoken_holder import ITokenHolder, TokenHolderInterface
+from .abc_irc_token import ABCIRCToken
+from .abc_token_holder import ABCTokenHolder
 
 
 # noinspection PyPep8Naming
-class IIcxToken(IIRCToken, ITokenHolder):
+class ABCIcxToken(ABCIRCToken, ABCTokenHolder):
     """
     IcxToken interface
     """
@@ -35,18 +35,4 @@ class IIcxToken(IIRCToken, ITokenHolder):
         :param _to: account to receive the ether
         :return:
         """
-        pass
-
-
-class IcxTokenInterface(IRCTokenInterface, TokenHolderInterface, IIcxToken):
-    @interface
-    def deposit(self) -> None:
-        pass
-
-    @interface
-    def withdraw(self, _amount: int) -> None:
-        pass
-
-    @interface
-    def withdrawTo(self, _amount: int, _to: 'Address') -> None:
         pass

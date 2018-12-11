@@ -2,7 +2,7 @@ from iconservice import *
 
 
 # noinspection PyPep8Naming
-class IConverter(ABC):
+class ABCConverter(ABC):
     """
     Converter interface
     """
