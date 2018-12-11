@@ -3,10 +3,11 @@ from iconservice import *
 from .owned import Owned
 from .utils import Utils
 from .proxy_score import ProxyScore
-from .abc_irc_token import ABCIRCToken
+from .interfaces.abc_irc_token import ABCIRCToken
+from .interfaces.abc_token_holder import ABCTokenHolder
 
 
-class TokenHolder(Owned):
+class TokenHolder(Owned, ABCTokenHolder):
     def __init__(self, db: IconScoreDatabase):
         super().__init__(db)
 

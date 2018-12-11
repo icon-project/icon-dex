@@ -1,5 +1,7 @@
 from iconservice import *
 
+from .interfaces.abc_irc_token import ABCIRCToken
+
 TAG = 'IRCToken'
 
 
@@ -9,7 +11,7 @@ class TokenFallbackInterface(InterfaceScore):
         pass
 
 
-class IRCToken(IconScoreBase):
+class IRCToken(IconScoreBase, ABCIRCToken):
     _NAME = 'name'
     _SYMBOL = 'symbol'
     _BALANCES = 'balances'

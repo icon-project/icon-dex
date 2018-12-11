@@ -1,7 +1,9 @@
 from iconservice import *
 
+from contracts.interfaces.abc_owned import ABCOwned
 
-class Owned(IconScoreBase):
+
+class Owned(IconScoreBase, ABCOwned):
     _OWNER = 'prev_owner'
     _NEW_OWNER = 'new_owner'
 

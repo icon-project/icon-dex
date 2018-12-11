@@ -1,5 +1,6 @@
 from iconservice import *
 
+from .interfaces.abc_smart_token import ABCSmartToken
 from .irc_token import IRCToken
 from .token_holder import TokenHolder
 from .utils import Utils
@@ -7,7 +8,7 @@ from .utils import Utils
 TAG = 'SmartToken'
 
 
-class SmartToken(IRCToken, TokenHolder):
+class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
     _VERSION = '0.1'
 
     @eventlog
