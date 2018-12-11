@@ -1,5 +1,4 @@
 from iconservice import *
-from contracts.interfaces.iirc_token import IIRCToken
 
 TAG = 'IRCToken'
 
@@ -10,7 +9,7 @@ class TokenFallbackInterface(InterfaceScore):
         pass
 
 
-class IRCToken(IconScoreBase, IIRCToken):
+class IRCToken(IconScoreBase):
     _NAME = 'name'
     _SYMBOL = 'symbol'
     _BALANCES = 'balances'

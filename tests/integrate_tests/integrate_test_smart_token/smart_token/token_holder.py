@@ -2,11 +2,10 @@ from iconservice import *
 
 from .owned import Owned
 from .utils import Utils
-from contracts.interfaces.itoken_holder import ITokenHolder
-from contracts.interfaces.iirc_token import IRCTokenInterface
+from .iirc_token import IRCTokenInterface
 
 
-class TokenHolder(Owned, ITokenHolder):
+class TokenHolder(Owned):
     def __init__(self, db: IconScoreDatabase):
         super().__init__(db)
 

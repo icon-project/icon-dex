@@ -11,11 +11,11 @@ class IcxToken(IRCToken, TokenHolder, IIcxToken):
     # todo: implement transfer method which return boolean
 
     @eventlog
-    def Issuance(self, _amount):
+    def Issuance(self, _amount: int):
         pass
 
     @eventlog
-    def Destruction(self, _amount):
+    def Destruction(self, _amount: int):
         pass
 
     def __init__(self, db: IconScoreDatabase) -> None:

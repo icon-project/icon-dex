@@ -16,4 +16,3 @@ class Utils:
     def not_this(score_address: 'Address', address: 'Address'):
         if score_address == address:
             revert("")
-

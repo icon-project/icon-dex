@@ -1,14 +1,13 @@
 from iconservice import *
 
-from contracts.interfaces.ismart_token import ISmartToken
-from contracts.irc_token.irc_token import IRCToken
-from contracts.utility.token_holder import TokenHolder
-from contracts.utility.utils import Utils
+from .irc_token import IRCToken
+from .token_holder import TokenHolder
+from .utils import Utils
 
 TAG = 'SmartToken'
 
 
-class SmartToken(IRCToken, TokenHolder, ISmartToken):
+class SmartToken(IRCToken, TokenHolder):
     _VERSION = '0.1'
 
     @eventlog

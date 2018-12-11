@@ -3,7 +3,8 @@ from iconservice import *
 
 # noinspection PyPep8Naming
 class IBancorNetwork(ABC):
-    """Bancor Network interface
+    """
+    Bancor Network interface
     """
 
     @abstractmethod
