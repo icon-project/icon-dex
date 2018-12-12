@@ -42,7 +42,7 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
         TokenHolder.on_update(self)
 
     def check_transfer_possibility(self):
-        if not self._transfer_possibility:
+        if not self._transfer_possibility.get():
             revert("This smart token cannot transfer")
 
     @external
@@ -86,3 +86,8 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
 
         self.Destruction(_amount)
         self.Transfer(_from, self.address, _amount, b'None')
+
+    @external
+    def transfer(self, _to: Address, _value: int, _data: bytes = None):
+        self.check_transfer_possibility()
+        IRCToken.transfer(self, _to, _value, _data)

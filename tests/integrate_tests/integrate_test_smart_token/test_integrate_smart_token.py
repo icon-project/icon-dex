@@ -125,6 +125,27 @@ class TestIntegrateSmartToken(TestIntegrateBase):
         actual_transfer_possibility = self._query_score(self.smart_token_address, "getTransferPossibility")
         self.assertEqual(True, actual_transfer_possibility)
 
+    def test_smart_token_transfer(self):
+        token_receiver = create_address()
+        transfer_token = 10
+
+        # success case: transfer 10 smart token to receiver
+        send_tx_params = {"_to": str(token_receiver), "_value": hex(transfer_token)}
+        tx_result = self._call_score(self.smart_token_address, self._owner, "transfer", send_tx_params)
+        self.assertEqual(True, tx_result.status)
+
+        # failure case: try to transfer when transfer possibility is False
+
+        # change transfer possibility
+        send_tx_params = {"_disable": "0x1"}
+        tx_result = self._call_score(self.smart_token_address, self._owner, "disableTransfer", send_tx_params)
+        self.assertEqual(True, tx_result.status)
+
+        # transfer 10 smart token to receiver
+        send_tx_params = {"_to": str(token_receiver), "_value": hex(transfer_token)}
+        tx_result = self._call_score(self.smart_token_address, self._owner, "transfer", send_tx_params)
+        self.assertEqual(False, tx_result.status)
+
     def test_smart_token_issue(self):
         issue_balance = 10 * 10 ** 18
         # failure case: only owner can issue the smart token
