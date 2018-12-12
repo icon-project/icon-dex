@@ -1,10 +1,10 @@
 from iconservice import *
 
-from .proxy_score import ProxyScore
+from ..interfaces.abc_irc_token import ABCIRCToken
+from ..interfaces.abc_token_holder import ABCTokenHolder
+from ..utility.proxy_score import ProxyScore
 from .owned import Owned
 from .utils import Utils
-from .interfaces.abc_token_holder import ABCTokenHolder
-from .interfaces.abc_irc_token import ABCIRCToken
 
 
 class TokenHolder(Owned, ABCTokenHolder):

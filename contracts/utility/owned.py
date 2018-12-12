@@ -1,6 +1,6 @@
 from iconservice import *
 
-from contracts.interfaces.abc_owned import ABCOwned
+from ..interfaces.abc_owned import ABCOwned
 
 
 class Owned(IconScoreBase, ABCOwned):

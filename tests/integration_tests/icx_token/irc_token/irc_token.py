@@ -1,6 +1,5 @@
 from iconservice import *
-
-from .interfaces.abc_irc_token import ABCIRCToken
+from ..interfaces.abc_irc_token import ABCIRCToken
 
 TAG = 'IRCToken'
 

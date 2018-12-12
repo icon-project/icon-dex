@@ -1,9 +1,9 @@
 from iconservice import *
 
-from .interfaces.abc_smart_token import ABCSmartToken
-from .irc_token import IRCToken
-from .token_holder import TokenHolder
-from .utils import Utils
+from ..interfaces.abc_smart_token import ABCSmartToken
+from ..irc_token.irc_token import IRCToken
+from ..utility.token_holder import TokenHolder
+from ..utility.utils import Utils
 
 TAG = 'SmartToken'
 
