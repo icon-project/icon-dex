@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from iconservice import ABC, abstractmethod, Address, IconScoreBase
+from iconservice.iconscore.internal_call import InternalCall
 
 from contracts.utility.proxy_score import ProxyScore
 
@@ -53,12 +54,11 @@ class TestProxyScore(unittest.TestCase):
 
         score = ScoreInterface(score_address, icon_score_base)
 
-        external_call_path = 'iconservice.iconscore.internal_call.InternalCall.other_external_call'
-        with patch(external_call_path) as other_external_call:
+        with patch.object(InternalCall, 'other_external_call') as external_call:
             score.transfer(to_address, value)
 
-            other_external_call.assert_called()
-            call_args = other_external_call.call_args_list[0][0]
+            external_call.assert_called()
+            call_args = external_call.call_args_list[0][0]
             assert call_args[1] is self_address  # from score
             assert call_args[2] is score_address  # to score
             assert call_args[4] == 'transfer'  # function name
