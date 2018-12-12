@@ -17,6 +17,8 @@
 from typing import TYPE_CHECKING, Any
 
 from iconservice import ZERO_SCORE_ADDRESS
+
+from tests.integrate_tests import create_address
 from tests.integrate_tests.test_integrate_base import TestIntegrateBase
 
 if TYPE_CHECKING:
@@ -213,10 +215,11 @@ class TestIntegrateSmartToken(TestIntegrateBase):
         self.assertEqual(0, other_balance_after_destroy)
         self.assertEqual(total_supply_before_destroy - issue_balance, total_supply_after_destroy)
 
-
     def test_smart_token_transfer_ownership(self):
+        new_owner = create_address()
+
         # failure case: only owner can transfer ownership
-        send_tx_params = {"_newOwner": str(self._fee_treasury)}
+        send_tx_params = {"_newOwner": str(new_owner)}
         tx_result = self._call_score(self.smart_token_address, self._genesis, "transferOwnerShip", send_tx_params)
         self.assertEqual(False, tx_result.status)
 
@@ -226,9 +229,13 @@ class TestIntegrateSmartToken(TestIntegrateBase):
         self.assertEqual(False, tx_result.status)
 
         # success case: owner can transfer ownership
-        send_tx_params = {"_newOwner": str(self._fee_treasury)}
+        send_tx_params = {"_newOwner": str(new_owner)}
         tx_result = self._call_score(self.smart_token_address, self._owner, "transferOwnerShip", send_tx_params)
         self.assertEqual(True, tx_result.status)
+
+        # check current owner, ownership can not be transferred until accept ownership
+        actual_owner = self._query_score(self.smart_token_address, "getOwner")
+        self.assertEqual(self._owner, actual_owner)
 
         # failure case: except new owner, no one cannot accept ownership even owner
         tx_result = self._call_score(self.smart_token_address, self._owner, "acceptOwnerShip", {})
@@ -238,9 +245,14 @@ class TestIntegrateSmartToken(TestIntegrateBase):
         self.assertEqual(False, tx_result.status)
 
         # success case: accept ownership
-        tx_result = self._call_score(self.smart_token_address, self._fee_treasury, "acceptOwnerShip", {})
+        tx_result = self._call_score(self.smart_token_address, new_owner, "acceptOwnerShip", {})
         self.assertEqual(True, tx_result.status)
+
+        # check event log
+        self.assertEqual(self._owner, tx_result.event_logs[0].indexed[1])
+        self.assertEqual(new_owner, tx_result.event_logs[0].indexed[2])
 
         # check current owner
         actual_owner = self._query_score(self.smart_token_address, "getOwner")
-        self.assertEqual(self._fee_treasury, actual_owner)
+        self.assertEqual(new_owner, actual_owner)
+

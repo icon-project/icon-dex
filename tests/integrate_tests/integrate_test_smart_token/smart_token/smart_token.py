@@ -51,6 +51,10 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
         self._transfer_possibility.set(not _disable)
 
     @external(readonly=True)
+    def getSmartTokenVersion(self) -> str:
+        return self._version.get()
+
+    @external(readonly=True)
     def getTransferPossibility(self) -> bool:
         return self._transfer_possibility.get()
 
@@ -72,7 +76,7 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
     def destroy(self, _from: Address, _amount: int) -> None:
         Utils.check_amount_is_positive(_amount)
         if self._balances[_from] < _amount:
-            revert("The token amount is insufficient")
+            revert("Out of balance")
         if not self.msg.sender == _from and not self.msg.sender == self._owner.get():
             revert("You are not token holder or smart token owner")
 
