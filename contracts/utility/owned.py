@@ -4,11 +4,9 @@ from contracts.interfaces.abc_owned import ABCOwned
 
 
 class Owned(IconScoreBase, ABCOwned):
-    _OWNER = 'prev_owner'
-    _NEW_OWNER = 'new_owner'
 
     @eventlog(indexed=2)
-    def OwnerUpdate(self, _prevOwner: Address, _newOwner: Address):
+    def OwnerUpdate(self, _prevOwner: 'Address', _newOwner: 'Address'):
         pass
 
     def __init__(self, db: IconScoreDatabase) -> None:
@@ -36,7 +34,7 @@ class Owned(IconScoreBase, ABCOwned):
         return self._new_owner.get()
 
     @external
-    def transferOwnerShip(self, _newOwner: Address):
+    def transferOwnerShip(self, _newOwner: 'Address'):
         self.owner_only()
         if _newOwner == self._owner.get():
             revert("New owner is already owner")

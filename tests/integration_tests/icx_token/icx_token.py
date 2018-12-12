@@ -4,13 +4,11 @@ from .interfaces.abc_icx_token import ABCIcxToken
 from .irc_token import IRCToken
 from .token_holder import TokenHolder
 from .utils import Utils
-from iconservice import *
 
 TAG = 'IcxToken'
 
 
 class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
-    # todo: implement transfer method which return boolean
 
     @eventlog
     def Issuance(self, _amount: int):
@@ -44,7 +42,6 @@ class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
         self._total_supply.set(total_supply + self.msg.value)
 
         self.Issuance(self.msg.value)
-        # todo: fix this event
         self.Transfer(self.address, self.msg.sender, self.msg.value, b'None')
 
     @external

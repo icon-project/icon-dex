@@ -1,9 +1,8 @@
 from iconservice import *
+from .interfaces.abc_owned import ABCOwned
 
 
-class Owned(IconScoreBase):
-    _OWNER = 'prev_owner'
-    _NEW_OWNER = 'new_owner'
+class Owned(IconScoreBase, ABCOwned):
 
     @eventlog(indexed=2)
     def OwnerUpdate(self, _prevOwner: Address, _newOwner: Address):

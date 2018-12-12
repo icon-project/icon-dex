@@ -18,14 +18,14 @@ from typing import TYPE_CHECKING, Any
 
 from iconservice import ZERO_SCORE_ADDRESS
 
-from tests.integrate_tests import create_address
-from tests.integrate_tests.test_integrate_base import TestIntegrateBase
+from tests.integration_tests import create_address
+from tests.integration_tests.test_integrate_base import TestIntegrateBase
 
 if TYPE_CHECKING:
     from iconservice.base.address import Address
 
 
-class TestIntegrateSmartToken(TestIntegrateBase):
+class TestSmartToken(TestIntegrateBase):
     _TOKEN_INITIAL_TOTAL_SUPPLY_WITH_DECIMALS = 10000 * 10 ** 18
 
     def setUp(self):
@@ -38,7 +38,7 @@ class TestIntegrateSmartToken(TestIntegrateBase):
                          "_symbol": self.st_token_symbol,
                          "_initialSupply": self.st_token_init_supply,
                          "_decimals": self.st_token_decimals}
-        deploy_result = self._deploy_score("integrate_test_smart_token/smart_token", deploy_params)
+        deploy_result = self._deploy_score("smart_token", deploy_params)
         self.assertEqual(deploy_result.status, int(True))
         self.smart_token_address = deploy_result.score_address
 

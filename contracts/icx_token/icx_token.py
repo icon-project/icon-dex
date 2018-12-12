@@ -9,7 +9,6 @@ TAG = 'IcxToken'
 
 
 class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
-    # todo: implement transfer method which return boolean
 
     @eventlog
     def Issuance(self, _amount: int):
@@ -43,7 +42,6 @@ class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
         self._total_supply.set(total_supply + self.msg.value)
 
         self.Issuance(self.msg.value)
-        # todo: fix this event about data field
         self.Transfer(self.address, self.msg.sender, self.msg.value, b'None')
 
     @external

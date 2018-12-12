@@ -18,19 +18,19 @@ from typing import TYPE_CHECKING, Any
 
 from iconservice import ZERO_SCORE_ADDRESS
 
-from tests.integrate_tests import create_address
-from tests.integrate_tests.test_integrate_base import TestIntegrateBase
+from tests.integration_tests import create_address
+from tests.integration_tests.test_integrate_base import TestIntegrateBase
 
 if TYPE_CHECKING:
     from iconservice.base.address import Address
 
 
-class TestIntegrateIcxToken(TestIntegrateBase):
+class TestIcxToken(TestIntegrateBase):
     _TOKEN_INITIAL_TOTAL_SUPPLY_WITH_DECIMALS = 10000 * 10 ** 18
 
     def setUp(self):
         super().setUp()
-        deploy_result = self._deploy_score("integrate_test_icx_token/icx_token")
+        deploy_result = self._deploy_score("icx_token")
         self.assertEqual(deploy_result.status, int(True))
         self.icx_token_address = deploy_result.score_address
 
