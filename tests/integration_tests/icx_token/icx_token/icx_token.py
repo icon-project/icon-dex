@@ -49,7 +49,7 @@ class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
 
     @external
     def withdrawTo(self, _amount: int, _to: 'Address'):
-        Utils.check_amount_is_positive(_amount)
+        Utils.check_positive_value(_amount)
         if self._balances[self.msg.sender] < _amount:
             revert("Out of balance")
 
@@ -62,5 +62,5 @@ class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
 
     @external
     def transfer(self, _to: Address, _value: int, _data: bytes = None):
-        Utils.not_this(self.address, _to)
+        Utils.check_not_this(self.address, _to)
         IRCToken.transfer(self, _to, _value, _data)

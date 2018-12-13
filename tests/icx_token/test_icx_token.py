@@ -56,7 +56,7 @@ class TestIcxScore(unittest.TestCase):
 
             self.score.withdrawTo(10, to)
 
-            self.patcher.IconScoreBase.icx.send.assert_called()
+            self.patcher.IconScoreBase.icx.transfer.assert_called()
 
             assert self.score._balances[sender] == 0
             assert self.score._total_supply.get() == 0
