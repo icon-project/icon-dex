@@ -19,8 +19,7 @@ class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
         pass
 
     def __init__(self, db: IconScoreDatabase) -> None:
-        IRCToken.__init__(self, db)
-        TokenHolder.__init__(self, db)
+        super().__init__(db)
 
     def on_install(self) -> None:
         IRCToken.on_install(self, 'icx_token', 'ICX', 0, 18)
@@ -54,10 +53,10 @@ class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
         if self._balances[self.msg.sender] < _amount:
             revert("Out of balance")
 
-        self.icx.send(_to, _amount)
         self._balances[self.msg.sender] -= _amount
         total_supply = self._total_supply.get()
         self._total_supply.set(total_supply - _amount)
+        self.icx.transfer(_to, _amount)
 
         self.Destruction(_amount)
 

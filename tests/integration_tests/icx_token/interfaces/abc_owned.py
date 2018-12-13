@@ -8,7 +8,7 @@ class ABCOwned(ABC):
     """
 
     @abstractmethod
-    def owner(self) -> 'Address':
+    def getOwner(self) -> 'Address':
         """
         Return current SCORE owner
 
