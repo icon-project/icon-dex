@@ -71,6 +71,7 @@ class TestIcxScore(unittest.TestCase):
         # failure case: transfer token to this score (should raise error)
         with patch([(IconScoreBase, 'msg', Message(sender))]):
             self.assertRaises(RevertException, self.icx_token.transfer, self.score_address, 10)
+            IRCToken.transfer.assert_not_called()
 
         # success case: send 10 token to other
         token_receiver = Address.from_string("hx" + "4" * 40)
