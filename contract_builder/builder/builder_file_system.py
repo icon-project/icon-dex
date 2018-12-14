@@ -22,7 +22,7 @@ dir_contracts = path.abspath("..").replace('_builder', 's')
 dir_build = dir_contracts.replace('contracts', 'contract_build')
 
 
-def create_build_dir():
+def _create_build_dir():
     """
     Creates the build dir with checking if it is or not.
     If it exists already, it should be removed at first.
@@ -46,14 +46,14 @@ def build_contracts_on_file_system(contracts: list =None) -> None:
     :param contracts: list of contracts
     :return: None
     """
-    create_build_dir()
+    _create_build_dir()
 
     for c in contracts if contracts is not None else config:
-        create_contract(c)
-        create_dependencies(c, config[c])
+        _create_contract(c)
+        _create_dependencies(c, config[c])
 
 
-def create_contract(contract: str) -> None:
+def _create_contract(contract: str) -> None:
     """
     Creates the contract fully.
     But package.json should be on root directory.
@@ -78,7 +78,7 @@ def create_contract(contract: str) -> None:
     move(dir_package_json, new_dir_package_json)
 
 
-def create_dependencies(contract: str, dependencies: list) -> None:
+def _create_dependencies(contract: str, dependencies: list) -> None:
     """Creates all of dependencies from the file paths.
 
     :param contract: the target contract
@@ -88,7 +88,6 @@ def create_dependencies(contract: str, dependencies: list) -> None:
     new_dir_contract = path.join(dir_build, contract)
 
     for file in dependencies:
-
         path_file = dir_contracts + file
         new_path_file = new_dir_contract + file
 
