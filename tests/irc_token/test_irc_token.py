@@ -22,6 +22,7 @@ class TestIRCToken(unittest.TestCase):
         token_decimals = 18
 
         self.token_owner = Address.from_string("hx" + "2" * 40)
+
         # failure case: total supply is under 0
         with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
             invalid_token_supply = - 1

@@ -19,7 +19,7 @@ class TokenHolder(Owned, ABCTokenHolder):
 
     @external
     def withdrawTokens(self, _token: 'Address', _to: 'Address', _amount: int) -> None:
-        Owned.owner_only(self)
+        self.owner_only()
         Utils.check_positive_value(_amount)
         Utils.check_not_this(self.address, _to)
         Utils.check_valid_address(_to)
