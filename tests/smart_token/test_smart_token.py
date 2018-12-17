@@ -106,12 +106,12 @@ class TestSmartToken(unittest.TestCase):
         with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
             self.assertRaises(RevertException, self.smart_token.destroy, token_holder, 20)
 
-        # failure case: if msg.sender is not from nor owner, should raise error
+        # failure case: if msg.sender is not 'from' nor the owner should raise the error
         eoa_address = Address.from_string("hx" + "4" * 40)
         with patch([(IconScoreBase, 'msg', Message(eoa_address))]):
             self.assertRaises(RevertException, self.smart_token.destroy, token_holder, 10)
 
-        # success case: try token_owner to destroy 5 token from token_holder
+        # success case: try token_owner to destroy 5 tokens from token_holder
         with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
             destroy_amount = 5
             self.smart_token.destroy(token_holder, destroy_amount)
