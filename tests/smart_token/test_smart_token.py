@@ -74,7 +74,7 @@ class TestSmartToken(unittest.TestCase):
             self.smart_token.Issuance.assert_called_with(10)
             self.smart_token.Transfer.assert_called_with(self.score_address, token_receiver, 10, b'None')
 
-        # failure_case: amount is minus value
+        # failure_case: amount is under 0
         with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
             minus_amount = -10
             self.assertRaises(RevertException, self.smart_token.issue, token_receiver, minus_amount)
@@ -98,7 +98,7 @@ class TestSmartToken(unittest.TestCase):
         before_balance = self.smart_token._balances[token_holder]
         before_total_supply = self.smart_token._total_supply.get()
 
-        # failure case: amount is minus value
+        # failure case: amount is under 0
         with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
             self.assertRaises(RevertException, self.smart_token.destroy, token_holder, -10)
 
@@ -106,12 +106,12 @@ class TestSmartToken(unittest.TestCase):
         with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
             self.assertRaises(RevertException, self.smart_token.destroy, token_holder, 20)
 
-        # failure case: if msg.sender is not 'from' nor the owner should raise the error
+        # failure case: msg.sender is not 'from' nor the owner
         eoa_address = Address.from_string("hx" + "4" * 40)
         with patch([(IconScoreBase, 'msg', Message(eoa_address))]):
             self.assertRaises(RevertException, self.smart_token.destroy, token_holder, 10)
 
-        # success case: try token_owner to destroy 5 tokens from token_holder
+        # success case: token_owner destroy 5 tokens from token_holder
         with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
             destroy_amount = 5
             self.smart_token.destroy(token_holder, destroy_amount)
@@ -122,7 +122,7 @@ class TestSmartToken(unittest.TestCase):
             self.smart_token.Destruction.assert_called_with(destroy_amount)
             self.smart_token.Transfer.assert_called_with(token_holder, self.score_address, destroy_amount, b'None')
 
-        # success case: try token_holder to destroy 5 token
+        # success case: token_holder destroy 5 their own token
         with patch([(IconScoreBase, 'msg', Message(token_holder))]):
             destroy_amount = 5
             before_balance = self.smart_token._balances[token_holder]
@@ -140,13 +140,13 @@ class TestSmartToken(unittest.TestCase):
         sender = Address.from_string("hx" + "2" * 40)
         token_receiver = Address.from_string("hx" + "3" * 40)
 
-        # failure case: try to transfer tokens when transfer possibility is False
+        # failure case: transfer tokens when transfer possibility is False
         with patch([(IconScoreBase, 'msg', Message(sender))]):
             self.smart_token._transfer_possibility.set(False)
             self.assertRaises(RevertException, self.smart_token.transfer, token_receiver, 10)
             IRCToken.transfer.assert_not_called()
 
-        # success case: try to transfer tokens when transfer possibility is True
+        # success case: transfer tokens when transfer possibility is True
         self.smart_token._transfer_possibility.set(True)
 
         self.smart_token.transfer(token_receiver, 10)

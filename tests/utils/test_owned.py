@@ -42,7 +42,7 @@ class TestOwned(unittest.TestCase):
         with patch([(IconScoreBase, 'msg', Message(non_owner))]):
             self.assertRaises(RevertException, self.score.transferOwnerShip, new_owner)
 
-        # failure case: try to set new owner as previous owner
+        # failure case: set new owner as previous owner
         with patch([(IconScoreBase, 'msg', Message(self.sender))]):
             self.assertRaises(RevertException, self.score.transferOwnerShip, self.sender)
 
@@ -59,7 +59,6 @@ class TestOwned(unittest.TestCase):
         new_owner = Address.from_string("hx" + "4" * 40)
         with patch([(IconScoreBase, 'msg', Message(self.sender))]):
             self.score.transferOwnerShip(new_owner)
-
         # ### initial setting for test end
 
         # failure case: current owner try to accept ownership ( only new owner can accept ownership)
@@ -72,7 +71,7 @@ class TestOwned(unittest.TestCase):
         with patch([(IconScoreBase, 'msg', Message(another_owner))]):
             self.assertRaises(RevertException, self.score.acceptOwnerShip)
 
-        # success case:
+        # success case: new owner accept ownership
         with patch([(IconScoreBase, 'msg', Message(new_owner))]):
             self.score.acceptOwnerShip()
             self.assertEqual(new_owner, self.score._owner.get())

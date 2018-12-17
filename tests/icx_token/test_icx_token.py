@@ -50,10 +50,10 @@ class TestIcxToken(unittest.TestCase):
         self.icx_token._total_supply.set(10)
 
         with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
-            # failure case: amount is minus value
+            # failure case: amount is under 0
             self.assertRaises(RevertException, self.icx_token.withdrawTo, -1, to)
 
-            # failure case: test if the revert would be called when out of balance
+            # failure case: amount is higher than token holders' total balance
             self.assertRaises(RevertException, self.icx_token.withdrawTo, 20, to)
 
             # success case: withdraw 10 token to 'to'
