@@ -25,9 +25,13 @@ def create_db(address: Address):
     def get(self, key):
         return memory_db.get(key)
 
+    def delete(self, key):
+        del memory_db[key]
+
     context_db = Mock(spec=ContextDatabase)
     context_db.get = get
     context_db.put = put
+    context_db.delete = delete
 
     return IconScoreDatabase(address, context_db)
 
