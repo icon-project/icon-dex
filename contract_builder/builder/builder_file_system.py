@@ -22,7 +22,7 @@ dir_contracts = path.abspath("..").replace('_builder', 's')
 dir_build = dir_contracts.replace('contracts', 'contract_build')
 
 
-def _create_build_dir():
+def _create_build_dir() -> None:
     """
     Creates the build dir with checking if it is or not.
     If it exists already, it should be removed at first.
@@ -30,7 +30,7 @@ def _create_build_dir():
     The directory path is as below.
     /build
 
-    :return:
+    :return: None
     """
     if path.isdir(dir_build):
         rmtree(dir_build)

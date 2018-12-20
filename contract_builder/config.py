@@ -42,7 +42,6 @@ config = {
         "/utility/owned.py",
         "/utility/proxy_score.py",
         "/interfaces/abc_icx_token.py",
-        "/interfaces/abc_icx_token.py",
         "/interfaces/abc_owned.py",
         "/interfaces/abc_smart_token.py",
         "/interfaces/abc_token_holder.py"
@@ -52,7 +51,6 @@ config = {
         "/utility/owned.py",
         "/utility/proxy_score.py",
         "/utility/token_holder.py",
-        "/interfaces/abc_icx_token.py",
         "/interfaces/abc_icx_token.py",
         "/interfaces/abc_owned.py",
         "/interfaces/abc_smart_token.py",
