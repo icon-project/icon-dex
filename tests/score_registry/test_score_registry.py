@@ -1,12 +1,16 @@
 import unittest
+from typing import TYPE_CHECKING
 
 from iconservice import *
 from iconservice.base.exception import RevertException
 from iconservice.base.message import Message
 
-from contracts.utility.owned import Owned
 from contracts.score_registry.score_registry import ScoreRegistry
+from contracts.utility.owned import Owned
 from tests import patch, ScorePatcher, create_db
+
+if TYPE_CHECKING:
+    from iconservice.base.address import Address
 
 
 # noinspection PyUnresolvedReferences
@@ -35,24 +39,24 @@ class TestScoreRegistry(unittest.TestCase):
     def test_getAddressFromBytesName(self):
         # success case: search the registered score address
         registered_score_name_bytes = self.registry_score.SCORE_REGISTRY.encode()
-        actual_address = self.registry_score.getAddressFromBytesName(registered_score_name_bytes)
-        self.assertEqual(self.score_address, actual_address)
+        actual_registered_address = self.registry_score.getAddressFromBytesName(registered_score_name_bytes)
+        self.assertEqual(self.score_address, actual_registered_address)
 
         # success case: search the score address which has not been registered (should return zero score address)
         unregistered_score_name_bytes = self.registry_score.BANCOR_NETWORK.encode()
-        actual_address = self.registry_score.getAddressFromBytesName(unregistered_score_name_bytes)
-        self.assertEqual(ZERO_SCORE_ADDRESS, actual_address)
+        actual_registered_address = self.registry_score.getAddressFromBytesName(unregistered_score_name_bytes)
+        self.assertEqual(ZERO_SCORE_ADDRESS, actual_registered_address)
 
     def test_getAddressFromStringName(self):
         # success case: search the registered score address
         registered_score_name = self.registry_score.SCORE_REGISTRY
-        actual_address = self.registry_score.getAddressFromStringName(registered_score_name)
-        self.assertEqual(self.score_address, actual_address)
+        actual_registered_address = self.registry_score.getAddressFromStringName(registered_score_name)
+        self.assertEqual(self.score_address, actual_registered_address)
 
         # success case: search the score address which has not been registered (should return zero score address)
         unregistered_score_name = self.registry_score.BANCOR_NETWORK
-        actual_address = self.registry_score.getAddressFromStringName(unregistered_score_name)
-        self.assertEqual(ZERO_SCORE_ADDRESS, actual_address)
+        actual_registered_address = self.registry_score.getAddressFromStringName(unregistered_score_name)
+        self.assertEqual(ZERO_SCORE_ADDRESS, actual_registered_address)
 
     def test_registerAddress(self):
         eoa_address = Address.from_string("hx" + "3" * 40)
@@ -70,7 +74,7 @@ class TestScoreRegistry(unittest.TestCase):
                               self.registry_score.registerAddress,
                               bancor_network_id, eoa_address)
 
-            # success case : register bancor network
+            # success case: register bancor network
             self.registry_score.registerAddress(bancor_network_id, bancor_network_address)
             encoded_bancor_network_id = bancor_network_id.encode()
             self.assertEqual(bancor_network_address,

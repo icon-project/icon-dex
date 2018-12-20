@@ -49,6 +49,7 @@ class ScoreRegistry(Owned, ABCScoreRegistry):
         Utils.check_valid_address(_scoreAddress)
         if not _scoreAddress.is_contract:
             revert("only SCORE address can be registered")
+        # todo: consider checking score name is included in score name ids
 
         score_name_bytes = _scoreName.encode(encoding='utf-8')
         self._score_address[score_name_bytes] = _scoreAddress
@@ -64,4 +65,5 @@ class ScoreRegistry(Owned, ABCScoreRegistry):
 
         del self._score_address[score_name_bytes]
 
+        # todo: consider managing eventlog seperately
         self.AddressUpdate(_scoreName, ZERO_SCORE_ADDRESS)

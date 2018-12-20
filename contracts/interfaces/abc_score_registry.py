@@ -6,6 +6,7 @@ class ABCScoreRegistry(ABC):
     """
     ScoreRegistry interface
     """
+    # todo: consider administrating ids using Enum ( cannot import Enum class now )
     SCORE_FEATURES = "ScoreFeatures"
     SCORE_REGISTRY = "ScoreRegistry"
 

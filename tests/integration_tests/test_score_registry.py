@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING, Any
 
 from iconservice import ZERO_SCORE_ADDRESS
+from iconservice.base.address import Address
 
+from contracts.interfaces.abc_score_registry import ABCScoreRegistry
 from tests.integration_tests import create_address
 from tests.integration_tests.test_integrate_base import TestIntegrateBase
-from iconservice.base.address import Address
 
 if TYPE_CHECKING:
     from iconservice.base.address import Address
@@ -62,14 +63,15 @@ class TestScoreRegistry(TestIntegrateBase):
         actual_new_owner = self._query_score(self.score_registry_address, "getNewOwner")
         self.assertEqual(ZERO_SCORE_ADDRESS, actual_new_owner)
 
-        score_registry_id = "ScoreRegistry"
+        # when deploy ScoreRegistry, score registry address should be registered by default
+        score_registry_id = ABCScoreRegistry.SCORE_REGISTRY
         score_registry_address = self._query_score(self.score_registry_address,
                                                    "getAddressFromStringName",
                                                    {"_scoreName": score_registry_id})
         self.assertEqual(self.score_registry_address, score_registry_address)
 
-    def test_score_registry_register_and_unregister(self):
-        bancor_network_id = "BancorNetwork"
+    def test_score_registry_register_and_unregister_address(self):
+        bancor_network_id = ABCScoreRegistry.BANCOR_NETWORK
         bancor_network_address = Address.from_string("cx" + "1" * 40)
 
         # success case: register bancor network address
@@ -78,10 +80,10 @@ class TestScoreRegistry(TestIntegrateBase):
         self.assertEqual(True, tx_result.status)
 
         # check registered bancor network address
-        actual_bancor_network_address = self._query_score(self.score_registry_address,
-                                                          "getAddressFromStringName",
-                                                          {"_scoreName": bancor_network_id})
-        self.assertEqual(bancor_network_address, actual_bancor_network_address)
+        actual_registered_address = self._query_score(self.score_registry_address,
+                                                      "getAddressFromStringName",
+                                                      {"_scoreName": bancor_network_id})
+        self.assertEqual(bancor_network_address, actual_registered_address)
 
         # success case: overwrite bancor network address
         new_bancor_network_address = Address.from_string("cx" + "2" * 40)
@@ -90,10 +92,10 @@ class TestScoreRegistry(TestIntegrateBase):
         self.assertEqual(True, tx_result.status)
 
         # check registered new bancor network address
-        actual_bancor_network_address = self._query_score(self.score_registry_address,
-                                                          "getAddressFromStringName",
-                                                          {"_scoreName": bancor_network_id})
-        self.assertEqual(new_bancor_network_address, actual_bancor_network_address)
+        actual_registered_address = self._query_score(self.score_registry_address,
+                                                      "getAddressFromStringName",
+                                                      {"_scoreName": bancor_network_id})
+        self.assertEqual(new_bancor_network_address, actual_registered_address)
 
         # failure case: non_owner try to register address
         non_owner = create_address()
@@ -118,7 +120,7 @@ class TestScoreRegistry(TestIntegrateBase):
         self.assertEqual(False, tx_result.status)
 
         # failure case: try to unregister address which has not been registered
-        non_registered_id = "BancorForMula"
+        non_registered_id = ABCScoreRegistry.BANCOR_FORMULA
         send_tx_params = {"_scoreName": non_registered_id}
         tx_result = self._call_score(self.score_registry_address, self._owner, "unregisterAddress", send_tx_params)
         self.assertEqual(False, tx_result.status)
@@ -128,7 +130,7 @@ class TestScoreRegistry(TestIntegrateBase):
         tx_result = self._call_score(self.score_registry_address, self._owner, "unregisterAddress", send_tx_params)
         self.assertEqual(True, tx_result.status)
 
-        actual_bancor_network_address = self._query_score(self.score_registry_address,
-                                                          "getAddressFromStringName",
-                                                          {"_scoreName": bancor_network_id})
-        self.assertEqual(ZERO_SCORE_ADDRESS, actual_bancor_network_address)
+        bancor_network_address = self._query_score(self.score_registry_address,
+                                                   "getAddressFromStringName",
+                                                   {"_scoreName": bancor_network_id})
+        self.assertEqual(ZERO_SCORE_ADDRESS, bancor_network_address)
