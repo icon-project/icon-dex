@@ -6,11 +6,17 @@ from unittest.mock import Mock, PropertyMock
 
 from iconservice import Address, IconScoreDatabase, IconScoreBase, revert
 from iconservice.database.db import ContextDatabase
-from iconservice.iconscore.icon_score_event_log import EventLogEmitter
+from iconservice.iconscore.icon_score_constant import CONST_BIT_FLAG, ConstBitFlag
 from iconservice.iconscore.icx import Icx
 
 
 def create_db(address: Address):
+    """
+    Create memory db for IconScoreDatabase
+
+    :param address: score address
+    :return: IconScoreDatabase
+    """
     memory_db = {}
 
     def put(self, key, value):
@@ -26,10 +32,17 @@ def create_db(address: Address):
     return IconScoreDatabase(address, context_db)
 
 
+# patch target format
 Target = namedtuple("Target", "target, attribute, return_value")
 
 
 def patch(targets: List[Target]):
+    """
+    patch multiple targets
+
+    :param targets: a list of Target(target, attribute, return_value)
+    :return: patcher
+    """
     patcher = Patcher()
 
     for target in targets:
@@ -39,6 +52,10 @@ def patch(targets: List[Target]):
 
 
 class Patcher:
+    """
+    patcher for multiple patch
+    """
+
     def __init__(self):
         self.patchers = {}
 
@@ -88,13 +105,16 @@ class Patcher:
 
 
 class ScorePatcher:
+    """
+    patcher for SCORE
+    """
     def __init__(self, score_class):
         self.mocks = None
         self.patcher = Patcher()
         self.searched_class = set()
+        self._append_patch_event_logs(score_class)
         self._append_patch_bases(score_class)
         self.patcher.append(IconScoreBase, 'get_owner', None)
-        self.patcher.append(EventLogEmitter, 'emit_event_log', None)
         self.patcher.append(IconScoreBase, 'icx', Mock(spec=Icx))
         self.patcher.append(revert, None, None)
 
@@ -115,12 +135,19 @@ class ScorePatcher:
 
         self._append_patch_bases(a_class)
 
+    def _append_patch_event_logs(self, a_class):
+        if a_class in self.searched_class:
+            return
+
+        self.searched_class.add(a_class)
+        for name in a_class.__dict__:
+            attr = getattr(a_class, name)
+            if inspect.isfunction(attr) and \
+                    getattr(attr, CONST_BIT_FLAG, 0) & ConstBitFlag.EventLog:
+                self.patcher.append(a_class, attr.__name__, None)
+
     def start(self):
-        self.mocks = self.patcher.start()
-        return self.mocks
+        return self.patcher.start()
 
     def stop(self):
         self.patcher.stop()
-
-    def __getattr__(self, item):
-        return getattr(self.mocks, item)

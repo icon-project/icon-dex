@@ -60,10 +60,10 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
 
     @external
     def issue(self, _to: Address, _amount: int) -> None:
-        Utils.check_amount_is_positive(_amount)
+        Utils.check_positive_value(_amount)
         self.owner_only()
-        Utils.valid_address(_to)
-        Utils.not_this(self.address, _to)
+        Utils.check_valid_address(_to)
+        Utils.check_not_this(self.address, _to)
 
         self._balances[_to] += _amount
         total_supply = self._total_supply.get()
@@ -74,7 +74,7 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
 
     @external
     def destroy(self, _from: Address, _amount: int) -> None:
-        Utils.check_amount_is_positive(_amount)
+        Utils.check_positive_value(_amount)
         if self._balances[_from] < _amount:
             revert("Out of balance")
         if not self.msg.sender == _from and not self.msg.sender == self._owner.get():

@@ -3,12 +3,14 @@ import unittest
 from iconservice import *
 from iconservice.base.exception import RevertException
 from iconservice.base.message import Message
-from iconservice.base.transaction import Transaction
 
 from contracts.icx_token.icx_token import IcxToken
+from contracts.irc_token.irc_token import IRCToken
+from contracts.utility.token_holder import TokenHolder
 from tests import patch, ScorePatcher, create_db
 
 
+# noinspection PyUnresolvedReferences
 class TestIcxScore(unittest.TestCase):
 
     def setUp(self):
@@ -21,8 +23,8 @@ class TestIcxScore(unittest.TestCase):
         sender = Address.from_string("hx" + "2" * 40)
         with patch([(IconScoreBase, 'msg', Message(sender))]):
             self.score.on_install()
-            self.patcher.IRCToken.on_install.assert_called()
-            self.patcher.TokenHolder.on_install.assert_called()
+            IRCToken.on_install.assert_called_with(self.score, 'icx_token', 'ICX', 0, 18)
+            TokenHolder.on_install.assert_called_with(self.score)
 
     def tearDown(self):
         self.patcher.stop()
@@ -31,17 +33,16 @@ class TestIcxScore(unittest.TestCase):
         sender = Address.from_string("hx" + "2" * 40)
         value = 10
 
-        with patch([
-            (IconScoreBase, 'msg', Message(sender, value=value)),
-        ]):
+        with patch([(IconScoreBase, 'msg', Message(sender, value=value))]):
             before_balance = self.score._balances[sender]
             before_total_supply = self.score._total_supply.get()
 
             self.score.deposit()
             assert value == self.score._balances[sender] - before_balance
             assert value == self.score._total_supply.get() - before_total_supply
-            self.patcher.EventLogEmitter.emit_event_log.assert_called()
-            self.patcher.EventLogEmitter.emit_event_log.assert_called()
+
+            self.score.Issuance.assert_called_with(value)
+            self.score.Transfer.assert_called_with(self.score.address, sender, value, b'None')
 
     def test_withdrawTo(self):
         sender = Address.from_string("hx" + "2" * 40)
@@ -56,8 +57,8 @@ class TestIcxScore(unittest.TestCase):
 
             self.score.withdrawTo(10, to)
 
-            self.patcher.IconScoreBase.icx.send.assert_called()
+            self.score.icx.transfer.assert_called_with(to, 10)
 
-            assert self.score._balances[sender] == 0
-            assert self.score._total_supply.get() == 0
-            self.patcher.EventLogEmitter.emit_event_log.assert_called()
+            self.assertEqual(self.score._balances[sender], 0)
+            self.assertEqual(self.score._total_supply.get(), 0)
+            self.score.Destruction.assert_called_with(10)
