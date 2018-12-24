@@ -28,7 +28,13 @@ dir_init = path.join(dir_contracts, '__init__.py')
 class InMemoryZip:
     """
     The basic idea behind was to be able to transfer files or a folder (with sub folders) as zipped memory
-    via the communication to another machine.
+    via communication to another machine.
+
+    Example source of using the builder for in-memory zip:
+
+        target_contract = ["icx_token"]
+        in_memory_zip_as_bytes = InMemoryZip().build(target_contract)
+
     """
 
     def __init__(self, data=None):
@@ -47,7 +53,7 @@ class InMemoryZip:
         self.in_memory.seek(0)
         return self.in_memory.read()
 
-    def build_in_memory_zip(self, contracts: list=None) -> bytes:
+    def build(self, contracts: list=None) -> bytes:
         """
         Builds the target contracts in the memory zip with the list of contracts.
         If it is empty, the target should be all of the contracts in config.
@@ -56,7 +62,7 @@ class InMemoryZip:
         :param contracts: list of contracts
         :return: bytes of the memory file
         """
-        for c in contracts if contracts is not None else config:
+        for c in contracts if contracts else config:
             self._create_contract(c)
             self._create_dependencies(c, config[c])
 
@@ -112,11 +118,11 @@ class InMemoryZip:
 
 def _create_build_dir() -> None:
     """
-    Creates the build dir with checking if it is or not.
+    Creates the contract_build dir with checking if it is or not.
     If it exists already, it should be removed at first.
 
     The directory path is as below.
-    /build
+    /contract_build
 
     :return: None
     """
@@ -124,19 +130,6 @@ def _create_build_dir() -> None:
         rmtree(dir_build)
 
     mkdir(dir_build)
-
-
-if __name__ == '__main__':
-    contracts1 = ["smart_token", "irc_token"]
-
-    # samples
-    mz = InMemoryZip()
-    # builds the in-memory zip of target contacts and returns it as bytes
-    in_memory_zip_as_bytes = mz.build_in_memory_zip(contracts1)
-    # extracts all files in memory below given path;
-    mz.extract()
-    # gets the list of the content
-    print(mz.list_content())
 
 
 
