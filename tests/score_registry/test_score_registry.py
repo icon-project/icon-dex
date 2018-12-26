@@ -63,7 +63,7 @@ class TestScoreRegistry(unittest.TestCase):
                               self.registry_score.registerAddress,
                               bancor_network_id, eoa_address)
 
-            # failure case: score name is not in the SCORE_LIST
+            # failure case: score name is not in the SCORE_KEYS
             non_listed_id = "NON_LISTED_SCORE_ID"
             self.assertRaises(RevertException,
                               self.registry_score.registerAddress,

@@ -33,7 +33,7 @@ class ScoreRegistry(Owned, ABCScoreRegistry):
 
     @external(readonly=True)
     def getScoreIds(self) -> list:
-        return self.SCORE_LIST
+        return self.SCORE_KEYS
 
     @external
     def registerAddress(self, _scoreName: str, _scoreAddress: 'Address'):
@@ -41,8 +41,8 @@ class ScoreRegistry(Owned, ABCScoreRegistry):
         Utils.check_valid_address(_scoreAddress)
         if not _scoreAddress.is_contract:
             revert("only SCORE address can be registered")
-        if _scoreName not in self.SCORE_LIST:
-            revert(f"SCORE name is not in the score list: {_scoreName}")
+        if _scoreName not in self.SCORE_KEYS:
+            revert(f"_scoreName is not in the score key list: {_scoreName}")
 
         self._score_address[_scoreName] = _scoreAddress
         self.AddressUpdate(_scoreName, _scoreAddress)
