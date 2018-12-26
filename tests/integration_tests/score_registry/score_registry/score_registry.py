@@ -54,5 +54,4 @@ class ScoreRegistry(Owned, ABCScoreRegistry):
             revert("this score is not registered")
 
         del self._score_address[_scoreName]
-        # todo: consider managing eventlog seperately
         self.AddressUpdate(_scoreName, ZERO_SCORE_ADDRESS)
