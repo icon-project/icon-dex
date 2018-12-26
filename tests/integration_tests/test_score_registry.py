@@ -66,7 +66,7 @@ class TestScoreRegistry(TestIntegrateBase):
         # when deploy ScoreRegistry, score registry address should be registered by default
         score_registry_id = ABCScoreRegistry.SCORE_REGISTRY
         score_registry_address = self._query_score(self.score_registry_address,
-                                                   "getAddressFromStringName",
+                                                   "getAddress",
                                                    {"_scoreName": score_registry_id})
         self.assertEqual(self.score_registry_address, score_registry_address)
 
@@ -81,7 +81,7 @@ class TestScoreRegistry(TestIntegrateBase):
 
         # check registered bancor network address
         actual_registered_address = self._query_score(self.score_registry_address,
-                                                      "getAddressFromStringName",
+                                                      "getAddress",
                                                       {"_scoreName": bancor_network_id})
         self.assertEqual(bancor_network_address, actual_registered_address)
 
@@ -93,7 +93,7 @@ class TestScoreRegistry(TestIntegrateBase):
 
         # check registered new bancor network address
         actual_registered_address = self._query_score(self.score_registry_address,
-                                                      "getAddressFromStringName",
+                                                      "getAddress",
                                                       {"_scoreName": bancor_network_id})
         self.assertEqual(new_bancor_network_address, actual_registered_address)
 
@@ -131,6 +131,6 @@ class TestScoreRegistry(TestIntegrateBase):
         self.assertEqual(True, tx_result.status)
 
         bancor_network_address = self._query_score(self.score_registry_address,
-                                                   "getAddressFromStringName",
+                                                   "getAddress",
                                                    {"_scoreName": bancor_network_id})
         self.assertEqual(ZERO_SCORE_ADDRESS, bancor_network_address)

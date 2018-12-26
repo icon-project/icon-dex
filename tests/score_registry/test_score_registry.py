@@ -36,26 +36,15 @@ class TestScoreRegistry(unittest.TestCase):
     def tearDown(self):
         self.patcher.stop()
 
-    def test_getAddressFromBytesName(self):
-        # success case: search the registered score address
-        registered_score_name_bytes = self.registry_score.SCORE_REGISTRY.encode()
-        actual_registered_address = self.registry_score.getAddressFromBytesName(registered_score_name_bytes)
-        self.assertEqual(self.score_address, actual_registered_address)
-
-        # success case: search the score address which has not been registered (should return zero score address)
-        unregistered_score_name_bytes = self.registry_score.BANCOR_NETWORK.encode()
-        actual_registered_address = self.registry_score.getAddressFromBytesName(unregistered_score_name_bytes)
-        self.assertEqual(ZERO_SCORE_ADDRESS, actual_registered_address)
-
-    def test_getAddressFromStringName(self):
+    def test_getAddress(self):
         # success case: search the registered score address
         registered_score_name = self.registry_score.SCORE_REGISTRY
-        actual_registered_address = self.registry_score.getAddressFromStringName(registered_score_name)
+        actual_registered_address = self.registry_score.getAddress(registered_score_name)
         self.assertEqual(self.score_address, actual_registered_address)
 
         # success case: search the score address which has not been registered (should return zero score address)
         unregistered_score_name = self.registry_score.BANCOR_NETWORK
-        actual_registered_address = self.registry_score.getAddressFromStringName(unregistered_score_name)
+        actual_registered_address = self.registry_score.getAddress(unregistered_score_name)
         self.assertEqual(ZERO_SCORE_ADDRESS, actual_registered_address)
 
     def test_registerAddress(self):
@@ -74,20 +63,24 @@ class TestScoreRegistry(unittest.TestCase):
                               self.registry_score.registerAddress,
                               bancor_network_id, eoa_address)
 
+            # failure case: score name is not in the SCORE_LIST
+            non_listed_id = "NON_LISTED_SCORE_ID"
+            self.assertRaises(RevertException,
+                              self.registry_score.registerAddress,
+                              non_listed_id, bancor_network_address)
+
             # success case: register bancor network
             self.registry_score.registerAddress(bancor_network_id, bancor_network_address)
-            encoded_bancor_network_id = bancor_network_id.encode()
             self.assertEqual(bancor_network_address,
-                             self.registry_score._score_address[encoded_bancor_network_id])
+                             self.registry_score._score_address[bancor_network_id])
             self.registry_score.AddressUpdate.assert_called_with(bancor_network_id, bancor_network_address)
 
     def test_unregisterAddress(self):
         bancor_network_id = self.registry_score.BANCOR_NETWORK
-        encoded_bancor_network_id = bancor_network_id.encode()
         bancor_network_address = Address.from_string("cx" + "2" * 40)
 
         # register bancor network
-        self.registry_score._score_address[encoded_bancor_network_id] = bancor_network_address
+        self.registry_score._score_address[bancor_network_id] = bancor_network_address
 
         with patch([(IconScoreBase, 'msg', Message(self.registry_owner))]):
             # failure case: try to unregister not recorded score address
@@ -98,6 +91,6 @@ class TestScoreRegistry(unittest.TestCase):
 
             # success case: unregister score address which has been registered
             self.registry_score.unregisterAddress(bancor_network_id)
-            self.assertEqual(None, self.registry_score._score_address[encoded_bancor_network_id])
+            self.assertEqual(None, self.registry_score._score_address[bancor_network_id])
 
             self.registry_score.AddressUpdate.assert_called_with(bancor_network_id, ZERO_SCORE_ADDRESS)

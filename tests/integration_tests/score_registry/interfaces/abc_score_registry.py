@@ -1,5 +1,3 @@
-from enum import Enum
-
 from iconservice import *
 
 
@@ -8,6 +6,7 @@ class ABCScoreRegistry(ABC):
     """
     ScoreRegistry interface
     """
+    # todo: consider administrating ids using Enum ( cannot import Enum class now )
     SCORE_FEATURES = "ScoreFeatures"
     SCORE_REGISTRY = "ScoreRegistry"
 
@@ -19,8 +18,10 @@ class ABCScoreRegistry(ABC):
     BNT_TOKEN = "BNTToken"
     BNT_CONVERTER = "BNTConverter"
 
+    SCORE_LIST = [SCORE_FEATURES, SCORE_REGISTRY, BANCOR_NETWORK, BANCOR_FORMULA, BNT_TOKEN, BNT_CONVERTER]
+
     @abstractmethod
-    def getAddressFromBytesName(self, _scoreName: bytes) -> 'Address':
+    def getAddress(self, _scoreName: bytes) -> 'Address':
         """
         Returns score address
         :param _scoreName:

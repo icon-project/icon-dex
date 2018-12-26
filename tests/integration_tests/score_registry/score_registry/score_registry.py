@@ -25,23 +25,15 @@ class ScoreRegistry(Owned, ABCScoreRegistry):
         Owned.on_update(self)
 
     @external(readonly=True)
-    def getAddressFromBytesName(self, _scoreName: bytes) -> 'Address':
+    def getAddress(self, _scoreName: str) -> 'Address':
         if self._score_address[_scoreName] is None:
             return ZERO_SCORE_ADDRESS
         else:
             return self._score_address[_scoreName]
 
     @external(readonly=True)
-    def getAddressFromStringName(self, _scoreName: str) -> 'Address':
-        score_name_bytes = _scoreName.encode(encoding='utf-8')
-        if self._score_address[score_name_bytes] is None:
-            return ZERO_SCORE_ADDRESS
-        else:
-            return self._score_address[score_name_bytes]
-
-    @external(readonly=True)
     def getScoreIds(self) -> list:
-        return [self.SCORE_FEATURES, self.SCORE_REGISTRY, self.BANCOR_NETWORK, self.BANCOR_FORMULA, self.BNT_TOKEN, self.BNT_CONVERTER]
+        return self.SCORE_LIST
 
     @external
     def registerAddress(self, _scoreName: str, _scoreAddress: 'Address'):
@@ -49,19 +41,18 @@ class ScoreRegistry(Owned, ABCScoreRegistry):
         Utils.check_valid_address(_scoreAddress)
         if not _scoreAddress.is_contract:
             revert("only SCORE address can be registered")
+        if _scoreName not in self.SCORE_LIST:
+            revert(f"SCORE name is not in the score list: {_scoreName}")
 
-        score_name_bytes = _scoreName.encode(encoding='utf-8')
-        self._score_address[score_name_bytes] = _scoreAddress
-
+        self._score_address[_scoreName] = _scoreAddress
         self.AddressUpdate(_scoreName, _scoreAddress)
 
     @external
     def unregisterAddress(self, _scoreName: str):
         self.owner_only()
-        score_name_bytes = _scoreName.encode(encoding='utf-8')
-        if self._score_address[score_name_bytes] is None:
+        if self._score_address[_scoreName] is None:
             revert("this score is not registered")
 
-        del self._score_address[score_name_bytes]
-
+        del self._score_address[_scoreName]
+        # todo: consider managing eventlog seperately
         self.AddressUpdate(_scoreName, ZERO_SCORE_ADDRESS)

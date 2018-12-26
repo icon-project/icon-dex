@@ -18,8 +18,10 @@ class ABCScoreRegistry(ABC):
     BNT_TOKEN = "BNTToken"
     BNT_CONVERTER = "BNTConverter"
 
+    SCORE_LIST = [SCORE_FEATURES, SCORE_REGISTRY, BANCOR_NETWORK, BANCOR_FORMULA, BNT_TOKEN, BNT_CONVERTER]
+
     @abstractmethod
-    def getAddressFromBytesName(self, _scoreName: bytes) -> 'Address':
+    def getAddress(self, _scoreName: bytes) -> 'Address':
         """
         Returns score address
         :param _scoreName:
