@@ -13,16 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
-
-CUR_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT_DIR = os.path.dirname(os.path.abspath(os.path.join(CUR_DIR, '..')))
-if ROOT_DIR not in sys.path:
-    # add parent dir to paths
-    sys.path.append(ROOT_DIR)
-
+from os import path
+from shutil import rmtree
 from argparse import ArgumentParser
+
 from contract_builder.builder.builder_in_memory_zip import InMemoryZip
 
 
@@ -39,30 +33,44 @@ def parse_args() -> 'parser':
         
         Commands:
             <whitespace-delimited lists of contracts>
+            clean 
             
         IF YOU DO NOT INSERT ANY WHITESPACE-DELIMITED LISTS OF CONTRACTS, 
         RANGE OF TARGET CONTRACT IS ALL.
         ''')
 
-    parser.add_argument('contracts', nargs='*', default="")
+    parser.add_argument('command', nargs='*', default="")
     return parser.parse_args()
+
+
+def clean_build_dir() -> None:
+    """Cleans the build directory"""
+    dir_build = 'contract_build'
+    if path.isdir(dir_build):
+        rmtree(dir_build)
+        print("Removed build directory successfully")
+    else:
+        print("No exist build directory")
 
 
 def main():
     """Main procedure"""
-    contracts = parse_args().contracts
-    in_memory_zip = InMemoryZip()
+    command = parse_args().command
+
+    if command and command[0] == "clean":
+        clean_build_dir()
+        return
 
     try:
+        in_memory_zip = InMemoryZip()
         # builds the in-memory zip of target contacts and returns it as bytes
-        in_memory_zip.build(contracts)
+        in_memory_zip.build(command)
         # extracts all files in memory below given path;
         in_memory_zip.extract()
+        print("Built {0} contract successfully".format(command if command else "all"))
     except KeyError as e:
         print('Wrong contract name:', e)
 
 
 if __name__ == '__main__':
     main()
-
-

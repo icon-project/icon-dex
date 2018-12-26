@@ -18,11 +18,11 @@ from io import BytesIO
 from zipfile import ZipFile
 from os import walk, path, mkdir
 from shutil import rmtree
+
 from contract_builder.config import config
 
-dir_contracts = path.abspath("..").replace('_builder', 's')
-dir_build = dir_contracts.replace('contracts', 'contract_build')
-dir_init = path.join(dir_contracts, '__init__.py')
+CONTRACTS_DIR = os.path.dirname(__file__).rsplit('/', 1)[0].replace('_builder', 's')
+BUILD_DIR = CONTRACTS_DIR.replace('contracts', 'contract_build')
 
 
 class InMemoryZip:
@@ -76,7 +76,7 @@ class InMemoryZip:
         :return: None
         """
         _create_build_dir()
-        self.zf.extractall(dir_build)
+        self.zf.extractall(BUILD_DIR)
 
     def list_content(self) -> list:
         """Gets the list of zip files entries (ZipInfo instances)
@@ -94,7 +94,7 @@ class InMemoryZip:
         :return: None
         """
         # Builds the dir of contract
-        dir_contract = path.join(dir_contracts, contract)
+        dir_contract = path.join(CONTRACTS_DIR, contract)
 
         for root, dirs, files in walk(dir_contract):
             for file in files:
@@ -111,8 +111,8 @@ class InMemoryZip:
         :return: None
         """
         for dependency in dependencies:
-            origin_file_path = dir_contracts + dependency
-            new_file_path = contract + dependency
+            origin_file_path = path.join(CONTRACTS_DIR, dependency)
+            new_file_path = path.join(contract, dependency)
             self.zf.write(origin_file_path, new_file_path)
 
 
@@ -126,10 +126,10 @@ def _create_build_dir() -> None:
 
     :return: None
     """
-    if path.isdir(dir_build):
-        rmtree(dir_build)
+    if path.isdir(BUILD_DIR):
+        rmtree(BUILD_DIR)
 
-    mkdir(dir_build)
+    mkdir(BUILD_DIR)
 
 
 
