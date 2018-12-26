@@ -11,54 +11,68 @@ from tests import patch, ScorePatcher, create_db
 
 
 # noinspection PyUnresolvedReferences
-class TestIcxScore(unittest.TestCase):
+class TestIcxToken(unittest.TestCase):
 
     def setUp(self):
         self.patcher = ScorePatcher(IcxToken)
         self.patcher.start()
 
-        score_address = Address.from_string("cx" + "1" * 40)
-        self.score = IcxToken(create_db(score_address))
+        self.score_address = Address.from_string("cx" + "1" * 40)
+        self.icx_token = IcxToken(create_db(self.score_address))
 
-        sender = Address.from_string("hx" + "2" * 40)
-        with patch([(IconScoreBase, 'msg', Message(sender))]):
-            self.score.on_install()
-            IRCToken.on_install.assert_called_with(self.score, 'icx_token', 'ICX', 0, 18)
-            TokenHolder.on_install.assert_called_with(self.score)
+        self.token_owner = Address.from_string("hx" + "2" * 40)
+        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+            self.icx_token.on_install()
+            IRCToken.on_install.assert_called_with(self.icx_token, 'icx_token', 'ICX', 0, 18)
+            TokenHolder.on_install.assert_called_with(self.icx_token)
 
     def tearDown(self):
         self.patcher.stop()
 
     def test_deposit(self):
-        sender = Address.from_string("hx" + "2" * 40)
         value = 10
 
-        with patch([(IconScoreBase, 'msg', Message(sender, value=value))]):
-            before_balance = self.score._balances[sender]
-            before_total_supply = self.score._total_supply.get()
+        with patch([(IconScoreBase, 'msg', Message(self.token_owner, value=value))]):
+            before_balance = self.icx_token._balances[self.token_owner]
+            before_total_supply = self.icx_token._total_supply.get()
 
-            self.score.deposit()
-            assert value == self.score._balances[sender] - before_balance
-            assert value == self.score._total_supply.get() - before_total_supply
+            self.icx_token.deposit()
+            self.assertEqual(value, self.icx_token._balances[self.token_owner] - before_balance)
+            self.assertEqual(value, self.icx_token._total_supply.get() - before_total_supply)
 
-            self.score.Issuance.assert_called_with(value)
-            self.score.Transfer.assert_called_with(self.score.address, sender, value, b'None')
+            self.icx_token.Issuance.assert_called_with(value)
+            self.icx_token.Transfer.assert_called_with(self.icx_token.address, self.token_owner, value, b'None')
 
     def test_withdrawTo(self):
-        sender = Address.from_string("hx" + "2" * 40)
         to = Address.from_string("hx" + "3" * 40)
 
-        self.score._balances[sender] = 10
-        self.score._total_supply.set(10)
+        self.icx_token._balances[self.token_owner] = 10
+        self.icx_token._total_supply.set(10)
 
-        with patch([(IconScoreBase, 'msg', Message(sender))]):
-            # test if the revert would be called when out of balance
-            self.assertRaises(RevertException, self.score.withdrawTo, 20, to)
+        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+            # failure case: amount is under 0
+            self.assertRaises(RevertException, self.icx_token.withdrawTo, -1, to)
 
-            self.score.withdrawTo(10, to)
+            # failure case: amount is higher than token holders' total balance
+            self.assertRaises(RevertException, self.icx_token.withdrawTo, 20, to)
 
-            self.score.icx.transfer.assert_called_with(to, 10)
+            # success case: withdraw 10 token to 'to'
+            self.icx_token.withdrawTo(10, to)
+            self.icx_token.icx.transfer.assert_called_with(to, 10)
 
-            self.assertEqual(self.score._balances[sender], 0)
-            self.assertEqual(self.score._total_supply.get(), 0)
-            self.score.Destruction.assert_called_with(10)
+            self.assertEqual(0, self.icx_token._balances[self.token_owner])
+            self.assertEqual(0, self.icx_token._total_supply.get())
+            self.icx_token.Destruction.assert_called_with(10)
+
+    def test_transfer(self):
+        # failure case: transfer token to this score (should raise error)
+        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+            self.assertRaises(RevertException, self.icx_token.transfer, self.score_address, 10)
+            IRCToken.transfer.assert_not_called()
+
+        # success case: send 10 token to other
+        token_receiver = Address.from_string("hx" + "4" * 40)
+        self.icx_token.transfer(token_receiver, 10)
+
+        IRCToken.transfer.assert_called_with(self.icx_token, token_receiver, 10, None)
+
