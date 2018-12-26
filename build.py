@@ -13,11 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import ArgumentParser
 from os import path
 from shutil import rmtree
-from argparse import ArgumentParser
 
 from contract_builder.builder.builder_in_memory_zip import InMemoryZip
+
+CURRENT_PATH = path.dirname(__file__)
+CONTRACTS_DIR = 'contracts'
+OUTPUT_DIR = 'build'
 
 
 def parse_args() -> 'parser':
@@ -45,9 +49,9 @@ def parse_args() -> 'parser':
 
 def clean_build_dir() -> None:
     """Cleans the build directory"""
-    dir_build = 'contract_build'
-    if path.isdir(dir_build):
-        rmtree(dir_build)
+    output_path = path.join(CURRENT_PATH, OUTPUT_DIR)
+    if path.isdir(output_path):
+        rmtree(output_path)
         print("Removed build directory successfully")
     else:
         print("No exist build directory")
@@ -62,11 +66,11 @@ def main():
         return
 
     try:
-        in_memory_zip = InMemoryZip()
+        in_memory_zip = InMemoryZip(path.join(CURRENT_PATH, CONTRACTS_DIR))
         # builds the in-memory zip of target contacts and returns it as bytes
         in_memory_zip.build(command)
         # extracts all files in memory below given path;
-        in_memory_zip.extract()
+        in_memory_zip.extract(path.join(CURRENT_PATH, OUTPUT_DIR))
         print("Built {0} contract successfully".format(command if command else "all"))
     except KeyError as e:
         print('Wrong contract name:', e)

@@ -21,9 +21,6 @@ from shutil import rmtree
 
 from contract_builder.config import config
 
-CONTRACTS_DIR = os.path.dirname(__file__).rsplit('/', 1)[0].replace('_builder', 's')
-BUILD_DIR = CONTRACTS_DIR.replace('contracts', 'contract_build')
-
 
 class InMemoryZip:
     """
@@ -37,11 +34,12 @@ class InMemoryZip:
 
     """
 
-    def __init__(self, data=None):
+    def __init__(self, input_path,  data=None):
         """Creates an in-memory file (zip archive)
 
         :param data: initial data
         """
+        self.input_path = input_path
         self.in_memory = BytesIO(data)
         self.zf = ZipFile(self.in_memory, mode="w")
 
@@ -68,15 +66,15 @@ class InMemoryZip:
 
         return self.get_data_as_bytes()
 
-    def extract(self) -> None:
+    def extract(self, output_path: str) -> None:
         """
         Extracts all files in memory below given path;
         the underlying zip file module is clever enough to create the necessary path if not existing.
 
         :return: None
         """
-        _create_build_dir()
-        self.zf.extractall(BUILD_DIR)
+        _create_build_dir(output_path)
+        self.zf.extractall(output_path)
 
     def list_content(self) -> list:
         """Gets the list of zip files entries (ZipInfo instances)
@@ -94,7 +92,7 @@ class InMemoryZip:
         :return: None
         """
         # Builds the dir of contract
-        dir_contract = path.join(CONTRACTS_DIR, contract)
+        dir_contract = path.join(self.input_path, contract)
 
         for root, dirs, files in walk(dir_contract):
             for file in files:
@@ -111,12 +109,12 @@ class InMemoryZip:
         :return: None
         """
         for dependency in dependencies:
-            origin_file_path = path.join(CONTRACTS_DIR, dependency)
+            origin_file_path = path.join(self.input_path, dependency)
             new_file_path = path.join(contract, dependency)
             self.zf.write(origin_file_path, new_file_path)
 
 
-def _create_build_dir() -> None:
+def _create_build_dir(output_path: str) -> None:
     """
     Creates the contract_build dir with checking if it is or not.
     If it exists already, it should be removed at first.
@@ -126,10 +124,10 @@ def _create_build_dir() -> None:
 
     :return: None
     """
-    if path.isdir(BUILD_DIR):
-        rmtree(BUILD_DIR)
+    if path.isdir(output_path):
+        rmtree(output_path)
 
-    mkdir(BUILD_DIR)
+    mkdir(output_path)
 
 
 
