@@ -17,6 +17,8 @@
 """IconServiceEngine testcase
 """
 from unittest import TestCase
+from os import path
+from pathlib import Path
 
 from typing import TYPE_CHECKING, Union, Optional, Any
 
@@ -29,6 +31,10 @@ from iconservice.base.address import Address
 from tests.integration_tests import create_address, create_tx_hash, create_block_hash
 from tests.integration_tests import root_clear, create_timestamp, get_score_path
 from tests.integration_tests.in_memory_zip import InMemoryZip
+
+from contract_builder.builder.builder import Builder
+from contract_builder.builder.writer import ZipWriter
+
 
 if TYPE_CHECKING:
     from iconservice.base.address import Address, MalformedAddress
@@ -143,9 +149,15 @@ class TestIntegrateBase(TestCase):
             deploy_data = {'contentType': 'application/tbears', 'content': score_path, 'params': deploy_params}
         else:
             if data is None:
-                mz = InMemoryZip()
-                mz.zip_in_memory(score_path)
-                data = f'0x{mz.data.hex()}'
+                current_path = Path(path.dirname(__file__)).parent.parent
+                contracts_dir = 'contracts'
+                contracts_path = path.join(current_path, contracts_dir)
+
+                builder = Builder(contracts_path, [score_name])
+                zip_writer = ZipWriter()
+                builder.build(zip_writer)
+                hex_contents = zip_writer.to_bytes().hex()
+                data = f'0x{hex_contents}'
             else:
                 data = f'0x{bytes.hex(data)}'
             deploy_data = {'contentType': 'application/zip', 'content': data, 'params': deploy_params}

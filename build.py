@@ -15,13 +15,13 @@
 
 from argparse import ArgumentParser
 from os import path
-from shutil import rmtree
 
-from contract_builder.builder.builder_in_memory_zip import InMemoryZip
+from contract_builder.builder.builder import Builder
+from contract_builder.builder.writer import FileWriter
 
 CURRENT_PATH = path.dirname(__file__)
 CONTRACTS_DIR = 'contracts'
-OUTPUT_DIR = 'build'
+OUTPUT_ROOT_DIR = 'build'
 
 
 def parse_args() -> 'parser':
@@ -32,7 +32,7 @@ def parse_args() -> 'parser':
     parser = ArgumentParser(usage='''
 
     ============================================================================
-    CLI for building DEX contracts on the file system
+    CLI for building DEX contracts to the file system
     ============================================================================
         
         Commands:
@@ -47,33 +47,44 @@ def parse_args() -> 'parser':
     return parser.parse_args()
 
 
-def clean_build_dir() -> None:
-    """Cleans the build directory"""
-    output_path = path.join(CURRENT_PATH, OUTPUT_DIR)
-    if path.isdir(output_path):
-        rmtree(output_path)
+def clean_build_dir(file_writer: FileWriter) -> None:
+    """Cleans output root directory; build
+
+    :param file_writer: FileWrite instance
+    :return: None
+    """
+    if file_writer.clean():
         print("Removed build directory successfully")
     else:
         print("No exist build directory")
 
 
+def write_contracts_to_file_system(file_writer: FileWriter, contracts: list) -> None:
+    """Writes all of the files on path list to the file system
+
+    :param file_writer: FileWrite instance
+    :param contracts: list of contracts
+    :return: None
+    """
+    try:
+        builder = Builder(path.join(CURRENT_PATH, CONTRACTS_DIR), contracts)
+        builder.build(file_writer)
+        print("Built {0} contract successfully".format(contracts if contracts else "all"))
+    except KeyError as e:
+        print('Wrong contract name:', e)
+
+
 def main():
     """Main procedure"""
     command = parse_args().command
+    output_root_path = path.join(CURRENT_PATH, OUTPUT_ROOT_DIR)
+    file_writer = FileWriter(output_root_path)
 
     if command and command[0] == "clean":
-        clean_build_dir()
+        clean_build_dir(file_writer)
         return
 
-    try:
-        in_memory_zip = InMemoryZip(path.join(CURRENT_PATH, CONTRACTS_DIR))
-        # builds the in-memory zip of target contacts and returns it as bytes
-        in_memory_zip.build(command)
-        # extracts all files in memory below given path;
-        in_memory_zip.extract(path.join(CURRENT_PATH, OUTPUT_DIR))
-        print("Built {0} contract successfully".format(command if command else "all"))
-    except KeyError as e:
-        print('Wrong contract name:', e)
+    write_contracts_to_file_system(file_writer, command)
 
 
 if __name__ == '__main__':
