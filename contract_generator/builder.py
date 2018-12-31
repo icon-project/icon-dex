@@ -15,8 +15,8 @@
 
 from os import path, walk
 
-from contract_builder.builder.writer import Writer
-from contract_builder.config import config
+from contract_generator.writer import Writer
+from contract_generator.config import config
 
 
 class Builder:

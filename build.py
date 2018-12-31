@@ -16,8 +16,8 @@
 from argparse import ArgumentParser
 from os import path
 
-from contract_builder.builder.builder import Builder
-from contract_builder.builder.writer import FileWriter
+from contract_generator.builder import Builder
+from contract_generator.writer import FileWriter
 
 CURRENT_PATH = path.dirname(__file__)
 CONTRACTS_DIR = 'contracts'
