@@ -38,18 +38,24 @@ class FileWriter(Writer):
         """
         self.output_root_dir = output_root_dir
 
-    def write(self, path_list: list) -> None:
+    def write(self, contract_list: list) -> None:
         """Writes all of the files on path list to the file system
 
-        :param path_list: contracts path list of tuples
-            ex. [(current_path, new_path), (..), ..]
+        :param contract_list: contracts list composed of contracts in namedtuple
+                    - contract.name is contract name
+                    - contract.path_list is contracts path list in tuples
+                        ex. [(current_file_path, new_file_path), (..), ..]
         :return: None
         """
-        for path_tuple in path_list:
-            cur_file_path = path_tuple[0]
-            new_file_path = path.join(self.output_root_dir, path_tuple[1])
-            makedirs(path.dirname(new_file_path), exist_ok=True)
-            copy(cur_file_path, new_file_path)
+        for contract in contract_list:
+            contract_path = path.join(self.output_root_dir, contract.name)
+            if path.isdir(contract_path):
+                rmtree(contract_path)
+            for path_tuple in contract.path_list:
+                cur_file_path = path_tuple[0]
+                new_file_path = path.join(self.output_root_dir, path_tuple[1])
+                makedirs(path.dirname(new_file_path), exist_ok=True)
+                copy(cur_file_path, new_file_path)
 
     def clean(self) -> bool:
         """Cleans output root directory
@@ -79,7 +85,7 @@ class ZipWriter(Writer):
         else:
             raise ValueError("{0} is wrong compression type".format(compression_as_str))
 
-    def __init__(self, compression: str='ZIP_STORED'):
+    def __init__(self, compression: str = 'ZIP_STORED'):
         """Initializes ZipWriter with setting compression type which default is ZIP_STORED
 
         :param compression: ZIP compression
@@ -87,20 +93,21 @@ class ZipWriter(Writer):
         self.in_memory = BytesIO()
         self.zf = ZipFile(self.in_memory, mode="w", compression=self._convert_compression(compression))
 
-    def write(self, path_list: list) -> None:
+    def write(self, contract_list: list) -> None:
         """
         Builds the target contracts in the memory zip with the list of contracts.
         If it is empty, the target should be all of the contracts in config.
         Returns bytes of the in-memory file
 
-        :param path_list: path list
+        :param contract_list: contracts list having contract namedtuple
         :return: bytes of the memory file
         """
         try:
-            for path_tuple in path_list:
-                cur_file_path = path_tuple[0]
-                new_file_path = path_tuple[1]
-                self.zf.write(cur_file_path, new_file_path)
+            for contract in contract_list:
+                for path_tuple in contract.path_list:
+                    cur_file_path = path_tuple[0]
+                    new_file_path = path_tuple[1]
+                    self.zf.write(cur_file_path, new_file_path)
         finally:
             self.zf.close()
 
