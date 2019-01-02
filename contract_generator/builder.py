@@ -37,10 +37,10 @@ class Builder:
         self._contracts_path = contracts_path
         Contract = namedtuple("Contract", "name path_list")
         for c in contracts if contracts else config:
-            self.contract = Contract(name=c, path_list=[])
-            self._append_contract_on_path_list(c)
-            self._append_dependencies_on_path_list(c, config[c])
-            self.contract_list.append(self.contract)
+            contract = Contract(name=c, path_list=[])
+            self._append_contract_on_path_list(contract)
+            self._append_dependencies_on_path_list(contract, config[c])
+            self.contract_list.append(contract)
 
     def build(self, writer: Writer) -> None:
         """Builds contracts by calling writer's write method
@@ -50,13 +50,13 @@ class Builder:
         """
         writer.write(self.contract_list)
 
-    def _append_contract_on_path_list(self, contract: str) -> None:
+    def _append_contract_on_path_list(self, contract) -> None:
         """Appends the contract and its files on path list as a tuple
 
-        :param contract: contract name
+        :param contract: contract in namedtuple
         :return: None
         """
-        cur_contract_dir = path.join(self._contracts_path, contract)
+        cur_contract_dir = path.join(self._contracts_path, contract.name)
 
         for file_path, dirs, files in walk(cur_contract_dir):
             # Skips for tests dir because of only for testing
@@ -69,22 +69,22 @@ class Builder:
 
                 cur_file_path = path.join(file_path, filename)
                 if filename == 'package.json':
-                    new_file_path = path.join(contract, filename)
+                    new_file_path = path.join(contract.name, filename)
                 else:
-                    new_file_path = cur_file_path.replace(self._contracts_path, str(contract))
+                    new_file_path = cur_file_path.replace(self._contracts_path, str(contract.name))
                 path_tuple = (cur_file_path, new_file_path)
-                self.contract.path_list.append(path_tuple)
+                contract.path_list.append(path_tuple)
 
-    def _append_dependencies_on_path_list(self, contract: str, dependencies: list) -> None:
+    def _append_dependencies_on_path_list(self, contract, dependencies: list) -> None:
         """Appends the contract dependencies on path list as a tuple
 
-        :param contract: contract name
+        :param contract: contract in namedtuple
         :param dependencies: its dependencies list
         :return: None
         """
         for dependency in dependencies:
             cur_file_path = path.join(self._contracts_path, dependency)
-            new_file_path = path.join(contract, dependency)
+            new_file_path = path.join(contract.name, dependency)
             path_tuple = (cur_file_path, new_file_path)
-            self.contract.path_list.append(path_tuple)
+            contract.path_list.append(path_tuple)
 
