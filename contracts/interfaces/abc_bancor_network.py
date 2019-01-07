@@ -9,7 +9,8 @@ class ABCBancorNetwork(ABC):
 
     @abstractmethod
     def convert(self, _path: list, _amount: int, _minReturn) -> int:
-        """converts the token to any other token in the bancor network by following
+        """
+        Converts the token to any other token in the bancor network by following
         a predefined conversion path and transfers the result tokens back to the sender
         note that the converter should already own the source tokens
 
@@ -22,7 +23,8 @@ class ABCBancorNetwork(ABC):
 
     @abstractmethod
     def convertFor(self, _path: list, _amount: int, _minReturn: int, _for: 'Address') -> int:
-        """converts the token to any other token in the bancor network by following
+        """
+        Converts the token to any other token in the bancor network by following
         a predefined conversion path and transfers the result tokens to a target account
         note that the converter should already own the source tokens
 
