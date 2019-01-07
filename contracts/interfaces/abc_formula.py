@@ -7,7 +7,7 @@ class ABCFormula(ABC):
     Formula interface
     """
     @abstractmethod
-    def calculate_purchase_return(self,
+    def calculatePurchaseReturn(self,
                                   _supply: int,
                                   _connector_balance: int,
                                   _connector_weight: int,
@@ -28,7 +28,7 @@ class ABCFormula(ABC):
         pass
 
     @abstractmethod
-    def calculate_sale_return(self,
+    def calculateSaleReturn(self,
                               _supply: int,
                               _connector_balance: int,
                               _connector_weight: int,
@@ -49,7 +49,7 @@ class ABCFormula(ABC):
         pass
 
     @abstractmethod
-    def calculate_cross_connector_return(self,
+    def calculateCrossConnectorReturn(self,
                                          _from_connector_balance: int,
                                          _from_connector_weight: int,
                                          _to_connector_balance: int,
