@@ -27,3 +27,15 @@ class TestUtils(unittest.TestCase):
 
         self.assertRaises(RevertException, Utils.check_not_this, score_address, score_address)
         Utils.check_not_this(score_address, eoa_address)
+
+    def test_safe_sub(self):
+        # verifies successful subtraction
+        x = 2957
+        y = 1740
+        z = Utils.safe_sub(x, y)
+        self.assertEqual(z, x-y)
+
+        # should throw on subtraction with negative result
+        x = 10
+        y = 11
+        self.assertRaises(RevertException, Utils.safe_sub, x, y)
