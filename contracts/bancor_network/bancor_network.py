@@ -10,7 +10,7 @@ from ..utility.token_holder import TokenHolder
 
 TAG = 'BancorNetwork'
 
-# todo: implement event log
+# todo: implement event log: in solidity, there is no event log
 # todo: implement getExpectedReturnByPath
 # todo: implement unit test and integration test
 # todo: implement convertForMultiple
@@ -37,6 +37,14 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
     def getExpectedReturnByPath(self, path: str, _amount: int) -> int:
         pass
 
+    @external(readonly=True)
+    def getRegistry(self) -> str:
+        return str(self._registry_address.get())
+
+    @external(readonly=True)
+    def getIcxTokenRegistered(self, _icxToken: 'Address') -> bool:
+        return self._icx_tokens[_icxToken]
+
     @external
     def setRegistry(self, _registryAddress: 'Address'):
         self.owner_only()
@@ -44,7 +52,6 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
         Utils.check_not_this(self.address, _registryAddress)
 
         self._registry_address.set(_registryAddress)
-        # consider emitting event log
 
     @external
     def registerIcxToken(self, _icxToken: 'Address', _register: bool):
@@ -53,7 +60,6 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
         Utils.check_not_this(self.address, _icxToken)
 
         self._icx_tokens[_icxToken] = _register
-        # consider emitting event log
 
     def _check_valid_path(self, path: list):
         # check the path data
