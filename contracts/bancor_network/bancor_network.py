@@ -1,7 +1,6 @@
 from iconservice import *
 from ..interfaces.abc_bancor_network import ABCBancorNetwork
 from ..interfaces.abc_score_registry import ABCScoreRegistry
-from ..interfaces.abc_converter import ABCConverter
 from ..interfaces.abc_icx_token import ABCIcxToken
 from ..interfaces.abc_smart_token import ABCSmartToken
 from ..interfaces.abc_irc_token import ABCIRCToken
@@ -13,9 +12,8 @@ TAG = 'BancorNetwork'
 
 # todo: implement event log
 # todo: implement getExpectedReturnByPath
-# todo: implement registry related method
-# todo: implement convertForMultiple
 # todo: implement unit test and integration test
+# todo: implement convertForMultiple
 
 
 class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
@@ -41,18 +39,19 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
 
     @external
     def setRegistry(self, _registryAddress: 'Address'):
-        # only owner can register registry
-        # check valid address
-        # check not this
+        self.owner_only()
+        Utils.check_valid_address(_registryAddress)
+        Utils.check_not_this(self.address, _registryAddress)
 
+        self._registry_address.set(_registryAddress)
         # consider emitting event log
-        pass
 
     @external
     def registerIcxToken(self, _icxToken: 'Address', _register: bool):
-        # only owner can register Icx token
-        # check valid address
-        # check not this
+        self.owner_only()
+        Utils.check_valid_address(_icxToken)
+        Utils.check_not_this(self.address, _icxToken)
+
         self._icx_tokens[_icxToken] = _register
         # consider emitting event log
 
@@ -78,8 +77,9 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
 
         icx_token = _path[0]
         if not self._icx_tokens[icx_token]:
-            revert("wrong path, first address should be icx token")
+            revert("wrong path, first address must be icx token")
 
+        # transfer ICX coin to IcxToken SCORE. bancor network will get same amount of icx token instead
         self.icx.transfer(icx_token, icx_amount)
 
         return self._convert_for_internal(converted_path, icx_amount, _minReturn, _for)
@@ -132,20 +132,24 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
             amount_after_converting = to_token.balanceOf(self.address)
             amount = amount_after_converting - amount_before_converting
 
-            data = {}
             from_token = to_token
         return to_token_address, amount
 
-    def check_and_convert_data(self, data: bytes, from_address: 'Address'):
+    @staticmethod
+    def check_and_convert_data(data: bytes, from_address: 'Address'):
         try:
             dict_data = json_loads(data.decode())
         except ValueError as e:
             revert(f"json format error: {e}")
 
+        # todo: need to refactoring
         if "min_return" not in dict_data:
             revert()
         if "path" not in dict_data:
             revert()
+
+        path = dict_data["path"].replace(" ", "").split(",")
+        dict_data["path"] = [Address.from_string(address) for address in path]
 
         if "for" not in dict_data.keys() or dict_data["for"] is None:
             dict_data["for"] = from_address
@@ -154,15 +158,14 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
         return dict_data
 
     def tokenFallback(self, _from: 'Address', _value: int, _data: bytes):
+        # if _data is None, this regard as normal token transfer
         if _data == b'None' or _data is None:
             return
 
         dict_data = self.check_and_convert_data(_data, _from)
+        # check the value of dict_data
         Utils.check_positive_value(dict_data["min_return"])
         Utils.check_valid_address(dict_data["for"])
+        self._check_valid_path(dict_data["path"])
 
-        path = dict_data["path"].replace(" ", "").split(",")
-        converted_path = [Address.from_string(address) for address in path]
-        self._check_valid_path(converted_path)
-
-        self._convert_for_internal(converted_path, _value, dict_data["min_return"], dict_data["for"])
+        self._convert_for_internal(dict_data["path"], _value, dict_data["min_return"], dict_data["for"])
