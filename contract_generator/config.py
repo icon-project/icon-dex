@@ -23,38 +23,44 @@ In case of the key, although not writing on paths, all of its files will be impo
 key: contract name
 value: list of dependency file paths
 
-TODO: If you want to use it, update it correctly by adding contract name and list of dependency file path.
 """
 
 config = {
     "smart_token": [
-        "irc_token/__init__.py",
-        "irc_token/irc_token.py",
         "interfaces/__init__.py",
-        "interfaces/abc_icx_token.py",
         "interfaces/abc_irc_token.py",
+        "interfaces/abc_token_holder.py",
         "interfaces/abc_owned.py",
         "interfaces/abc_smart_token.py",
-        "interfaces/abc_token_holder.py",
+        "irc_token/__init__.py",
+        "irc_token/irc_token.py",
         "utility/__init__.py",
         "utility/owned.py",
-        "utility/proxy_score.py",
         "utility/token_holder.py",
-        "utility/utils.py"
+        "utility/utils.py",
+        "utility/proxy_score.py",
     ],
     "icx_token": [
-        "irc_token/__init__.py",
-        "irc_token/irc_token.py",
         "interfaces/__init__.py",
         "interfaces/abc_icx_token.py",
         "interfaces/abc_irc_token.py",
-        "interfaces/abc_owned.py",
-        "interfaces/abc_smart_token.py",
         "interfaces/abc_token_holder.py",
+        "interfaces/abc_owned.py",
+        "irc_token/__init__.py",
+        "irc_token/irc_token.py",
         "utility/__init__.py",
         "utility/owned.py",
-        "utility/proxy_score.py",
         "utility/token_holder.py",
-        "utility/utils.py"
+        "utility/utils.py",
+        "utility/proxy_score.py",
+    ],
+    "score_registry": [
+        "interfaces/__init__.py",
+        "interfaces/abc_score_registry.py",
+        "interfaces/abc_owned.py",
+        "utility/__init__.py",
+        "utility/owned.py",
+        "utility/utils.py",
+        "utility/proxy_score.py",
     ]
 }
