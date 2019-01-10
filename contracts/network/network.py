@@ -1,5 +1,5 @@
 from iconservice import *
-from ..interfaces.abc_bancor_network import ABCBancorNetwork
+from ..interfaces.abc_network import ABCNetwork
 from ..interfaces.abc_converter import ABCConverter
 from ..interfaces.abc_icx_token import ABCIcxToken
 from ..interfaces.abc_smart_token import ABCSmartToken
@@ -8,13 +8,13 @@ from ..utility.proxy_score import ProxyScore
 from ..utility.utils import Utils
 from ..utility.token_holder import TokenHolder
 
-TAG = 'BancorNetwork'
+TAG = 'Network'
 
 # todo: implement unit test and integration test
 # todo: implement convertForMultiple ( decided not to implement this method)
 
 
-class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
+class Network(IconScoreBase, TokenHolder, ABCNetwork):
     _MAX_CONVERSION_FEE = 1000000
     _MAX_CONVERSION_COUNT = 10
 
@@ -86,7 +86,7 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
         if not self._icx_tokens[icx_token]:
             revert("wrong path, first address must be icx token")
 
-        # transfer ICX coin to IcxToken SCORE. bancor network will get same amount of icx token instead
+        # transfer ICX coin to IcxToken SCORE. network will get same amount of icx token instead
         self.icx.transfer(icx_token, icx_amount)
 
         return self._convert_for_internal(converted_path, icx_amount, _minReturn, _for)
