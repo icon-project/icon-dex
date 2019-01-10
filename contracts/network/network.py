@@ -59,14 +59,14 @@ class Network(IconScoreBase, TokenHolder, ABCNetwork):
         self._icx_tokens[_icxToken] = _register
 
     def _check_valid_path(self, path: list):
-        path_set = {address for i, address in enumerate(path) if i % 2 == 1}
-        if len(path_set) != len(path) // 2:
-            revert("do not support circular path")
-
         # check the path data
         path_len = len(path)
         if not 2 < path_len <= self._MAX_CONVERSION_COUNT * 2 + 1 or not path_len % 2 == 1:
             revert("invalid path")
+
+        path_set = {address for i, address in enumerate(path) if i % 2 == 1}
+        if len(path_set) != path_len // 2:
+            revert("do not support circular path")
 
     @external
     @payable
@@ -92,7 +92,6 @@ class Network(IconScoreBase, TokenHolder, ABCNetwork):
         return self._convert_for_internal(converted_path, icx_amount, _minReturn, _for)
 
     def _convert_for_internal(self, path: list, amount: int, min_return: int, _for: 'Address'):
-        # todo: verify sign address should be placed on this method
         (to_token, amount) = self._convert_by_path(path, amount, min_return, _for)
 
         if self._icx_tokens[to_token]:
@@ -134,7 +133,6 @@ class Network(IconScoreBase, TokenHolder, ABCNetwork):
 
     @staticmethod
     def check_and_convert_bytes_data(data: bytes, from_address: 'Address'):
-        # todo: need to refactoring
         dict_data = json_loads(data.decode())
 
         path = dict_data["path"].replace(" ", "").split(",")
@@ -146,13 +144,17 @@ class Network(IconScoreBase, TokenHolder, ABCNetwork):
             dict_data["for"] = Address.from_string(dict_data["for"])
         return dict_data
 
+    @external
     def tokenFallback(self, _from: 'Address', _value: int, _data: bytes):
-        # if _data is None, this regard as normal token transfer
-        if _data == b'None' or _data is None:
+        # only if the received token is the result of a convert from a converter or request converting, accept it.
+        if _data == b'conversionResult':
             return
 
         dict_data = self.check_and_convert_bytes_data(_data, _from)
         # check the value of dict_data
+        if dict_data["path"][0] != self.msg.sender:
+            revert("wrong access, only token can call this method")
+
         Utils.check_positive_value(dict_data["minReturn"])
         Utils.check_valid_address(dict_data["for"])
         self._check_valid_path(dict_data["path"])
