@@ -1,6 +1,6 @@
 from iconservice import *
 from ..interfaces.abc_bancor_network import ABCBancorNetwork
-from ..interfaces.abc_score_registry import ABCScoreRegistry
+from ..interfaces.abc_converter import ABCConverter
 from ..interfaces.abc_icx_token import ABCIcxToken
 from ..interfaces.abc_smart_token import ABCSmartToken
 from ..interfaces.abc_irc_token import ABCIRCToken
@@ -10,10 +10,8 @@ from ..utility.token_holder import TokenHolder
 
 TAG = 'BancorNetwork'
 
-# todo: implement event log: in solidity, there is no event log
-# todo: implement getExpectedReturnByPath
 # todo: implement unit test and integration test
-# todo: implement convertForMultiple
+# todo: implement convertForMultiple ( decided not to implement this method)
 
 
 class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
@@ -34,8 +32,22 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
         TokenHolder.on_update(self)
 
     @external(readonly=True)
-    def getExpectedReturnByPath(self, path: str, _amount: int) -> int:
-        pass
+    def getExpectedReturnByPath(self, _path: str, _amount: int) -> int:
+        path = _path.replace(" ", "").split(",")
+        converted_path = [Address.from_string(address) for address in path]
+        self._check_valid_path(converted_path)
+        Utils.check_positive_value(_amount)
+
+        amount = _amount
+        from_token = converted_path[0]
+        for i in range(1, len(converted_path), 2):
+            smart_token = converted_path[i]
+            to_token = converted_path[i + 1]
+            converter = self.create_interface_score(smart_token, ProxyScore(ABCConverter))
+            (amount, _) = converter.getReturn(from_token, to_token, amount).values()
+            from_token = to_token
+
+        return amount
 
     @external(readonly=True)
     def getRegistry(self) -> str:
@@ -62,6 +74,10 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
         self._icx_tokens[_icxToken] = _register
 
     def _check_valid_path(self, path: list):
+        path_set = {address for i, address in enumerate(path) if i % 2 == 1}
+        if len(path_set) != len(path) // 2:
+            revert("do not support circular path")
+
         # check the path data
         path_len = len(path)
         if not 2 < path_len <= self._MAX_CONVERSION_COUNT * 2 + 1 or not path_len % 2 == 1:
@@ -90,15 +106,6 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
 
         return self._convert_for_internal(converted_path, icx_amount, _minReturn, _for)
 
-    @external
-    @payable
-    def convertForMultiple(self, _path: str, _amount: str, _minReturn: str, _for: 'Address'):
-        # todo: check the _path data
-        # todo: check the _amount
-
-        # todo: consider to using this method only when 'from' is Icx or not
-        pass
-
     def _convert_for_internal(self, path: list, amount: int, min_return: int, _for: 'Address'):
         # todo: verify sign address should be placed on this method
         (to_token, amount) = self._convert_by_path(path, amount, min_return, _for)
@@ -123,26 +130,25 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
             smart_token_address = path[i]
             to_token_address = path[i+1]
 
-            # todo: implement 'check whitelist'
-
             smart_token = self.create_interface_score(smart_token_address, ProxyScore(ABCSmartToken))
             to_token = self.create_interface_score(to_token_address, ProxyScore(ABCIRCToken))
             converter_address = smart_token.getOwner()
+
             amount_before_converting = to_token.balanceOf(self.address)
-            data["to_token"] = str(to_token_address)
-            data["min_return"] = min_return if i == len(path)-2 else 1
+            data["toToken"] = str(to_token_address)
+            data["minReturn"] = min_return if i == len(path)-2 else 1
             encoded_data = json_dumps(data).encode()
 
             from_token.transfer(converter_address, amount, encoded_data)
 
             amount_after_converting = to_token.balanceOf(self.address)
             amount = amount_after_converting - amount_before_converting
-
             from_token = to_token
+
         return to_token_address, amount
 
     @staticmethod
-    def check_and_convert_data(data: bytes, from_address: 'Address'):
+    def check_and_convert_bytes_data(data: bytes, from_address: 'Address'):
         try:
             dict_data = json_loads(data.decode())
         except ValueError as e:
@@ -150,9 +156,9 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
 
         # todo: need to refactoring
         if "min_return" not in dict_data:
-            revert()
+            revert("")
         if "path" not in dict_data:
-            revert()
+            revert("")
 
         path = dict_data["path"].replace(" ", "").split(",")
         dict_data["path"] = [Address.from_string(address) for address in path]
@@ -168,10 +174,10 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
         if _data == b'None' or _data is None:
             return
 
-        dict_data = self.check_and_convert_data(_data, _from)
+        dict_data = self.check_and_convert_bytes_data(_data, _from)
         # check the value of dict_data
-        Utils.check_positive_value(dict_data["min_return"])
+        Utils.check_positive_value(dict_data["minReturn"])
         Utils.check_valid_address(dict_data["for"])
         self._check_valid_path(dict_data["path"])
 
-        self._convert_for_internal(dict_data["path"], _value, dict_data["min_return"], dict_data["for"])
+        self._convert_for_internal(dict_data["path"], _value, dict_data["minReturn"], dict_data["for"])
