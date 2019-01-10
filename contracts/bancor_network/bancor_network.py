@@ -21,12 +21,9 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
     def __init__(self, db: IconScoreDatabase) -> None:
         super().__init__(db)
         self._icx_tokens = DictDB('icx_tokens', db, value_type=bool)
-        self._registry_address = VarDB('registry_address', db, value_type=Address)
 
-    def on_install(self, _registryAddress: 'Address') -> None:
+    def on_install(self) -> None:
         TokenHolder.on_install(self)
-        Utils.check_valid_address(_registryAddress)
-        self._registry_address.set(_registryAddress)
 
     def on_update(self) -> None:
         TokenHolder.on_update(self)
@@ -50,20 +47,8 @@ class BancorNetwork(IconScoreBase, TokenHolder, ABCBancorNetwork):
         return amount
 
     @external(readonly=True)
-    def getRegistry(self) -> str:
-        return str(self._registry_address.get())
-
-    @external(readonly=True)
     def getIcxTokenRegistered(self, _icxToken: 'Address') -> bool:
         return self._icx_tokens[_icxToken]
-
-    @external
-    def setRegistry(self, _registryAddress: 'Address'):
-        self.owner_only()
-        Utils.check_valid_address(_registryAddress)
-        Utils.check_not_this(self.address, _registryAddress)
-
-        self._registry_address.set(_registryAddress)
 
     @external
     def registerIcxToken(self, _icxToken: 'Address', _register: bool):
