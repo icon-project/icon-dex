@@ -13,7 +13,7 @@ class ProxyScore(type):
     """
 
     @classmethod
-    def _create_class_proxy(mcs, abc_class: T) -> T:
+    def _create_proxy_class(mcs, abc_class: T) -> T:
         """
         Creates an interface SCORE related in given abc class,
 
@@ -23,15 +23,29 @@ class ProxyScore(type):
 
         interface_functions = {}
 
-        for attribute in abc_class.__dict__.values():
+        attributes = dir(abc_class)
+        for attribute_name in attributes:
+            attribute = getattr(abc_class, attribute_name)
             if callable(attribute) \
                     and hasattr(attribute, '__isabstractmethod__') \
                     and attribute.__isabstractmethod__:
-                attribute.__isabstractmethod__ = False
-                interface_functions[attribute.__name__] = interface(attribute)
+                interface_functions[attribute.__name__] = mcs._get_interface_function(attribute)
 
         proxy_name = "%s(%s)" % (mcs.__name__, abc_class.__name__)
         return type(proxy_name, (InterfaceScore, abc_class), interface_functions)
+
+    @classmethod
+    def _get_interface_function(mcs, func):
+        try:
+            cache = mcs.__dict__["_interface_function_cache"]
+        except KeyError:
+            mcs._interface_function_cache = cache = {}
+        try:
+            interface_function = cache[func]
+        except KeyError:
+            cache[func] = interface_function = interface(func)
+            interface_function.__isabstractmethod__ = False
+        return interface_function
 
     def __new__(mcs, abc_class: T) -> T:
         """
@@ -42,11 +56,11 @@ class ProxyScore(type):
         :return: interface SCORE class
         """
         try:
-            cache = mcs.__dict__["_class_proxy_cache"]
+            cache = mcs.__dict__["_proxy_class_cache"]
         except KeyError:
-            mcs._class_proxy_cache = cache = {}
+            mcs._proxy_class_cache = cache = {}
         try:
             proxy_class = cache[abc_class]
         except KeyError:
-            cache[abc_class] = proxy_class = mcs._create_class_proxy(abc_class)
+            cache[abc_class] = proxy_class = mcs._create_proxy_class(abc_class)
         return proxy_class
