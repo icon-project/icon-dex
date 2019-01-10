@@ -134,16 +134,8 @@ class Network(IconScoreBase, TokenHolder, ABCNetwork):
 
     @staticmethod
     def check_and_convert_bytes_data(data: bytes, from_address: 'Address'):
-        try:
-            dict_data = json_loads(data.decode())
-        except ValueError as e:
-            revert(f"json format error: {e}")
-
         # todo: need to refactoring
-        if "min_return" not in dict_data:
-            revert("")
-        if "path" not in dict_data:
-            revert("")
+        dict_data = json_loads(data.decode())
 
         path = dict_data["path"].replace(" ", "").split(",")
         dict_data["path"] = [Address.from_string(address) for address in path]
