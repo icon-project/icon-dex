@@ -6,17 +6,14 @@ from auto_generate.common.constants import MAX_PRECISION
 
 
 coefficients = get_coefficients(NUM_OF_COEFFICIENTS)
-maxExpArray = get_max_exp_array(coefficients,MAX_PRECISION+1)
-maxExpArrayShl = [((maxExpArray[precision]+1)<<(MAX_PRECISION-precision))-1 for precision in range(len(maxExpArray))]
+max_exp_array = get_max_exp_array(coefficients, MAX_PRECISION+1)
+max_exp_array_shl = [((max_exp_array[precision]+1) << (MAX_PRECISION-precision))-1
+                     for precision in range(len(max_exp_array))]
 
+_len = len(hex(max_exp_array_shl[0]))
 
-len1 = len(str(MAX_PRECISION))
-len2 = len(hex(maxExpArrayShl[0]))
+print('    _max_exp_array = [None] * {}'.format(len(max_exp_array)))
+for precision in range(len(max_exp_array)):
+    prefix = '' if MIN_PRECISION <= precision <= MAX_PRECISION else '# '
+    print('    {0:s}_max_exp_array[{1:d}] = {2:#0{3}x}'.format(prefix, precision, max_exp_array_shl[precision], _len))
 
-
-print('    uint256[{}] private maxExpArray;'.format(len(maxExpArray)))
-print('    constructor() public {')
-for precision in range(len(maxExpArray)):
-    prefix = '  ' if MIN_PRECISION <= precision <= MAX_PRECISION else '//'
-    print('    {0:s}  maxExpArray[{1:{2}d}] = {3:#0{4}x};'.format(prefix,precision,len1,maxExpArrayShl[precision],len2))
-print('    }')

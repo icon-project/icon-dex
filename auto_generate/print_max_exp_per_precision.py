@@ -40,7 +40,7 @@ for precision in range(MAX_PRECISION+1):
 print('')
 
 
-print('maxExpArray = [')
+print('max_exp_array = [')
 formatString = '{:s}{:d}{:s}'.format('{:', maxMaxExpLen, 's},')
 for i in range(len(maxExpArray)//NUM_OF_VALUES_PER_ROW):
     items = []

@@ -6,21 +6,24 @@ from auto_generate.common.constants import MIN_PRECISION
 from auto_generate.common.constants import MAX_PRECISION
 
 coefficients = get_coefficients(NUM_OF_COEFFICIENTS)
-maxExpArray = get_max_exp_array(coefficients,MAX_PRECISION+1)
-maxValArray = get_max_val_array(coefficients,maxExpArray)
+max_exp_array = get_max_exp_array(coefficients, MAX_PRECISION+1)
+max_val_array = get_max_val_array(coefficients, max_exp_array)
 
 
-print('module.exports.MIN_PRECISION = {};'.format(MIN_PRECISION))
-print('module.exports.MAX_PRECISION = {};'.format(MAX_PRECISION))
+print('MIN_PRECISION = {}'.format(MIN_PRECISION))
+print('MAX_PRECISION = {}'.format(MAX_PRECISION))
+
+# 0~127
+print('max_exp_array = [')
+for precision in range(len(max_exp_array)):
+    print('    {:40s}  # {:<3d}'.format(hex(max_exp_array[precision])+',', precision))
+print(']')
 
 
-print('module.exports.maxExpArray = [')
-for precision in range(len(maxExpArray)):
-    print('    /* {:3d} */    \'0x{:x}\','.format(precision,maxExpArray[precision]))
-print('];')
+print('max_val_array = [')
+for precision in range(len(max_val_array)):
+    print('    {:40s}  # {:<3d}'.format(hex(max_val_array[precision])+',', precision))
+print(']')
 
 
-print('module.exports.maxValArray = [')
-for precision in range(len(maxValArray)):
-    print('    /* {:3d} */    \'0x{:x}\','.format(precision,maxValArray[precision]))
-print('];')
+

@@ -9,12 +9,12 @@ valueMaxLen = len(hex(coefficients[1]))
 indexMaxLen = len(str(len(coefficients)))
 
 
-print('    function generalExp(uint256 _x, uint8 _precision) internal pure returns (uint256) {')
-print('        uint256 xi = _x;')
-print('        uint256 res = 0;')
+print('        xi = _x')
+print('        res = 0')
+for i in range(1, len(coefficients)):
+    print('        # add x^{1:0{2}d} * ({0:0{2}d}! / {1:0{2}d}!)'.format(len(coefficients), i + 1, indexMaxLen))
+    print('        xi = (xi * _x) >> _precision')
+    print('        res += xi * {0:#0{1}x}'.format(coefficients[i], valueMaxLen))
 print('')
-for i in range(1,len(coefficients)):
-    print('        xi = (xi * _x) >> _precision; res += xi * {0:#0{4}x}; // add x^{1:0{5}d} * ({2:0{5}d}! / {3:0{5}d}!)'.format(coefficients[i],i+1,len(coefficients),i+1,valueMaxLen,indexMaxLen))
-print('')
-print('        return res / 0x{:x} + _x + (ONE << _precision); // divide by {}! and then add x^1 / 1! + x^0 / 0!'.format(coefficients[0],len(coefficients)))
-print('    }')
+print('        # divide by {}! and then add x^1 / 1! + x^0 / 0!'.format(len(coefficients)))
+print('        return res // 0x{:x} + _x + (self._ONE << _precision)'.format(coefficients[0]))
