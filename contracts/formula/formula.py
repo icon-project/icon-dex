@@ -1,4 +1,5 @@
 from iconservice import *
+from iconservice.iconscore.icon_score_base import IconScoreBase
 
 from ..interfaces.abc_formula import ABCFormula
 
@@ -158,6 +159,15 @@ class Formula(IconScoreBase, ABCFormula):
     _max_exp_array[126] = 0x008b380f3558668c46c91c49a2f8e967b9
     _max_exp_array[127] = 0x00857ddf0117efa215952912839f6473e6
 
+    def __init__(self, db: IconScoreBase) -> None:
+        super().__init__(db)
+
+    def on_install(self) -> None:
+        pass
+
+    def on_update(self) -> None:
+        pass
+
     @external(readonly=True)
     def calculatePurchaseReturn(self,
                                   _supply: int,
@@ -187,7 +197,7 @@ class Formula(IconScoreBase, ABCFormula):
 
         # special case if the weight = 100%
         if _connector_weight == self._MAX_WEIGHT:
-            return (_supply * _deposit_amount)/_connector_balance
+            return (_supply * _deposit_amount) // _connector_balance
         base_n = _deposit_amount + _connector_balance
         result, precision = self._power(base_n, _connector_balance, _connector_weight, self._MAX_WEIGHT)
         temp = _supply * result >> precision
@@ -227,13 +237,13 @@ class Formula(IconScoreBase, ABCFormula):
 
         # special case if the weight == 100%
         if _connector_weight == self._MAX_WEIGHT:
-            return (_connector_balance * _sell_amount) / _supply
+            return (_connector_balance * _sell_amount) // _supply
 
         base_d = _supply - _sell_amount
         result, precision = self._power(_supply, base_d, self._MAX_WEIGHT, _connector_weight)
         temp1 = _connector_balance * result
         temp2 = _connector_balance << precision
-        return (temp1 - temp2) / result
+        return (temp1 - temp2) // result
 
     @external(readonly=True)
     def calculateCrossConnectorReturn(self, _from_connector_balance: int, _from_connector_weight: int,
@@ -260,13 +270,13 @@ class Formula(IconScoreBase, ABCFormula):
 
         # special case for equal weights
         if _from_connector_weight == _to_connector_weight:
-            return (_to_connector_balance * _amount) / (_from_connector_balance + _amount)
+            return (_to_connector_balance * _amount) // (_from_connector_balance + _amount)
 
         base_n = _from_connector_balance + _amount
         result, precision = self._power(base_n, _from_connector_balance, _from_connector_weight, _to_connector_weight)
         temp1 = _to_connector_balance * result
         temp2 = _to_connector_balance << precision
-        return (temp1 - temp2) / result
+        return (temp1 - temp2) // result
 
     def _power(self, _base_n: int, _base_d: int, _exp_n: int, _exp_d: int) -> (int, int):
         """
@@ -295,13 +305,13 @@ class Formula(IconScoreBase, ABCFormula):
         if not (_base_n < self.MAX_NUM):
             revert("Invalid input")
 
-        base = _base_n * self._FIXED_1 / _base_d
+        base = _base_n * self._FIXED_1 // _base_d
         if base < self.OPT_LOG_MAX_VAL:
             base_log = self._optimal_log(base)
         else:
             base_log = self._general_log(base)
 
-        base_log_times_exp = base_log * _exp_n / _exp_d
+        base_log_times_exp = base_log * _exp_n // _exp_d
         if base_log_times_exp < self.OPT_EXP_MAX_VAL:
             return self._optimal_exp(base_log_times_exp), self._MAX_PRECISION
         else:
@@ -320,7 +330,7 @@ class Formula(IconScoreBase, ABCFormula):
 
         # If x >= 2, then we compute the integer part of log2(x), which is larger than 0.
         if x >= self._FIXED_2:
-            count = self._floor_log2(x / self._FIXED_1)
+            count = self._floor_log2(x // self._FIXED_1)
             x >> count
             res = count * self._FIXED_1
 
@@ -328,13 +338,13 @@ class Formula(IconScoreBase, ABCFormula):
         if x > self._FIXED_1:
             for i in range(self._MAX_PRECISION, 0, -1):
                 # now 1 < x < 4
-                x = (x * x) / self._FIXED_1
+                x = (x * x) // self._FIXED_1
                 if x >= self._FIXED_2:
                     # now 1 < x < 2
                     x >>= 1
                     res += self._ONE << (i - 1)
 
-        return res * self._LN2_NUMERATOR / self._LN2_DENOMINATOR
+        return res * self._LN2_NUMERATOR // self._LN2_DENOMINATOR
 
     def _floor_log2(self, _n: int) -> int:
         """Compute the largest integer smaller than or equal to the binary logarithm of the input.
@@ -372,7 +382,7 @@ class Formula(IconScoreBase, ABCFormula):
         hi = self._MAX_PRECISION
 
         while lo + 1 < hi:
-            mid = (lo + hi)/2
+            mid = (lo + hi) // 2
             if self._max_exp_array[mid] >= _x:
                 lo = mid
             else:
@@ -399,105 +409,105 @@ class Formula(IconScoreBase, ABCFormula):
         """
         xi = _x
         res = 0
+        # add x^02 * (33! / 02!)
         xi = (xi * _x) >> _precision
-        # add x ^ 02 * (33! / 02!)
         res += xi * 0x3442c4e6074a82f1797f72ac0000000
+        # add x^03 * (33! / 03!)
         xi = (xi * _x) >> _precision
-        # add x ^ 03 * (33! / 03!)
         res += xi * 0x116b96f757c380fb287fd0e40000000
+        # add x^04 * (33! / 04!)
         xi = (xi * _x) >> _precision
-        # add x ^ 04 * (33! / 04!)
         res += xi * 0x045ae5bdd5f0e03eca1ff4390000000
+        # add x^05 * (33! / 05!)
         xi = (xi * _x) >> _precision
-        # add x ^ 05 * (33! / 05!)
         res += xi * 0x00defabf91302cd95b9ffda50000000
+        # add x^06 * (33! / 06!)
         xi = (xi * _x) >> _precision
-        # add x ^ 06 * (33! / 06!)
         res += xi * 0x002529ca9832b22439efff9b8000000
+        # add x^07 * (33! / 07!)
         xi = (xi * _x) >> _precision
-        # add x ^ 07 * (33! / 07!)
         res += xi * 0x00054f1cf12bd04e516b6da88000000
+        # add x^08 * (33! / 08!)
         xi = (xi * _x) >> _precision
-        # add x ^ 08 * (33! / 08!)
         res += xi * 0x0000a9e39e257a09ca2d6db51000000
+        # add x^09 * (33! / 09!)
         xi = (xi * _x) >> _precision
-        # add x ^ 09 * (33! / 09!)
         res += xi * 0x000012e066e7b839fa050c309000000
+        # add x^10 * (33! / 10!)
         xi = (xi * _x) >> _precision
-        # add x ^ 10 * (33! / 10!)
         res += xi * 0x000001e33d7d926c329a1ad1a800000
+        # add x^11 * (33! / 11!)
         xi = (xi * _x) >> _precision
-        # add x ^ 11 * (33! / 11!)
         res += xi * 0x0000002bee513bdb4a6b19b5f800000
+        # add x^12 * (33! / 12!)
         xi = (xi * _x) >> _precision
-        # add x ^ 12 * (33! / 12!)
         res += xi * 0x00000003a9316fa79b88eccf2a00000
+        # add x^13 * (33! / 13!)
         xi = (xi * _x) >> _precision
-        # add x ^ 13 * (33! / 13!)
         res += xi * 0x0000000048177ebe1fa812375200000
+        # add x^14 * (33! / 14!)
         xi = (xi * _x) >> _precision
-        # add x ^ 14 * (33! / 14!)
         res += xi * 0x0000000005263fe90242dcbacf00000
+        # add x^15 * (33! / 15!)
         xi = (xi * _x) >> _precision
-        # add x ^ 15 * (33! / 15!)
         res += xi * 0x000000000057e22099c030d94100000
+        # add x^16 * (33! / 16!)
         xi = (xi * _x) >> _precision
-        # add x ^ 16 * (33! / 16!)
         res += xi * 0x0000000000057e22099c030d9410000
+        # add x^17 * (33! / 17!)
         xi = (xi * _x) >> _precision
-        # add x ^ 17 * (33! / 17!)
         res += xi * 0x00000000000052b6b54569976310000
+        # add x^18 * (33! / 18!)
         xi = (xi * _x) >> _precision
-        # add x ^ 18 * (33! / 18!)
         res += xi * 0x00000000000004985f67696bf748000
+        # add x^19 * (33! / 19!)
         xi = (xi * _x) >> _precision
-        # add x ^ 19 * (33! / 19!)
         res += xi * 0x000000000000003dea12ea99e498000
+        # add x^20 * (33! / 20!)
         xi = (xi * _x) >> _precision
-        # add x ^ 20 * (33! / 20!)
         res += xi * 0x00000000000000031880f2214b6e000
+        # add x^21 * (33! / 21!)
         xi = (xi * _x) >> _precision
-        # add x ^ 21 * (33! / 21!)
         res += xi * 0x000000000000000025bcff56eb36000
+        # add x^22 * (33! / 22!)
         xi = (xi * _x) >> _precision
-        # add x ^ 22 * (33! / 22!)
         res += xi * 0x000000000000000001b722e10ab1000
+        # add x^23 * (33! / 23!)
         xi = (xi * _x) >> _precision
-        # add x ^ 23 * (33! / 23!)
         res += xi * 0x0000000000000000001317c70077000
+        # add x^24 * (33! / 24!)
         xi = (xi * _x) >> _precision
-        # add x ^ 24 * (33! / 24!)
         res += xi * 0x00000000000000000000cba84aafa00
+        # add x^25 * (33! / 25!)
         xi = (xi * _x) >> _precision
-        # add x ^ 25 * (33! / 25!)
         res += xi * 0x00000000000000000000082573a0a00
+        # add x^26 * (33! / 26!)
         xi = (xi * _x) >> _precision
-        # add x ^ 26 * (33! / 26!)
         res += xi * 0x00000000000000000000005035ad900
+        # add x^27 * (33! / 27!)
         xi = (xi * _x) >> _precision
-        # add x ^ 27 * (33! / 27!)
         res += xi * 0x000000000000000000000002f881b00
+        # add x^28 * (33! / 28!)
         xi = (xi * _x) >> _precision
-        # add x ^ 28 * (33! / 28!)
         res += xi * 0x0000000000000000000000001b29340
+        # add x^29 * (33! / 29!)
         xi = (xi * _x) >> _precision
-        # add x ^ 29 * (33! / 29!)
         res += xi * 0x00000000000000000000000000efc40
+        # add x^30 * (33! / 30!)
         xi = (xi * _x) >> _precision
-        # add x ^ 30 * (33! / 30!)
         res += xi * 0x0000000000000000000000000007fe0
+        # add x^31 * (33! / 31!)
         xi = (xi * _x) >> _precision
-        # add x ^ 31 * (33! / 31!)
         res += xi * 0x0000000000000000000000000000420
+        # add x^32 * (33! / 32!)
         xi = (xi * _x) >> _precision
-        # add x ^ 32 * (33! / 32!)
         res += xi * 0x0000000000000000000000000000021
+        # add x^33 * (33! / 33!)
         xi = (xi * _x) >> _precision
-        # add x ^ 33 * (33! / 33!)
         res += xi * 0x0000000000000000000000000000001
 
-        # divide by 33! and then add x ^ 1 / 1! + x ^ 0 / 0!
-        return res / 0x688589cc0e9505e2f2fee5580000000 + _x + (self._ONE << _precision)
+        # divide by 33! and then add x^1 / 1! + x^0 / 0!
+        return res // 0x688589cc0e9505e2f2fee5580000000 + _x + (self._ONE << _precision)
 
     def _optimal_log(self, x: int) -> int:
         """
@@ -515,64 +525,65 @@ class Formula(IconScoreBase, ABCFormula):
         :return:
         """
         res = 0
-        # add 1 / 2 ^ 1
+        # add 1 / 2^1
         if x >= 0xd3094c70f034de4b96ff7d5b6f99fcd8:
             res += 0x40000000000000000000000000000000
-            x = x * self._FIXED_1 / 0xd3094c70f034de4b96ff7d5b6f99fcd8
-        # add 1 / 2 ^ 2
+            x = x * self._FIXED_1 // 0xd3094c70f034de4b96ff7d5b6f99fcd8
+        # add 1 / 2^2
         if x >= 0xa45af1e1f40c333b3de1db4dd55f29a7:
             res += 0x20000000000000000000000000000000
-            x = x * self._FIXED_1 / 0xa45af1e1f40c333b3de1db4dd55f29a7
-        # add 1 / 2 ^ 3
+            x = x * self._FIXED_1 // 0xa45af1e1f40c333b3de1db4dd55f29a7
+        # add 1 / 2^3
         if x >= 0x910b022db7ae67ce76b441c27035c6a1:
             res += 0x10000000000000000000000000000000
-            x = x * self._FIXED_1 / 0x910b022db7ae67ce76b441c27035c6a1
-        # add 1 / 2 ^ 4
+            x = x * self._FIXED_1 // 0x910b022db7ae67ce76b441c27035c6a1
+        # add 1 / 2^4
         if x >= 0x88415abbe9a76bead8d00cf112e4d4a8:
             res += 0x08000000000000000000000000000000
-            x = x * self._FIXED_1 / 0x88415abbe9a76bead8d00cf112e4d4a8
-        # add 1 / 2 ^ 5
+            x = x * self._FIXED_1 // 0x88415abbe9a76bead8d00cf112e4d4a8
+        # add 1 / 2^5
         if x >= 0x84102b00893f64c705e841d5d4064bd3:
             res += 0x04000000000000000000000000000000
-            x = x * self._FIXED_1 / 0x84102b00893f64c705e841d5d4064bd3
-        # add 1 / 2 ^ 6
+            x = x * self._FIXED_1 // 0x84102b00893f64c705e841d5d4064bd3
+        # add 1 / 2^6
         if x >= 0x8204055aaef1c8bd5c3259f4822735a2:
             res += 0x02000000000000000000000000000000
-            x = x * self._FIXED_1 / 0x8204055aaef1c8bd5c3259f4822735a2
-        # add 1 / 2 ^ 7
+            x = x * self._FIXED_1 // 0x8204055aaef1c8bd5c3259f4822735a2
+        # add 1 / 2^7
         if x >= 0x810100ab00222d861931c15e39b44e99:
             res += 0x01000000000000000000000000000000
-            x = x * self._FIXED_1 / 0x810100ab00222d861931c15e39b44e99
-        # add 1 / 2 ^ 8
+            x = x * self._FIXED_1 // 0x810100ab00222d861931c15e39b44e99
+        # add 1 / 2^8
         if x >= 0x808040155aabbbe9451521693554f733:
             res += 0x00800000000000000000000000000000
-            x = x * self._FIXED_1 / 0x808040155aabbbe9451521693554f733
+            x = x * self._FIXED_1 // 0x808040155aabbbe9451521693554f733
 
         z = y = x - self._FIXED_1
-        w = y * y / self._FIXED_1
-        # add y ^ 01 / 01 - y ^ 02 / 02
-        res += z * (0x100000000000000000000000000000000 - y) / 0x100000000000000000000000000000000
-        z = z * w / self._FIXED_1
+        w = y * y // self._FIXED_1
+        # add y^01 / 01 - y^02 / 02
+        res += z * (0x100000000000000000000000000000000 - y) // 0x100000000000000000000000000000000
+        z = z * w // self._FIXED_1
         # add y^03 / 03 - y^04 / 04
-        res += z * (0x0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa - y) / 0x200000000000000000000000000000000
-        z = z * w / self._FIXED_1
+        res += z * (0x0aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa - y) // 0x200000000000000000000000000000000
+        z = z * w // self._FIXED_1
         # add y^05 / 05 - y^06 / 06
-        res += z * (0x099999999999999999999999999999999 - y) / 0x300000000000000000000000000000000
-        z = z * w / self._FIXED_1
+        res += z * (0x099999999999999999999999999999999 - y) // 0x300000000000000000000000000000000
+        z = z * w // self._FIXED_1
         # add y^07 / 07 - y^08 / 08
-        res += z * (0x092492492492492492492492492492492 - y) / 0x400000000000000000000000000000000
-        z = z * w / self._FIXED_1
+        res += z * (0x092492492492492492492492492492492 - y) // 0x400000000000000000000000000000000
+        z = z * w // self._FIXED_1
         # add y^09 / 09 - y^10 / 10
-        res += z * (0x08e38e38e38e38e38e38e38e38e38e38e - y) / 0x500000000000000000000000000000000
-        z = z * w / self._FIXED_1
+        res += z * (0x08e38e38e38e38e38e38e38e38e38e38e - y) // 0x500000000000000000000000000000000
+        z = z * w // self._FIXED_1
         # add y^11 / 11 - y^12 / 12
-        res += z * (0x08ba2e8ba2e8ba2e8ba2e8ba2e8ba2e8b - y) / 0x600000000000000000000000000000000
-        z = z * w / self._FIXED_1
+        res += z * (0x08ba2e8ba2e8ba2e8ba2e8ba2e8ba2e8b - y) // 0x600000000000000000000000000000000
+        z = z * w // self._FIXED_1
         # add y^13 / 13 - y^14 / 14
-        res += z * (0x089d89d89d89d89d89d89d89d89d89d89 - y) / 0x700000000000000000000000000000000
-        z = z * w / self._FIXED_1
+        res += z * (0x089d89d89d89d89d89d89d89d89d89d89 - y) // 0x700000000000000000000000000000000
+        z = z * w // self._FIXED_1
         # add y^15 / 15 - y^16 / 16
-        res += z * (0x088888888888888888888888888888888 - y) / 0x800000000000000000000000000000000
+        res += z * (0x088888888888888888888888888888888 - y) // 0x800000000000000000000000000000000
+
         return res
 
     def _optimal_exp(self, x: int) -> int:
@@ -594,85 +605,85 @@ class Formula(IconScoreBase, ABCFormula):
         # get the input modulo 2^(-3)
         z = y = x % 0x10000000000000000000000000000000
         # add y^02 * (20! / 02!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x10e1b3be415a0000
         # add y^03 * (20! / 03!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x05a0913f6b1e0000
         # add y^04 * (20! / 04!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x0168244fdac78000
         # add y^05 * (20! / 05!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x004807432bc18000
         # add y^06 * (20! / 06!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x000c0135dca04000
         # add y^07 * (20! / 07!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x0001b707b1cdc000
         # add y^08 * (20! / 08!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x000036e0f639b800
         # add y^09 * (20! / 09!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x00000618fee9f800
         # add y^10 * (20! / 10!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x0000009c197dcc00
         # add y^11 * (20! / 11!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x0000000e30dce400
         # add y^12 * (20! / 12!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x000000012ebd1300
         # add y^13 * (20! / 13!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x0000000017499f00
         # add y^14 * (20! / 14!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x0000000001a9d480
         # add y^15 * (20! / 15!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x00000000001c6380
         # add y^16 * (20! / 16!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x000000000001c638
         # add y^17 * (20! / 17!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x0000000000001ab8
         # add y^18 * (20! / 18!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x000000000000017c
         # add y^19 * (20! / 19!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x0000000000000014
         # add y^20 * (20! / 20!)
-        z = z * y / self._FIXED_1
+        z = z * y // self._FIXED_1
         res += z * 0x0000000000000001
         # divide by 20! and then add y^1 / 1! + y^0 / 0!
-        res = res / 0x21c3677c82b40000 + y + self._FIXED_1
+        res = res // 0x21c3677c82b40000 + y + self._FIXED_1
 
-        # multiply by e ^ 2 ^ (-3)
+        # multiply by e^2^(-3)
         if (x & 0x010000000000000000000000000000000) != 0:
-            res = res * 0x1c3d6a24ed82218787d624d3e5eba95f9 / 0x18ebef9eac820ae8682b9793ac6d1e776
-        # multiply by e ^ 2 ^ (-2)
+            res = res * 0x1c3d6a24ed82218787d624d3e5eba95f9 // 0x18ebef9eac820ae8682b9793ac6d1e776
+        # multiply by e^2^(-2)
         if (x & 0x020000000000000000000000000000000) != 0:
-            res = res * 0x18ebef9eac820ae8682b9793ac6d1e778 / 0x1368b2fc6f9609fe7aceb46aa619baed4
-        # multiply by e ^ 2 ^ (-1)
+            res = res * 0x18ebef9eac820ae8682b9793ac6d1e778 // 0x1368b2fc6f9609fe7aceb46aa619baed4
+        # multiply by e^2^(-1)
         if (x & 0x040000000000000000000000000000000) != 0:
-            res = res * 0x1368b2fc6f9609fe7aceb46aa619baed5 / 0x0bc5ab1b16779be3575bd8f0520a9f21f
-        # multiply by e ^ 2 ^ (+0)
+            res = res * 0x1368b2fc6f9609fe7aceb46aa619baed5 // 0x0bc5ab1b16779be3575bd8f0520a9f21f
+        # multiply by e^2^(+0)
         if (x & 0x080000000000000000000000000000000) != 0:
-            res = res * 0x0bc5ab1b16779be3575bd8f0520a9f21e / 0x0454aaa8efe072e7f6ddbab84b40a55c9
-        # multiply by e ^ 2 ^ (+1)
+            res = res * 0x0bc5ab1b16779be3575bd8f0520a9f21e // 0x0454aaa8efe072e7f6ddbab84b40a55c9
+        # multiply by e^2^(+1)
         if (x & 0x100000000000000000000000000000000) != 0:
-            res = res * 0x0454aaa8efe072e7f6ddbab84b40a55c5 / 0x00960aadc109e7a3bf4578099615711ea
-        # multiply by e ^ 2 ^ (+2)
+            res = res * 0x0454aaa8efe072e7f6ddbab84b40a55c5 // 0x00960aadc109e7a3bf4578099615711ea
+        # multiply by e^2^(+2)
         if (x & 0x200000000000000000000000000000000) != 0:
-            res = res * 0x00960aadc109e7a3bf4578099615711d7 / 0x0002bf84208204f5977f9a8cf01fdce3d
-        # multiply by e ^ 2 ^ (+3)
+            res = res * 0x00960aadc109e7a3bf4578099615711d7 // 0x0002bf84208204f5977f9a8cf01fdce3d
+        # multiply by e^2^(+3)
         if (x & 0x400000000000000000000000000000000) != 0:
-            res = res * 0x0002bf84208204f5977f9a8cf01fdc307 / 0x0000003c6ab775dd0b95b4cbee7e65d11
+            res = res * 0x0002bf84208204f5977f9a8cf01fdc307 // 0x0000003c6ab775dd0b95b4cbee7e65d11
 
         return res
