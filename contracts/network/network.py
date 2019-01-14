@@ -1,3 +1,18 @@
+# -*- coding: utf-8 -*-
+# Copyright 2019 ICON Foundation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from iconservice import *
 from ..interfaces.abc_network import ABCNetwork
 from ..interfaces.abc_converter import ABCConverter
@@ -14,7 +29,7 @@ TAG = 'Network'
 # todo: implement convertForMultiple ( decided not to implement this method)
 
 
-class Network(IconScoreBase, TokenHolder, ABCNetwork):
+class Network(TokenHolder, ABCNetwork):
     _MAX_CONVERSION_FEE = 1000000
     _MAX_CONVERSION_COUNT = 10
 
@@ -41,9 +56,9 @@ class Network(IconScoreBase, TokenHolder, ABCNetwork):
             smart_token = converted_path[i]
             to_token = converted_path[i + 1]
             converter = self.create_interface_score(smart_token, ProxyScore(ABCConverter))
-            (amount, _) = converter.getReturn(from_token, to_token, amount).values()
+            amount = converter.getReturn(from_token, to_token, amount)["amount"]
             from_token = to_token
-
+        #todo: check about returning fee
         return amount
 
     @external(readonly=True)
@@ -59,7 +74,6 @@ class Network(IconScoreBase, TokenHolder, ABCNetwork):
         self._icx_tokens[_icxToken] = _register
 
     def _check_valid_path(self, path: list):
-        # check the path data
         path_len = len(path)
         if not 2 < path_len <= self._MAX_CONVERSION_COUNT * 2 + 1 or not path_len % 2 == 1:
             revert("invalid path")
@@ -80,9 +94,11 @@ class Network(IconScoreBase, TokenHolder, ABCNetwork):
         converted_path = [Address.from_string(address) for address in path]
         self._check_valid_path(converted_path)
         Utils.check_positive_value(_minReturn)
+        Utils.check_valid_address(_for)
+        Utils.check_not_this(self.address, _for)
         icx_amount = self.msg.value
 
-        icx_token = _path[0]
+        icx_token = converted_path[0]
         if not self._icx_tokens[icx_token]:
             revert("wrong path, first address must be icx token")
 
@@ -132,14 +148,14 @@ class Network(IconScoreBase, TokenHolder, ABCNetwork):
         return to_token_address, amount
 
     @staticmethod
-    def check_and_convert_bytes_data(data: bytes, from_address: 'Address'):
-        dict_data = json_loads(data.decode())
+    def check_and_convert_bytes_data(data: bytes, token_sender_address: 'Address'):
+        dict_data = json_loads(data.decode(encoding="utf-8"))
 
         path = dict_data["path"].replace(" ", "").split(",")
         dict_data["path"] = [Address.from_string(address) for address in path]
 
         if "for" not in dict_data.keys() or dict_data["for"] is None:
-            dict_data["for"] = from_address
+            dict_data["for"] = token_sender_address
         else:
             dict_data["for"] = Address.from_string(dict_data["for"])
         return dict_data
