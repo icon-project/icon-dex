@@ -14,14 +14,14 @@
 # limitations under the License.
 
 from iconservice import *
-from ..interfaces.abc_network import ABCNetwork
+
 from ..interfaces.abc_converter import ABCConverter
 from ..interfaces.abc_icx_token import ABCIcxToken
-from ..interfaces.abc_smart_token import ABCSmartToken
 from ..interfaces.abc_irc_token import ABCIRCToken
+from ..interfaces.abc_smart_token import ABCSmartToken
 from ..utility.proxy_score import ProxyScore
-from ..utility.utils import Utils
 from ..utility.token_holder import TokenHolder
+from ..utility.utils import Utils
 
 TAG = 'Network'
 
@@ -29,7 +29,7 @@ TAG = 'Network'
 # todo: implement convertForMultiple ( decided not to implement this method)
 
 
-class Network(TokenHolder, ABCNetwork):
+class Network(TokenHolder):
     _MAX_CONVERSION_FEE = 1000000
     _MAX_CONVERSION_COUNT = 10
 

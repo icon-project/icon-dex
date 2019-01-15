@@ -1,21 +1,21 @@
-import unittest
 import json
-from unittest.mock import PropertyMock
-from unittest.mock import Mock
-from json import JSONDecodeError
+import unittest
 from random import SystemRandom
 from typing import TYPE_CHECKING
+from unittest.mock import Mock
+from unittest.mock import PropertyMock
 
 from iconservice import *
-from iconservice.base.exception import RevertException
 from iconservice.base.exception import InvalidParamsException
+from iconservice.base.exception import RevertException
 from iconservice.base.message import Message
-from contracts.utility.proxy_score import ProxyScore
+
+from contracts.interfaces.abc_icx_token import ABCIcxToken
+from contracts.interfaces.abc_irc_token import ABCIRCToken
 from contracts.network.network import Network
+from contracts.utility.proxy_score import ProxyScore
 from contracts.utility.token_holder import TokenHolder
 from contracts.utility.utils import Utils
-from contracts.interfaces.abc_irc_token import ABCIRCToken
-from contracts.interfaces.abc_icx_token import ABCIcxToken
 from tests import patch, ScorePatcher, create_db
 
 if TYPE_CHECKING:
