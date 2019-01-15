@@ -137,7 +137,7 @@ class Network(TokenHolder, ABCNetwork):
             amount_before_converting = to_token.balanceOf(self.address)
             data["toToken"] = str(to_token_address)
             data["minReturn"] = min_return if i == len(path)-2 else 1
-            encoded_data = json_dumps(data).encode()
+            encoded_data = json_dumps(data).encode(encoding='utf-8')
 
             from_token.transfer(converter_address, amount, encoded_data)
 
@@ -149,7 +149,17 @@ class Network(TokenHolder, ABCNetwork):
 
     @staticmethod
     def check_and_convert_bytes_data(data: bytes, token_sender_address: 'Address'):
-        dict_data = json_loads(data.decode(encoding="utf-8"))
+        try:
+            dict_data = json_loads(data.decode(encoding="utf-8"))
+        except UnicodeDecodeError:
+            revert("data's encoding type is invalid. utf-8 is valid encoding type.")
+        except ValueError as e:
+            revert(f"json format error: {e}")
+
+        if "path" not in dict_data.keys():
+            revert("need valid path data")
+        if "minReturn" not in dict_data.keys() or not isinstance(dict_data["minReturn"], int):
+            revert("need valid minReturn data")
 
         path = dict_data["path"].replace(" ", "").split(",")
         dict_data["path"] = [Address.from_string(address) for address in path]

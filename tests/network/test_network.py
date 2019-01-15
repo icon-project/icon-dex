@@ -92,7 +92,7 @@ class TestNetwork(unittest.TestCase):
         invalid_json_format["minReturn"] = 10
         stringed_invalid_json_format = "[" + json.dumps(invalid_json_format) + "}"
         encoded_invalid_json_format = stringed_invalid_json_format.encode(encoding="utf-8")
-        self.assertRaises(JSONDecodeError, self.network_score.check_and_convert_bytes_data, encoded_invalid_json_format,
+        self.assertRaises(RevertException, self.network_score.check_and_convert_bytes_data, encoded_invalid_json_format,
                           self.network_owner)
 
         # failure case: input data which is not decoded to utf-8
@@ -105,7 +105,7 @@ class TestNetwork(unittest.TestCase):
         valid_json_format["minReturn"] = 10
         stringed_valid_json_format = json.dumps(valid_json_format)
         cp037_encoded_valid_json_format = stringed_valid_json_format.encode(encoding='cp037')
-        self.assertRaises(UnicodeDecodeError,
+        self.assertRaises(RevertException,
                           self.network_score.check_and_convert_bytes_data,
                           cp037_encoded_valid_json_format,
                           self.network_owner)
@@ -134,6 +134,20 @@ class TestNetwork(unittest.TestCase):
         stringed_valid_json_format = json.dumps(json_format)
         encoded_valid_json_format = stringed_valid_json_format.encode(encoding='utf-8')
         self.assertRaises(InvalidParamsException,
+                          self.network_score.check_and_convert_bytes_data,
+                          encoded_valid_json_format,
+                          self.network_owner)
+
+        # failure case: input string type minReturn
+        json_format = dict()
+        json_format["path"] = "{0},{1},{2}".format(str(self.connector_token_list[0]),
+                                                   str(self.smart_token_address_list[0]),
+                                                   str(self.connector_token_list[1]))
+        json_format["for"] = str(self.network_owner)
+        json_format["minReturn"] = "10"
+        stringed_valid_json_format = json.dumps(json_format)
+        encoded_valid_json_format = stringed_valid_json_format.encode(encoding='utf-8')
+        self.assertRaises(RevertException,
                           self.network_score.check_and_convert_bytes_data,
                           encoded_valid_json_format,
                           self.network_owner)
@@ -257,11 +271,11 @@ class TestNetwork(unittest.TestCase):
         # failure case: input None data to the _data
         with patch([(IconScoreBase, 'msg', Message(self.connector_token_list[0])),
                     (Network, '_convert_for_internal', PropertyMock())]):
-            self.assertRaises(Exception,
+            self.assertRaises(RevertException,
                               self.network_score.tokenFallback,
                               from_address, value, b'None')
 
-            self.assertRaises(Exception,
+            self.assertRaises(AttributeError,
                               self.network_score.tokenFallback,
                               from_address, value, None)
 
