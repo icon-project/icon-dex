@@ -25,8 +25,11 @@ from ..utility.utils import Utils
 
 TAG = 'Network'
 
-# todo: implement unit test and integration test
-# todo: implement convertForMultiple ( decided not to implement this method)
+# interface SCOREs
+IRCToken = ProxyScore(ABCIRCToken)
+IcxToken = ProxyScore(ABCIcxToken)
+SmartToken = ProxyScore(ABCSmartToken)
+Converter = ProxyScore(ABCConverter)
 
 
 class Network(TokenHolder):
@@ -51,27 +54,44 @@ class Network(TokenHolder):
         Utils.check_positive_value(_amount)
 
         amount = _amount
-        from_token = converted_path[0]
+        from_token_address = converted_path[0]
         for i in range(1, len(converted_path), 2):
-            smart_token = converted_path[i]
-            to_token = converted_path[i + 1]
-            converter = self.create_interface_score(smart_token, ProxyScore(ABCConverter))
-            amount = converter.getReturn(from_token, to_token, amount)["amount"]
-            from_token = to_token
-        #todo: check about returning fee
+            to_token_address = converted_path[i + 1]
+            # converted_path[i] is smart token address
+            smart_token = self.create_interface_score(converted_path[i], SmartToken)
+            converter = self.create_interface_score(smart_token.getOwner(), Converter)
+
+            amount = converter.getReturn(from_token_address, to_token_address, amount)["amount"]
+            from_token_address = to_token_address
+        #todo: consider about returning fee (in solidity, return amount and fee)
         return amount
 
     @external(readonly=True)
     def getIcxTokenRegistered(self, _icxToken: 'Address') -> bool:
         return self._icx_tokens[_icxToken]
 
-    @external
-    def registerIcxToken(self, _icxToken: 'Address', _register: bool):
-        self.owner_only()
-        Utils.check_valid_address(_icxToken)
-        Utils.check_not_this(self.address, _icxToken)
+    @staticmethod
+    def check_and_convert_bytes_data(data: bytes, token_sender_address: 'Address'):
+        try:
+            dict_data = json_loads(data.decode(encoding="utf-8"))
+        except UnicodeDecodeError:
+            revert("data's encoding type is invalid. utf-8 is valid encoding type.")
+        except ValueError as e:
+            revert(f"json format error: {e}")
 
-        self._icx_tokens[_icxToken] = _register
+        if "path" not in dict_data.keys():
+            revert("need valid path data")
+        if "minReturn" not in dict_data.keys() or not isinstance(dict_data["minReturn"], int):
+            revert("need valid minReturn data")
+
+        path = dict_data["path"].replace(" ", "").split(",")
+        dict_data["path"] = [Address.from_string(address) for address in path]
+
+        if "for" not in dict_data.keys() or dict_data["for"] is None:
+            dict_data["for"] = token_sender_address
+        else:
+            dict_data["for"] = Address.from_string(dict_data["for"])
+        return dict_data
 
     def _check_valid_path(self, path: list):
         path_len = len(path)
@@ -81,6 +101,31 @@ class Network(TokenHolder):
         path_set = {address for i, address in enumerate(path) if i % 2 == 1}
         if len(path_set) != path_len // 2:
             revert("do not support circular path")
+
+    @external
+    def registerIcxToken(self, _icxToken: 'Address', _register: bool):
+        self.owner_only()
+        Utils.check_valid_address(_icxToken)
+        Utils.check_not_this(self.address, _icxToken)
+
+        self._icx_tokens[_icxToken] = _register
+
+    @external
+    def tokenFallback(self, _from: 'Address', _value: int, _data: bytes):
+        # only if the received token is the result of a convert from a converter or request converting, accept it.
+        if _data == b'conversionResult':
+            return
+
+        dict_data = self.check_and_convert_bytes_data(_data, _from)
+        # check the value of dict_data
+        if dict_data["path"][0] != self.msg.sender:
+            revert("wrong access, only token can call this method")
+
+        Utils.check_positive_value(dict_data["minReturn"])
+        Utils.check_valid_address(dict_data["for"])
+        self._check_valid_path(dict_data["path"])
+
+        self._convert_for_internal(dict_data["path"], _value, dict_data["minReturn"], dict_data["for"])
 
     @external
     @payable
@@ -108,30 +153,30 @@ class Network(TokenHolder):
         return self._convert_for_internal(converted_path, icx_amount, _minReturn, _for)
 
     def _convert_for_internal(self, path: list, amount: int, min_return: int, _for: 'Address'):
-        (to_token, amount) = self._convert_by_path(path, amount, min_return, _for)
+        (to_token_address, amount) = self._convert_by_path(path, amount, min_return, _for)
 
-        if self._icx_tokens[to_token]:
-            icx_token = self.create_interface_score(to_token, ProxyScore(ABCIcxToken))
+        if self._icx_tokens[to_token_address]:
+            icx_token = self.create_interface_score(to_token_address, IcxToken)
             icx_token.withdrawTo(amount, _for)
         else:
-            token = self.create_interface_score(to_token, ProxyScore(ABCIRCToken))
+            token = self.create_interface_score(to_token_address, IRCToken)
             token.transfer(_for, amount, b'None')
 
         return amount
 
     def _convert_by_path(self, path: list, amount: int, min_return: int, _for: 'Address'):
         # define from and to token address
-        from_token_address = path[0]
         to_token_address = ZERO_SCORE_ADDRESS
-        from_token = self.create_interface_score(from_token_address, ProxyScore(ABCIRCToken))
+        from_token_address = path[0]
+        from_token = self.create_interface_score(from_token_address, IRCToken)
 
-        data = {}
+        data = dict()
         for i in range(1, len(path), 2):
             smart_token_address = path[i]
             to_token_address = path[i+1]
 
-            smart_token = self.create_interface_score(smart_token_address, ProxyScore(ABCSmartToken))
-            to_token = self.create_interface_score(to_token_address, ProxyScore(ABCIRCToken))
+            to_token = self.create_interface_score(to_token_address, IRCToken)
+            smart_token = self.create_interface_score(smart_token_address, SmartToken)
             converter_address = smart_token.getOwner()
 
             amount_before_converting = to_token.balanceOf(self.address)
@@ -146,43 +191,3 @@ class Network(TokenHolder):
             from_token = to_token
 
         return to_token_address, amount
-
-    @staticmethod
-    def check_and_convert_bytes_data(data: bytes, token_sender_address: 'Address'):
-        try:
-            dict_data = json_loads(data.decode(encoding="utf-8"))
-        except UnicodeDecodeError:
-            revert("data's encoding type is invalid. utf-8 is valid encoding type.")
-        except ValueError as e:
-            revert(f"json format error: {e}")
-
-        if "path" not in dict_data.keys():
-            revert("need valid path data")
-        if "minReturn" not in dict_data.keys() or not isinstance(dict_data["minReturn"], int):
-            revert("need valid minReturn data")
-
-        path = dict_data["path"].replace(" ", "").split(",")
-        dict_data["path"] = [Address.from_string(address) for address in path]
-
-        if "for" not in dict_data.keys() or dict_data["for"] is None:
-            dict_data["for"] = token_sender_address
-        else:
-            dict_data["for"] = Address.from_string(dict_data["for"])
-        return dict_data
-
-    @external
-    def tokenFallback(self, _from: 'Address', _value: int, _data: bytes):
-        # only if the received token is the result of a convert from a converter or request converting, accept it.
-        if _data == b'conversionResult':
-            return
-
-        dict_data = self.check_and_convert_bytes_data(_data, _from)
-        # check the value of dict_data
-        if dict_data["path"][0] != self.msg.sender:
-            revert("wrong access, only token can call this method")
-
-        Utils.check_positive_value(dict_data["minReturn"])
-        Utils.check_valid_address(dict_data["for"])
-        self._check_valid_path(dict_data["path"])
-
-        self._convert_for_internal(dict_data["path"], _value, dict_data["minReturn"], dict_data["for"])

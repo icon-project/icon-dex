@@ -344,8 +344,8 @@ class TestNetwork(unittest.TestCase):
         for_address = Address.from_string("hx" + "a" * 40)
 
         # this method substitutes 'create_interface_score' method of IconScoreBase
-        def create_interface_score_mock(token_address, proxy_score):
-            if proxy_score.__name__ == 'ProxyScore(ABCSmartToken)':
+        def create_interface_score_mock(token_address, interface_score):
+            if interface_score.__name__ == 'ProxyScore(ABCSmartToken)':
                 # add getOwner method to the token address instance
                 # this token instance operates as a converter interface score
                 token_address.getOwner = Mock(return_value="{0} converter address".format(token_address))
@@ -423,7 +423,11 @@ class TestNetwork(unittest.TestCase):
         stringed_path = ",".join([str(address) for address in converted_path])
         amount = 10
 
-        def create_interface_score_mock(token_address, _):
+        def create_interface_score_mock(token_address, interface_score):
+            if interface_score.__name__ == "ProxyScore(ABCSmartToken)":
+                token_address.getOwner = Mock(return_value=token_address)
+                return token_address
+
             # return converted_path's address instance ( to verify getReturn called or not )
             for index, address in enumerate(converted_path):
                 if token_address == address:
