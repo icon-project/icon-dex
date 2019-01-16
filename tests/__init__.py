@@ -8,6 +8,7 @@ from iconservice import Address, IconScoreDatabase, IconScoreBase, revert
 from iconservice.database.db import ContextDatabase
 from iconservice.iconscore.icon_score_constant import CONST_BIT_FLAG, ConstBitFlag
 from iconservice.iconscore.icx import Icx
+from iconservice.iconscore.internal_call import InternalCall
 
 
 def create_db(address: Address):
@@ -19,13 +20,16 @@ def create_db(address: Address):
     """
     memory_db = {}
 
-    def put(self, key, value):
+    # noinspection PyUnusedLocal
+    def put(context, key, value):
         memory_db[key] = value
 
-    def get(self, key):
+    # noinspection PyUnusedLocal
+    def get(context, key):
         return memory_db.get(key)
 
-    def delete(self, key):
+    # noinspection PyUnusedLocal
+    def delete(context, key):
         del memory_db[key]
 
     context_db = Mock(spec=ContextDatabase)
@@ -104,7 +108,7 @@ class Patcher:
     def __enter__(self):
         return self.start()
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.stop()
 
 
@@ -112,6 +116,7 @@ class ScorePatcher:
     """
     patcher for SCORE
     """
+
     def __init__(self, score_class):
         self.mocks = None
         self.patcher = Patcher()
@@ -155,3 +160,27 @@ class ScorePatcher:
 
     def stop(self):
         self.patcher.stop()
+
+
+# noinspection PyUnresolvedReferences
+def assert_inter_call(
+        self, from_score: Address, to_score: Address, function_name: str, params: list):
+    """
+    Asserts inter-call with params.
+    To use this, `InternalCall.other_external_call` should be patched
+
+    :param self: test context(unittest.TestCase)
+    :param from_score: caller score
+    :param to_score: target of interface score
+    :param function_name: calling function name
+    :param params: calling function params
+    """
+    external_call = InternalCall.other_external_call
+    external_call.assert_called()
+    call_args = external_call.call_args_list[0][0]
+
+    self.assertEqual(call_args[1], from_score)  # from score
+    self.assertEqual(call_args[2], to_score)  # to score
+    self.assertEqual(call_args[4], function_name)  # function name
+    for index, param in enumerate(params):
+        self.assertEqual(call_args[5][index], param)  # param
