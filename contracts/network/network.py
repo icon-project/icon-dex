@@ -48,6 +48,15 @@ class Network(TokenHolder):
 
     @external(readonly=True)
     def getExpectedReturnByPath(self, _path: str, _amount: int) -> int:
+        """
+        returns the expected return amount for converting a specific amount by following
+        a given conversion path.
+        notice that there is no support for circular paths
+
+        :param _path: conversion path, see conversion path format above
+        :param _amount: amount to convert from (in the initial source token)
+        :return: expected conversion return amount and conversion fee
+        """
         path = _path.replace(" ", "").split(",")
         converted_path = [Address.from_string(address) for address in path]
         self._check_valid_path(converted_path)
@@ -68,10 +77,24 @@ class Network(TokenHolder):
 
     @external(readonly=True)
     def getIcxTokenRegistered(self, _icxToken: 'Address') -> bool:
+        """
+        returns the information about icx token registration of a given token address
+
+        :param _icxToken: icx token address that you want to check
+        :return: registration information. if returns true, that shows token is registered as an icx token in the network
+        """
         return self._icx_tokens[_icxToken]
 
     @staticmethod
-    def check_and_convert_bytes_data(data: bytes, token_sender_address: 'Address'):
+    def _check_and_convert_bytes_data(data: bytes, token_sender_address: 'Address'):
+        """
+        convert bytes data to a dictionary type data and check each key and the type of value
+        this method does not check whether a value is valid or not
+
+        :param data: utf-8 encoded bytes data
+        :param token_sender_address: address of token sender
+        :return: converted dictionary data
+        """
         try:
             dict_data = json_loads(data.decode(encoding="utf-8"))
         except UnicodeDecodeError:
@@ -94,6 +117,13 @@ class Network(TokenHolder):
         return dict_data
 
     def _check_valid_path(self, path: list):
+        """
+        validates a conversion path.
+        verifies that the number of elements is odd and that maximum number of 'conversion' is 10
+        this also verifies that if the path is circular path or not
+
+        :param path: converted path
+        """
         path_len = len(path)
         if not 2 < path_len <= self._MAX_CONVERSION_COUNT * 2 + 1 or not path_len % 2 == 1:
             revert("invalid path")
@@ -104,6 +134,12 @@ class Network(TokenHolder):
 
     @external
     def registerIcxToken(self, _icxToken: 'Address', _register: bool):
+        """
+        allows the owner to register/unregister Icx tokens
+
+        :param _icxToken: Icx token contract address
+        :param _register: true to register, false to unregister
+        """
         self.owner_only()
         Utils.check_valid_address(_icxToken)
         Utils.check_not_this(self.address, _icxToken)
@@ -112,11 +148,29 @@ class Network(TokenHolder):
 
     @external
     def tokenFallback(self, _from: 'Address', _value: int, _data: bytes):
-        # only if the received token is the result of a convert from a converter or request converting, accept it.
+        """
+        invoked when the contract receives tokens
+        if the data is b'conversionResult', this regard as the result of conversion from a converter
+        if the data parameter is parsed as conversion format,
+        token conversion is executed
+        conversion format is:
+        ```
+        {
+            'path': [STR]
+            'minReturn': [INT]
+            'for': [STR_ADDRESS] or None (optional)
+        }
+        ```
+
+        :param _from: token sender
+        :param _value: amount of tokens
+        :param _data: additional data
+        """
+        # only when the received token is the result of a convert from a converter or request converting, accept it.
         if _data == b'conversionResult':
             return
 
-        dict_data = self.check_and_convert_bytes_data(_data, _from)
+        dict_data = self._check_and_convert_bytes_data(_data, _from)
         # check the value of dict_data
         if dict_data["path"][0] != self.msg.sender:
             revert("wrong access, only token can call this method")
@@ -130,11 +184,33 @@ class Network(TokenHolder):
     @external
     @payable
     def convert(self, _path: str, _minReturn: int):
+        """
+        converts the Icx token to any other token in the network by following
+        a predefined conversion path and transfers the result tokens back to the sender
+        note that the converter should already own the source tokens
+
+        :param _path: conversion path, see conversion path format above
+        :param _minReturn:
+        if the conversion results in an amount smaller than the minimum return - it is cancelled, must be nonzero
+        :return: tokens issued in return
+        """
         return self.convertFor(_path, self.msg.value, _minReturn, self.msg.sender)
 
     @external
     @payable
     def convertFor(self, _path: str, _minReturn: int, _for: 'Address'):
+        """
+        converts the Icx token to any other token in the network by following
+        a predefined conversion path and transfers the result tokens to a target account
+        note that the converter should already own the source tokens
+        if the first token address of the path is not the icx token, raise error
+
+        :param _path: conversion path, see conversion path format above
+        :param _minReturn:
+        if the conversion results in an amount smaller than the minimum return - it is cancelled, must be nonzero
+        :param _for: account that will receive the conversion result
+        :return: tokens issued in return
+        """
         path = _path.replace(" ", "").split(",")
         converted_path = [Address.from_string(address) for address in path]
         self._check_valid_path(converted_path)
@@ -153,6 +229,18 @@ class Network(TokenHolder):
         return self._convert_for_internal(converted_path, icx_amount, _minReturn, _for)
 
     def _convert_for_internal(self, path: list, amount: int, min_return: int, _for: 'Address'):
+        """
+        converts token to any other token in the network
+        by following a predefined conversion paths and transfers the result
+        tokens to a target account
+
+        :param path: conversion path, see conversion path format above
+        :param amount: amount to convert from (in the initial source token)
+        :param min_return:
+        if the conversion results in an amount smaller than the minimum return - it is cancelled, must be nonzero
+        :param _for: account that will receive the conversion result
+        :return: tokens issued in return
+        """
         (to_token_address, amount) = self._convert_by_path(path, amount, min_return, _for)
 
         if self._icx_tokens[to_token_address]:
@@ -165,6 +253,16 @@ class Network(TokenHolder):
         return amount
 
     def _convert_by_path(self, path: list, amount: int, min_return: int, _for: 'Address'):
+        """
+        executes the actual conversion by following the conversion path
+
+        :param path: conversion path, see conversion path format above
+        :param amount: amount to convert from (in the initial source token)
+        :param min_return:
+        if the conversion results in an amount smaller than the minimum return - it is cancelled, must be nonzero
+        :param _for: account that will receive the conversion result
+        :return: IRC token to convert to (the last element in the path) & tokens issued in return
+        """
         # define from and to token address
         to_token_address = ZERO_SCORE_ADDRESS
         from_token_address = path[0]

@@ -92,7 +92,7 @@ class TestNetwork(unittest.TestCase):
         invalid_json_format["minReturn"] = 10
         stringed_invalid_json_format = "[" + json.dumps(invalid_json_format) + "}"
         encoded_invalid_json_format = stringed_invalid_json_format.encode(encoding="utf-8")
-        self.assertRaises(RevertException, self.network_score.check_and_convert_bytes_data, encoded_invalid_json_format,
+        self.assertRaises(RevertException, self.network_score._check_and_convert_bytes_data, encoded_invalid_json_format,
                           self.network_owner)
 
         # failure case: input data which is not decoded to utf-8
@@ -106,7 +106,7 @@ class TestNetwork(unittest.TestCase):
         stringed_valid_json_format = json.dumps(valid_json_format)
         cp037_encoded_valid_json_format = stringed_valid_json_format.encode(encoding='cp037')
         self.assertRaises(RevertException,
-                          self.network_score.check_and_convert_bytes_data,
+                          self.network_score._check_and_convert_bytes_data,
                           cp037_encoded_valid_json_format,
                           self.network_owner)
 
@@ -120,7 +120,7 @@ class TestNetwork(unittest.TestCase):
         stringed_valid_json_format = json.dumps(json_format)
         encoded_valid_json_format = stringed_valid_json_format.encode(encoding='utf-8')
         self.assertRaises(InvalidParamsException,
-                          self.network_score.check_and_convert_bytes_data,
+                          self.network_score._check_and_convert_bytes_data,
                           encoded_valid_json_format,
                           self.network_owner)
 
@@ -134,7 +134,7 @@ class TestNetwork(unittest.TestCase):
         stringed_valid_json_format = json.dumps(json_format)
         encoded_valid_json_format = stringed_valid_json_format.encode(encoding='utf-8')
         self.assertRaises(InvalidParamsException,
-                          self.network_score.check_and_convert_bytes_data,
+                          self.network_score._check_and_convert_bytes_data,
                           encoded_valid_json_format,
                           self.network_owner)
 
@@ -148,7 +148,7 @@ class TestNetwork(unittest.TestCase):
         stringed_valid_json_format = json.dumps(json_format)
         encoded_valid_json_format = stringed_valid_json_format.encode(encoding='utf-8')
         self.assertRaises(RevertException,
-                          self.network_score.check_and_convert_bytes_data,
+                          self.network_score._check_and_convert_bytes_data,
                           encoded_valid_json_format,
                           self.network_owner)
 
@@ -162,7 +162,7 @@ class TestNetwork(unittest.TestCase):
         json_format["minReturn"] = 10
         stringed_valid_json_format = json.dumps(json_format)
         encoded_valid_json_format = stringed_valid_json_format.encode(encoding='utf-8')
-        result_data = self.network_score.check_and_convert_bytes_data(encoded_valid_json_format, token_sender)
+        result_data = self.network_score._check_and_convert_bytes_data(encoded_valid_json_format, token_sender)
         self.assertEqual(token_sender, result_data["for"])
 
         # success case: "for" key is exist but value is None
@@ -170,7 +170,7 @@ class TestNetwork(unittest.TestCase):
         json_format["for"] = None
         stringed_valid_json_format = json.dumps(json_format)
         encoded_valid_json_format = stringed_valid_json_format.encode(encoding='utf-8')
-        result_data = self.network_score.check_and_convert_bytes_data(encoded_valid_json_format, token_sender)
+        result_data = self.network_score._check_and_convert_bytes_data(encoded_valid_json_format, token_sender)
         self.assertEqual(token_sender, result_data["for"])
 
         # success case: input data which has "for" key and it's value
@@ -178,7 +178,7 @@ class TestNetwork(unittest.TestCase):
         json_format["for"] = str(for_address)
         stringed_valid_json_format = json.dumps(json_format)
         encoded_valid_json_format = stringed_valid_json_format.encode(encoding='utf-8')
-        result_data = self.network_score.check_and_convert_bytes_data(encoded_valid_json_format, token_sender)
+        result_data = self.network_score._check_and_convert_bytes_data(encoded_valid_json_format, token_sender)
         self.assertEqual(for_address, result_data["for"])
 
     def test_convertFor(self):
