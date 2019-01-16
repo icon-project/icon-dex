@@ -302,17 +302,17 @@ class Formula(IconScoreBase, ABCFormula):
         :param _exp_d:
         :return:
         """
-        if not (_base_n < self.MAX_NUM):
+        if not (_base_n < self._MAX_NUM):
             revert("Invalid input")
 
         base = _base_n * self._FIXED_1 // _base_d
-        if base < self.OPT_LOG_MAX_VAL:
+        if base < self._OPT_LOG_MAX_VAL:
             base_log = self._optimal_log(base)
         else:
             base_log = self._general_log(base)
 
         base_log_times_exp = base_log * _exp_n // _exp_d
-        if base_log_times_exp < self.OPT_EXP_MAX_VAL:
+        if base_log_times_exp < self._OPT_EXP_MAX_VAL:
             return self._optimal_exp(base_log_times_exp), self._MAX_PRECISION
         else:
             precision = self._find_position_in_max_exp_array(base_log_times_exp)
@@ -331,7 +331,7 @@ class Formula(IconScoreBase, ABCFormula):
         # If x >= 2, then we compute the integer part of log2(x), which is larger than 0.
         if x >= self._FIXED_2:
             count = self._floor_log2(x // self._FIXED_1)
-            x >> count
+            x >>= count
             res = count * self._FIXED_1
 
         # If x > 1, then we compute the fraction part of log2(x), which is larger than 0.
@@ -356,8 +356,8 @@ class Formula(IconScoreBase, ABCFormula):
 
         if _n < 256:
             # At most 8 iterations
-            while _n > 0:
-                _n >> 1
+            while _n > 1:
+                _n >>= 1
                 res += 1
         else:
             # Exactly 8 iterations
