@@ -86,7 +86,11 @@ class Network(TokenHolder):
         return self._icx_tokens[_icxToken]
 
     @staticmethod
-    def _check_and_convert_bytes_data(data: bytes, token_sender_address: 'Address'):
+    def _convert_path(path: str):
+        converted_path = path.replace(" ", "").split(",")
+        return [Address.from_string(address) for address in converted_path]
+
+    def _convert_bytes_data(self, data: bytes, token_sender_address: 'Address'):
         """
         convert bytes data to a dictionary type data and check each key and the type of value
         this method does not check whether a value is valid or not
@@ -95,26 +99,27 @@ class Network(TokenHolder):
         :param token_sender_address: address of token sender
         :return: converted dictionary data
         """
+        result_dict_data = dict()
         try:
             dict_data = json_loads(data.decode(encoding="utf-8"))
         except UnicodeDecodeError:
             revert("data's encoding type is invalid. utf-8 is valid encoding type.")
         except ValueError as e:
             revert(f"json format error: {e}")
+        try:
+            result_dict_data["path"] = dict_data["path"]
+            result_dict_data["minReturn"] = dict_data["minReturn"]
+        except KeyError as e:
+            revert(f"missing key and value: {e}")
 
-        if "path" not in dict_data.keys():
-            revert("need valid path data")
-        if "minReturn" not in dict_data.keys() or not isinstance(dict_data["minReturn"], int):
+        result_dict_data["path"] = self._convert_path(result_dict_data["path"])
+        if not isinstance(dict_data["minReturn"], int):
             revert("need valid minReturn data")
-
-        path = dict_data["path"].replace(" ", "").split(",")
-        dict_data["path"] = [Address.from_string(address) for address in path]
-
         if "for" not in dict_data.keys() or dict_data["for"] is None:
-            dict_data["for"] = token_sender_address
+            result_dict_data["for"] = token_sender_address
         else:
-            dict_data["for"] = Address.from_string(dict_data["for"])
-        return dict_data
+            result_dict_data["for"] = Address.from_string(dict_data["for"])
+        return result_dict_data
 
     def _check_valid_path(self, path: list):
         """
@@ -170,7 +175,7 @@ class Network(TokenHolder):
         if _data == b'conversionResult':
             return
 
-        dict_data = self._check_and_convert_bytes_data(_data, _from)
+        dict_data = self._convert_bytes_data(_data, _from)
         # check the value of dict_data
         if dict_data["path"][0] != self.msg.sender:
             revert("wrong access, only token can call this method")
@@ -211,8 +216,7 @@ class Network(TokenHolder):
         :param _for: account that will receive the conversion result
         :return: tokens issued in return
         """
-        path = _path.replace(" ", "").split(",")
-        converted_path = [Address.from_string(address) for address in path]
+        converted_path = self._convert_path(_path)
         self._check_valid_path(converted_path)
         Utils.check_positive_value(_minReturn)
         Utils.check_valid_address(_for)
