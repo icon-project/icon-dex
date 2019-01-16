@@ -57,8 +57,7 @@ class Network(TokenHolder):
         :param _amount: amount to convert from (in the initial source token)
         :return: expected conversion return amount and conversion fee
         """
-        path = _path.replace(" ", "").split(",")
-        converted_path = [Address.from_string(address) for address in path]
+        converted_path = self._convert_path(_path)
         self._check_valid_path(converted_path)
         Utils.check_positive_value(_amount)
 
