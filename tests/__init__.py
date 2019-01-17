@@ -163,8 +163,11 @@ class ScorePatcher:
 
 
 # noinspection PyUnresolvedReferences
-def assert_inter_call(
-        self, from_score: Address, to_score: Address, function_name: str, params: list):
+def assert_inter_call(self,
+                      from_score: Address,
+                      to_score: Address,
+                      function_name: str,
+                      params: list):
     """
     Asserts inter-call with params.
     To use this, `InternalCall.other_external_call` should be patched
@@ -177,10 +180,18 @@ def assert_inter_call(
     """
     external_call = InternalCall.other_external_call
     external_call.assert_called()
-    call_args = external_call.call_args_list[0][0]
 
-    self.assertEqual(call_args[1], from_score)  # from score
-    self.assertEqual(call_args[2], to_score)  # to score
-    self.assertEqual(call_args[4], function_name)  # function name
-    for index, param in enumerate(params):
-        self.assertEqual(call_args[5][index], param)  # param
+    match = False
+    for call_args in external_call.call_args_list:
+        if call_args[0][1] == from_score and \
+                call_args[0][2] == to_score and call_args[0][4] == function_name:
+            param_match = True
+            for index, param in enumerate(params):
+                if call_args[0][5][index] != param:
+                    param_match = False
+                    break
+            if param_match:
+                match = True
+                break
+
+    self.assertTrue(match)
