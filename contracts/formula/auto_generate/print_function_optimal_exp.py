@@ -3,10 +3,10 @@ from decimal import Decimal
 from decimal import getcontext
 from collections import namedtuple
 
-from auto_generate.common.functions import optimal_exp
-from auto_generate.common.constants import MAX_PRECISION
-from auto_generate.common.constants import EXP_MAX_HI_TERM_VAL
-from auto_generate.common.constants import EXP_NUM_OF_HI_TERMS
+from contracts.formula.auto_generate.common.functions import optimal_exp
+from contracts.formula.auto_generate.common.constants import MAX_PRECISION
+from contracts.formula.auto_generate.common.constants import EXP_MAX_HI_TERM_VAL
+from contracts.formula.auto_generate.common.constants import EXP_NUM_OF_HI_TERMS
 
 
 getcontext().prec = 100

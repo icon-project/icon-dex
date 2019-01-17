@@ -1,15 +1,25 @@
+# -*- coding: utf-8 -*-
+# Copyright 2018 ICON Foundation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from iconservice import *
-from iconservice.iconscore.icon_score_base import IconScoreBase
 
 from ..interfaces.abc_formula import ABCFormula
 
 
-TAG = 'Formula'
+class FixedMapFormula(ABCFormula):
 
-
-class Formula(IconScoreBase, ABCFormula):
-
-    _VERSION = '0.3'
     _ONE = 1
     _MAX_WEIGHT = 1000000
     _MIN_PRECISION = 32
@@ -159,21 +169,8 @@ class Formula(IconScoreBase, ABCFormula):
     _max_exp_array[126] = 0x008b380f3558668c46c91c49a2f8e967b9
     _max_exp_array[127] = 0x00857ddf0117efa215952912839f6473e6
 
-    def __init__(self, db: IconScoreBase) -> None:
-        super().__init__(db)
-
-    def on_install(self) -> None:
-        pass
-
-    def on_update(self) -> None:
-        pass
-
-    @external(readonly=True)
-    def calculatePurchaseReturn(self,
-                                  _supply: int,
-                                  _connector_balance: int,
-                                  _connector_weight: int,
-                                  _deposit_amount: int) -> int:
+    def calculatePurchaseReturn(self, _supply: int, _connector_balance: int, _connector_weight: int,
+                                _deposit_amount: int) -> int:
         """
         Given a token supply, connector balance, weight and a deposit amount (in the connector token),
         calculates the return for a given conversion (in the main token)
@@ -198,17 +195,13 @@ class Formula(IconScoreBase, ABCFormula):
         # special case if the weight = 100%
         if _connector_weight == self._MAX_WEIGHT:
             return (_supply * _deposit_amount) // _connector_balance
+
         base_n = _deposit_amount + _connector_balance
         result, precision = self._power(base_n, _connector_balance, _connector_weight, self._MAX_WEIGHT)
         temp = _supply * result >> precision
         return temp - _supply
 
-    @external(readonly=True)
-    def calculateSaleReturn(self,
-                              _supply: int,
-                              _connector_balance: int,
-                              _connector_weight: int,
-                              _sell_amount: int) -> int:
+    def calculateSaleReturn(self, _supply: int, _connector_balance: int, _connector_weight: int, _sell_amount: int) -> int:
         """
         Given a token supply, connector balance, weight and a sell amount (in the main token),
         calculates the return for a given conversion (in the connector token)
@@ -245,7 +238,6 @@ class Formula(IconScoreBase, ABCFormula):
         temp2 = _connector_balance << precision
         return (temp1 - temp2) // result
 
-    @external(readonly=True)
     def calculateCrossConnectorReturn(self, _from_connector_balance: int, _from_connector_weight: int,
                                       _to_connector_balance: int, _to_connector_weight: int, _amount: int) -> int:
         """

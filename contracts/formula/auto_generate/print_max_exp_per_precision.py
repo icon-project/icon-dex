@@ -1,11 +1,11 @@
-from auto_generate.common.functions import get_coefficients
-from auto_generate.common.functions import get_max_exp_array
-from auto_generate.common.functions import binary_search
-from auto_generate.common.functions import general_exp
-from auto_generate.common.functions import safe_mul
-from auto_generate.common.constants import NUM_OF_COEFFICIENTS
-from auto_generate.common.constants import MIN_PRECISION
-from auto_generate.common.constants import MAX_PRECISION
+from contracts.formula.auto_generate.common.functions import get_coefficients
+from contracts.formula.auto_generate.common.functions import get_max_exp_array
+from contracts.formula.auto_generate.common.functions import binary_search
+from contracts.formula.auto_generate.common.functions import general_exp
+from contracts.formula.auto_generate.common.functions import safe_mul
+from contracts.formula.auto_generate.common.constants import NUM_OF_COEFFICIENTS
+from contracts.formula.auto_generate.common.constants import MIN_PRECISION
+from contracts.formula.auto_generate.common.constants import MAX_PRECISION
 
 
 NUM_OF_VALUES_PER_ROW = 4

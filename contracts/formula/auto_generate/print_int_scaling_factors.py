@@ -1,4 +1,4 @@
-from auto_generate.common.constants import MAX_PRECISION
+from contracts.formula.auto_generate.common.constants import MAX_PRECISION
 
 
 FIXED_1 = 1 << MAX_PRECISION

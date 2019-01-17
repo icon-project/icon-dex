@@ -1,9 +1,9 @@
-from auto_generate.common.functions import get_coefficients
-from auto_generate.common.functions import get_max_exp_array
-from auto_generate.common.functions import get_max_val_array
-from auto_generate.common.constants import NUM_OF_COEFFICIENTS
-from auto_generate.common.constants import MIN_PRECISION
-from auto_generate.common.constants import MAX_PRECISION
+from contracts.formula.auto_generate.common.functions import get_coefficients
+from contracts.formula.auto_generate.common.functions import get_max_exp_array
+from contracts.formula.auto_generate.common.functions import get_max_val_array
+from contracts.formula.auto_generate.common.constants import NUM_OF_COEFFICIENTS
+from contracts.formula.auto_generate.common.constants import MIN_PRECISION
+from contracts.formula.auto_generate.common.constants import MAX_PRECISION
 
 coefficients = get_coefficients(NUM_OF_COEFFICIENTS)
 max_exp_array = get_max_exp_array(coefficients, MAX_PRECISION+1)

@@ -3,7 +3,7 @@ from decimal import getcontext
 from decimal import ROUND_FLOOR
 from decimal import ROUND_CEILING
 
-from auto_generate.common.constants import MAX_PRECISION
+from contracts.formula.auto_generate.common.constants import MAX_PRECISION
 
 
 getcontext().prec = 100

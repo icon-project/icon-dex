@@ -1,5 +1,5 @@
-from auto_generate.common.functions import get_coefficients
-from auto_generate.common.constants import NUM_OF_COEFFICIENTS
+from contracts.formula.auto_generate.common.functions import get_coefficients
+from contracts.formula.auto_generate.common.constants import NUM_OF_COEFFICIENTS
 
 
 coefficients = get_coefficients(NUM_OF_COEFFICIENTS)
