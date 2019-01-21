@@ -40,9 +40,9 @@ class TestConverter(unittest.TestCase):
             self.assertEqual(registry, self.score.storage.prev_registry)
             self.assertEqual(max_conversion_fee, self.score.storage.max_conversion_fee)
 
-            self.assertEqual(True, self.score._connectors[self.initial_connector_token].is_set)
+            self.assertEqual(True, self.score._connectors[self.initial_connector_token].is_set.get())
             self.assertEqual(self.initial_connector_weight,
-                             self.score._connectors[self.initial_connector_token].weight)
+                             self.score._connectors[self.initial_connector_token].weight.get())
 
     def tearDown(self):
         self.patcher.stop()
@@ -117,7 +117,7 @@ class TestConverter(unittest.TestCase):
         min_return = 10
 
         data = {
-            'toToken': to_token,
+            'toToken': str(to_token),
             'minReturn': min_return
         }
 
@@ -283,10 +283,10 @@ class TestConverter(unittest.TestCase):
             self.score.addConnector(connector_token, connector_weight, False)
             self.score.owner_only.assert_called()
 
-            self.assertEqual(connector_weight, self.score._connectors[connector_token].weight)
+            self.assertEqual(connector_weight, self.score._connectors[connector_token].weight.get())
             self.assertEqual(
-                False, self.score._connectors[connector_token].is_virtual_balance_enabled)
-            self.assertEqual(True, self.score._connectors[connector_token].is_set)
+                False, self.score._connectors[connector_token].is_virtual_balance_enabled.get())
+            self.assertEqual(True, self.score._connectors[connector_token].is_set.get())
 
     def test_updateRegistry(self):
         self.score.storage.allow_registry_update = True
@@ -373,7 +373,7 @@ class TestConverter(unittest.TestCase):
         amount = 100
 
         self.score.is_active.return_value = True
-        self.score._connectors[self.initial_connector_token].is_set = False
+        self.score._connectors[self.initial_connector_token].is_set.set(False)
         with patch([
             (IconScoreBase, 'msg', Message(self.owner))
         ]):
@@ -384,7 +384,7 @@ class TestConverter(unittest.TestCase):
 
         self.score.is_active.reset_mock()
         self.score.is_active.return_value = False
-        self.score._connectors[self.initial_connector_token].is_set = True
+        self.score._connectors[self.initial_connector_token].is_set.set(True)
         with patch([
             (IconScoreBase, 'msg', Message(self.owner))
         ]):
@@ -395,7 +395,7 @@ class TestConverter(unittest.TestCase):
 
         self.score.is_active.reset_mock()
         self.score.is_active.return_value = False
-        self.score._connectors[self.initial_connector_token].is_set = False
+        self.score._connectors[self.initial_connector_token].is_set.set(False)
         with patch([
             (IconScoreBase, 'msg', Message(self.owner))
         ]):
@@ -409,7 +409,7 @@ class TestConverter(unittest.TestCase):
         amount = 100
 
         self.score.is_active.return_value = True
-        self.score._connectors[self.initial_connector_token].is_set = True
+        self.score._connectors[self.initial_connector_token].is_set.set(True)
         with patch([
             (IconScoreBase, 'msg', Message(self.owner))
         ]):
