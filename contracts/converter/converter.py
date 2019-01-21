@@ -39,7 +39,7 @@ class Connector:
         self.is_set = VarDB('is_set', db, bool)
 
 
-class Connectors:
+class ConnectorDict:
     """
     Dict container Address-Connector pair
     """
@@ -117,7 +117,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
     # verifies that the address belongs to one of the convertible tokens
     def require_valid_token(self, address: Address):
-        Utils.require(address == self.storage.token or self._connectors[address].is_set.get())
+        Utils.require(address == self.token.get() or self._connectors[address].is_set.get())
 
     # verifies maximum conversion fee
     def require_valid_max_conversion_fee(self, conversion_fee: int):
@@ -125,7 +125,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
     # verifies conversion fee
     def require_valid_conversion_fee(self, conversion_fee: int):
-        Utils.require(0 <= conversion_fee <= self.storage.max_conversion_fee)
+        Utils.require(0 <= conversion_fee <= self.max_conversion_fee.get())
 
     # verifies connector weight range
     def require_valid_connector_weight(self, weight: int):
@@ -133,34 +133,33 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
     # verifies the total weight is 100%
     def require_max_total_weight(self):
-        Utils.require(self.storage.total_connector_weight == self.MAX_WEIGHT)
+        Utils.require(self.total_connector_weight.get() == self.MAX_WEIGHT)
 
     # verifies conversions aren't disabled
     def require_conversions_allowed(self):
-        Utils.require(self.storage.conversions_enabled)
+        Utils.require(self.conversions_enabled.get())
 
     def __init__(self, db: IconScoreDatabase):
         super().__init__(db)
-        self.storage.add_fields([
-            # allows the owner to prevent/allow the registry to be updated
-            ('allow_registry_update', VarDB, bool),
-            # address of previous registry as security mechanism
-            ('prev_registry', VarDB, Address),
-            # contract registry contract
-            ('registry', VarDB, Address),
-            # IRC standard token addresses
-            ('connector_tokens', ArrayDB, Address),
-            # used to efficiently prevent increasing the total connector weight above 100%
-            ('total_connector_weight', VarDB, int),
-            # maximum conversion fee for the lifetime of the contract,
-            # represented in ppm, 0...1000000 (0 = no fee, 100 = 0.01%, 1000000 = 100%)
-            ('max_conversion_fee', VarDB, int),
-            # current conversion fee, represented in ppm, 0...maxConversionFee
-            ('conversion_fee', VarDB, int),
-            # true if token conversions is enabled, false if not
-            ('conversions_enabled', VarDB, bool)
-        ])
-        self._connectors = Connectors(db)  # connector token addresses -> connector data
+        # allows the owner to prevent/allow the registry to be updated
+        self.allow_registry_update = VarDB('allow_registry_update', db, bool)
+        # address of previous registry as security mechanism
+        self.prev_registry = VarDB('prev_registry', db, Address)
+        # contract registry contract
+        self.registry = VarDB('registry', db, Address)
+        # IRC standard token addresses
+        self.connector_tokens = ArrayDB('connector_tokens', db, Address)
+        # used to efficiently prevent increasing the total connector weight above 100%
+        self.total_connector_weight = VarDB('total_connector_weight', db, int)
+        # maximum conversion fee for the lifetime of the contract,
+        # represented in ppm, 0...1000000 (0 = no fee, 100 = 0.01%, 1000000 = 100%)
+        self.max_conversion_fee = VarDB('max_conversion_fee', db, int)
+        # current conversion fee, represented in ppm, 0...maxConversionFee
+        self.conversion_fee = VarDB('conversion_fee', db, int)
+        # true if token conversions is enabled, false if not
+        self.conversions_enabled = VarDB('conversions_enabled', db, bool)
+        # connector token addresses -> connector data
+        self._connectors = ConnectorDict(db)
 
     def on_install(self,
                    _token: Address,
@@ -181,10 +180,10 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         Utils.check_valid_address(_registry)
         self.require_valid_max_conversion_fee(_maxConversionFee)
         SmartTokenController.on_install(self, _token)
-        self.storage.registry = _registry
-        self.storage.prev_registry = _registry
+        self.registry.set(_registry)
+        self.prev_registry.set(_registry)
 
-        self.storage.max_conversion_fee = _maxConversionFee
+        self.max_conversion_fee.set(_maxConversionFee)
         if Utils.is_valid_address(_connectorToken):
             self.addConnector(_connectorToken, _connectorWeight, False)
 
@@ -219,7 +218,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
             pass
         else:
             # verifies whether the token sender is the network
-            registry = self.create_interface_score(self.storage.registry, ScoreRegistry)
+            registry = self.create_interface_score(self.registry.get(), ScoreRegistry)
             network = registry.getAddress(ScoreRegistry.BANCOR_NETWORK)
             Utils.require(_from == network)
 
@@ -253,10 +252,11 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         Utils.check_positive_value(min_return)
         Utils.require(from_token != to_token)
 
+        smart_token = self.token.get()
         # conversion between the token and one of its connectors
-        if to_token == self.storage.token:
+        if to_token == smart_token:
             return self._buy(trader, from_token, amount, min_return)
-        elif from_token == self.storage.token:
+        elif from_token == smart_token:
             return self._sell(trader, to_token, amount, min_return)
 
         # conversion between 2 connectors
@@ -284,14 +284,15 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         if connector.is_virtual_balance_enabled.get():
             connector.virtual_balance.set(connector.virtual_balance.get() + return_amount)
 
-        smart_token = self.create_interface_score(self.storage.token, SmartToken)
+        smart_token_address = self.token.get()
+        smart_token = self.create_interface_score(smart_token_address, SmartToken)
 
         # issue new funds to the caller in the smart token
         smart_token.issue(trader, return_amount)
 
         # dispatch the conversion event
         self.Conversion(
-            connector_token, self.storage.token, trader, amount, return_amount, fee_amount)
+            connector_token, smart_token_address, trader, amount, return_amount, fee_amount)
 
         # dispatch price data update for the smart token/connector
         self.PriceDataUpdate(connector_token,
@@ -318,7 +319,8 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         # ensure the trade gives something in return and meets the minimum requested amount
         Utils.require(return_amount >= min_return)
 
-        smart_token = self.create_interface_score(self.storage.token, SmartToken)
+        smart_token_address = self.token.get()
+        smart_token = self.create_interface_score(smart_token_address, SmartToken)
 
         # ensure that the trade will only deplete the connector balance if the total supply is
         # depleted as well
@@ -343,7 +345,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
         # dispatch the conversion event
         self.Conversion(
-            self.storage.token, connector_token, trader, amount, return_amount, fee_amount)
+            smart_token_address, connector_token, trader, amount, return_amount, fee_amount)
 
         # dispatch price data update for the smart token/connector
         self.PriceDataUpdate(connector_token,
@@ -396,7 +398,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         # (from / to the smart token)
         self.Conversion(from_token, to_token, trader, amount, return_amount, fee_amount)
         # dispatch price data updates for the smart token / both connectors
-        smart_token = self.create_interface_score(self.storage.token, SmartToken)
+        smart_token = self.create_interface_score(self.token.get(), SmartToken)
         token_supply = smart_token.totalSupply()
         self.PriceDataUpdate(
             from_token, token_supply, self.getConnectorBalance(from_token), from_connector.weight.get())
@@ -421,18 +423,18 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         Utils.check_not_this(self.address, _token)
         self.require_valid_connector_weight(_weight)
 
-        Utils.require(self.storage.token != _token and
+        Utils.require(self.token.get() != _token and
                       not self._connectors[_token].is_set.get() and
-                      self.storage.total_connector_weight + _weight <= self.MAX_WEIGHT)
+                      self.total_connector_weight.get() + _weight <= self.MAX_WEIGHT)
 
         self._connectors[_token].virtual_balance.set(0)
         self._connectors[_token].weight.set(_weight)
         self._connectors[_token].is_virtual_balance_enabled.set(_enableVirtualBalance)
         self._connectors[_token].is_purchase_enabled.set(True)
         self._connectors[_token].is_set.set(True)
-        self.storage.connector_tokens.put(_token)
+        self.connector_tokens.put(_token)
 
-        self.storage.total_connector_weight += _weight
+        self.total_connector_weight.set(self.total_connector_weight.get() + _weight)
 
     @external
     def updateRegistry(self):
@@ -441,19 +443,19 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         """
 
         # require that upgrading is allowed or that the caller is the owner
-        Utils.require(self.storage.allow_registry_update or self.msg.sender == self.address)
+        Utils.require(self.allow_registry_update.get() or self.msg.sender == self.address)
 
         # get the address of whichever registry the current registry is pointing to
-        registry = self.create_interface_score(self.storage.registry, ScoreRegistry)
+        registry = self.create_interface_score(self.registry.get(), ScoreRegistry)
         new_registry = registry.getAddress(ScoreRegistry.SCORE_REGISTRY)
 
         # if the new registry hasn't changed or is the zero address, revert
         Utils.check_valid_address(new_registry)
-        Utils.require(new_registry != self.storage.registry)
+        Utils.require(new_registry != self.registry.get())
 
         # set the previous registry as current registry and current registry as newRegistry
-        self.storage.prev_registry = self.storage.registry
-        self.storage.registry = new_registry
+        self.prev_registry.set(self.registry.get())
+        self.registry.set(new_registry)
 
     @external
     def restoreRegistry(self):
@@ -464,10 +466,10 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         self.require_owner_or_manager_only()
 
         # set the registry as previous registry
-        self.storage.registry = self.storage.prev_registry
+        self.registry.set(self.prev_registry.get())
 
         # after a previous registry is restored, only the owner can allow future updates
-        self.storage.allow_registry_update = False
+        self.allow_registry_update.set(False)
 
     @external
     def disableRegistryUpdate(self, _disable: bool):
@@ -480,7 +482,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         """
 
         self.require_owner_or_manager_only()
-        self.storage.allow_registry_update = not _disable
+        self.allow_registry_update.set(not _disable)
 
     @external
     def disableConversions(self, _disable: bool):
@@ -493,9 +495,9 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         """
 
         self.require_owner_or_manager_only()
-        if self.storage.conversions_enabled == _disable:
+        if self.conversions_enabled.get() == _disable:
             enable = not _disable
-            self.storage.conversions_enabled = enable
+            self.conversions_enabled.set(enable)
             self.ConversionsEnable(enable)
 
     @external
@@ -510,8 +512,8 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         self.require_owner_or_manager_only()
         self.require_valid_conversion_fee(_conversionFee)
 
-        self.ConversionFeeUpdate(self.storage.conversion_fee, _conversionFee)
-        self.storage.conversion_fee = _conversionFee
+        self.ConversionFeeUpdate(self.conversion_fee.get(), _conversionFee)
+        self.conversion_fee.set(_conversionFee)
 
     @external
     def withdrawTokens(self, _token: Address, _to: Address, _amount: int):
@@ -534,7 +536,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
         :return: number of connector tokens
         """
-        return len(self.storage.connector_tokens)
+        return len(self.connector_tokens)
 
     @external(readonly=True)
     def getConversionFee(self) -> int:
@@ -544,7 +546,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         :return: current conversion fee
         """
 
-        return self.storage.conversion_fee
+        return self.conversion_fee.get()
 
     @external(readonly=True)
     def getConnector(self, _address: Address) -> dict:
@@ -596,9 +598,10 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         Utils.require(_fromToken != _toToken)
 
         # conversion between the token and one of its connectors
-        if _toToken == self.storage.token:
+        smart_token = self.token.get()
+        if _toToken == smart_token:
             return self.getPurchaseReturn(_fromToken, _amount)
-        elif _fromToken == self.storage.token:
+        elif _fromToken == smart_token:
             return self.getSaleReturn(_toToken, _amount)
 
         # conversion between 2 connectors
@@ -619,8 +622,8 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         connector = self._connectors[_connectorToken]
         Utils.require(connector.is_purchase_enabled.get())
 
-        smart_token = self.create_interface_score(self.storage.token, SmartToken)
-        registry = self.create_interface_score(self.storage.registry, ScoreRegistry)
+        smart_token = self.create_interface_score(self.token.get(), SmartToken)
+        registry = self.create_interface_score(self.registry.get(), ScoreRegistry)
         formula_address = registry.getAddress(ScoreRegistry.BANCOR_FORMULA)
         formula = self.create_interface_score(formula_address, Formula)
 
@@ -646,8 +649,8 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
         connector = self._connectors[_connectorToken]
 
-        smart_token = self.create_interface_score(self.storage.token, SmartToken)
-        registry = self.create_interface_score(self.storage.registry, ScoreRegistry)
+        smart_token = self.create_interface_score(self.token.get(), SmartToken)
+        registry = self.create_interface_score(self.registry.get(), ScoreRegistry)
         formula_address = registry.getAddress(ScoreRegistry.BANCOR_FORMULA)
         formula = self.create_interface_score(formula_address, Formula)
 
@@ -680,7 +683,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         to_connector = self._connectors[_toToken]
         Utils.require(to_connector.is_purchase_enabled.get())
 
-        registry = self.create_interface_score(self.storage.registry, ScoreRegistry)
+        registry = self.create_interface_score(self.registry.get(), ScoreRegistry)
         formula_address = registry.getAddress(ScoreRegistry.BANCOR_FORMULA)
         formula = self.create_interface_score(formula_address, Formula)
 
@@ -704,5 +707,5 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         :param _magnitude: 1 for standard conversion, 2 for cross connector conversion
         :return: amount minus conversion fee
         """
-        final_ratio = (self.MAX_CONVERSION_FEE - self.storage.conversion_fee)
+        final_ratio = (self.MAX_CONVERSION_FEE - self.conversion_fee.get())
         return _amount * final_ratio ** _magnitude // self.MAX_CONVERSION_FEE ** _magnitude

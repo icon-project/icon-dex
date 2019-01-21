@@ -34,11 +34,11 @@ class TestConverter(unittest.TestCase):
             self.score.on_install(token, registry, max_conversion_fee,
                                   self.initial_connector_token, self.initial_connector_weight)
             SmartTokenController.on_install.assert_called_with(self.score, token)
-            self.score.storage.token = token
+            self.score.token.set(token)
 
-            self.assertEqual(registry, self.score.storage.registry)
-            self.assertEqual(registry, self.score.storage.prev_registry)
-            self.assertEqual(max_conversion_fee, self.score.storage.max_conversion_fee)
+            self.assertEqual(registry, self.score.registry.get())
+            self.assertEqual(registry, self.score.prev_registry.get())
+            self.assertEqual(max_conversion_fee, self.score.max_conversion_fee.get())
 
             self.assertEqual(True, self.score._connectors[self.initial_connector_token].is_set.get())
             self.assertEqual(self.initial_connector_weight,
@@ -131,7 +131,7 @@ class TestConverter(unittest.TestCase):
             self.score.tokenFallback(network_address, value, json_dumps(data).encode())
             assert_inter_call(self,
                               self.score.address,
-                              self.score.storage.registry,
+                              self.score.registry.get(),
                               'getAddress',
                               [ScoreRegistry.BANCOR_NETWORK])
             self.score._convert.assert_called_with(
@@ -160,12 +160,12 @@ class TestConverter(unittest.TestCase):
             result = self.score._buy(trader, connector_token2, amount, min_return)
             assert_inter_call(self,
                               self.score.address,
-                              self.score.storage.token,
+                              self.score.token.get(),
                               'issue',
                               [trader, return_amount])
             self.score.Conversion.assert_called_with(
                 connector_token2,
-                self.score.storage.token,
+                self.score.token.get(),
                 trader,
                 amount,
                 return_amount,
@@ -202,11 +202,11 @@ class TestConverter(unittest.TestCase):
             result = self.score._sell(trader, connector_token2, amount, min_return)
             assert_inter_call(self,
                               self.score.address,
-                              self.score.storage.token,
+                              self.score.token.get(),
                               'destroy',
                               [self.score.address, return_amount])
             self.score.Conversion.assert_called_with(
-                self.score.storage.token,
+                self.score.token.get(),
                 connector_token2,
                 trader,
                 amount,
@@ -289,9 +289,9 @@ class TestConverter(unittest.TestCase):
             self.assertEqual(True, self.score._connectors[connector_token].is_set.get())
 
     def test_updateRegistry(self):
-        self.score.storage.allow_registry_update = True
+        self.score.allow_registry_update.set(True)
 
-        old_registry = self.score.storage.registry
+        old_registry = self.score.registry.get()
         new_registry = Address.from_string("cx" + os.urandom(20).hex())
 
         with patch([
@@ -307,13 +307,13 @@ class TestConverter(unittest.TestCase):
                 'getAddress',
                 [ScoreRegistry.SCORE_REGISTRY])
 
-            self.assertEqual(old_registry, self.score.storage.prev_registry)
-            self.assertEqual(new_registry, self.score.storage.registry)
+            self.assertEqual(old_registry, self.score.prev_registry.get())
+            self.assertEqual(new_registry, self.score.registry.get())
 
     def test_restoreRegistry(self):
         self.score.require_owner_or_manager_only.reset_mock()
 
-        prev_registry = self.score.storage.prev_registry
+        prev_registry = self.score.prev_registry.get()
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
@@ -321,8 +321,8 @@ class TestConverter(unittest.TestCase):
             self.score.restoreRegistry()
             self.score.require_owner_or_manager_only.assert_called()
 
-            self.assertEqual(prev_registry, self.score.storage.prev_registry)
-            self.assertEqual(prev_registry, self.score.storage.registry)
+            self.assertEqual(prev_registry, self.score.prev_registry.get())
+            self.assertEqual(prev_registry, self.score.registry.get())
 
     def test_disableRegistryUpdate(self):
         self.score.require_owner_or_manager_only.reset_mock()
@@ -333,14 +333,14 @@ class TestConverter(unittest.TestCase):
             self.score.disableRegistryUpdate(True)
             self.score.require_owner_or_manager_only.assert_called()
 
-            self.assertEqual(False, self.score.storage.allow_registry_update)
+            self.assertEqual(False, self.score.allow_registry_update.get())
             self.score.disableRegistryUpdate(False)
-            self.assertEqual(True, self.score.storage.allow_registry_update)
+            self.assertEqual(True, self.score.allow_registry_update.get())
 
     def test_disableConversions(self):
         self.score.require_owner_or_manager_only.reset_mock()
 
-        self.score.storage.conversions_enabled = True
+        self.score.conversions_enabled.set(True)
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
@@ -349,14 +349,14 @@ class TestConverter(unittest.TestCase):
             self.score.require_owner_or_manager_only.assert_called()
             self.score.ConversionsEnable.assert_called_with(False)
 
-            self.assertEqual(False, self.score.storage.conversions_enabled)
+            self.assertEqual(False, self.score.conversions_enabled.get())
             self.score.disableConversions(False)
-            self.assertEqual(True, self.score.storage.conversions_enabled)
+            self.assertEqual(True, self.score.conversions_enabled.get())
 
     def test_setConversionFee(self):
         self.score.require_owner_or_manager_only.reset_mock()
 
-        old_conversion_fee = self.score.storage.conversion_fee
+        old_conversion_fee = self.score.conversion_fee.get()
         conversion_fee = 10000
 
         with patch([
@@ -366,7 +366,7 @@ class TestConverter(unittest.TestCase):
             self.score.require_owner_or_manager_only.assert_called()
             self.score.ConversionFeeUpdate.assert_called_with(old_conversion_fee, conversion_fee)
 
-            self.assertEqual(self.score.storage.conversion_fee, conversion_fee)
+            self.assertEqual(self.score.conversion_fee.get(), conversion_fee)
 
     def test_withdrawTokens(self):
         to = Address.from_string("hx" + os.urandom(20).hex())
@@ -419,11 +419,11 @@ class TestConverter(unittest.TestCase):
             self.score.is_active.assert_called()
 
     def test_getConnectorTokenCount(self):
-        size_by_db = len(self.score.storage.connector_tokens)
+        size_by_db = len(self.score.connector_tokens)
         self.assertEqual(size_by_db, self.score.getConnectorTokenCount())
 
     def test_getConversionFee(self):
-        fee_by_db = self.score.storage.conversion_fee
+        fee_by_db = self.score.conversion_fee.get()
         self.assertEqual(fee_by_db, self.score.getConversionFee())
 
     def test_getConnector(self):
@@ -480,8 +480,8 @@ class TestConverter(unittest.TestCase):
             self.assertEqual(0, result['fee'])
 
         # sets the fee to 1%
-        self.score.storage.max_conversion_fee = 1000000
-        self.score.storage.conversion_fee = 10000
+        self.score.max_conversion_fee.set(1000000)
+        self.score.conversion_fee.set(10000)
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
@@ -512,8 +512,8 @@ class TestConverter(unittest.TestCase):
             self.assertEqual(0, result['fee'])
 
         # sets the fee to 1%
-        self.score.storage.max_conversion_fee = 1000000
-        self.score.storage.conversion_fee = 10000
+        self.score.max_conversion_fee.set(1000000)
+        self.score.conversion_fee.set(10000)
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
@@ -550,8 +550,8 @@ class TestConverter(unittest.TestCase):
             self.assertEqual(0, result['fee'])
 
         # sets the fee to 1%
-        self.score.storage.max_conversion_fee = 1000000
-        self.score.storage.conversion_fee = 10000
+        self.score.max_conversion_fee.set(1000000)
+        self.score.conversion_fee.set(10000)
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
