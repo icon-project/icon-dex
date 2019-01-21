@@ -129,10 +129,10 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
     # verifies connector weight range
     def _require_valid_connector_weight(self, weight: int):
-        Utils.require(0 < weight < self._MAX_WEIGHT)
+        Utils.require(0 < weight <= self._MAX_WEIGHT)
 
     # verifies the total weight is 100%
-    def _require_max_total_weight(self):
+    def _require_max_total_weight_only(self):
         Utils.require(self._total_connector_weight.get() == self._MAX_WEIGHT)
 
     # verifies conversions aren't disabled
@@ -211,8 +211,9 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         Utils.check_positive_value(_value)
         from_token = self.msg.sender
 
-        if _from == self.getOwner() and self._connectors[from_token].is_set.get() and \
-                not self.is_active():
+        if (_from == self.getOwner() or _from == self.getManager) \
+                and self._connectors[from_token].is_set.get() \
+                and not self.is_active():
             # If the token sender is the owner and sent token is a connector token, receives tokens
             # Otherwise tries to parse whether the data is conversion request
             pass
@@ -530,6 +531,33 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         super().withdrawTokens(self, _token, _to, _amount)
 
     @external(readonly=True)
+    def isAllowRegistryUpdate(self) -> bool:
+        """
+        returns if the registry update enabled
+
+        :return: True if the registry can be updated
+        """
+        return self._allow_registry_update.get()
+
+    @external(readonly=True)
+    def getPreviousRegistry(self) -> Address:
+        """
+        gets the previous registry address
+
+        :return: previous registry address
+        """
+        return self._prev_registry.get()
+
+    @external(readonly=True)
+    def getRegistry(self) -> Address:
+        """
+        gets the registry address
+
+        :return: registry address
+        """
+        return self._registry.get()
+
+    @external(readonly=True)
     def getConnectorTokenCount(self) -> int:
         """
         returns the number of connector tokens defined
@@ -537,6 +565,16 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         :return: number of connector tokens
         """
         return len(self._connector_tokens)
+
+    @external(readonly=True)
+    def getMaxConversionFee(self) -> int:
+        """
+        Returns maximum conversion fee
+
+        :return: maximum conversion fee
+        """
+
+        return self._max_conversion_fee.get()
 
     @external(readonly=True)
     def getConversionFee(self) -> int:
@@ -547,6 +585,15 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         """
 
         return self._conversion_fee.get()
+
+    @external(readonly=True)
+    def isConversionsEnabled(self) -> bool:
+        """
+        Returns whether the conversion is enabled
+
+        :return: True if the conversion is enabled
+        """
+        return self._conversions_enabled.get()
 
     @external(readonly=True)
     def getConnector(self, _address: Address) -> dict:
