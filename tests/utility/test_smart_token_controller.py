@@ -47,7 +47,7 @@ class TestSmartTokenController(unittest.TestCase):
             assert_inter_call(
                 self,
                 self.score.address,
-                self.score.token.get(),
+                self.score._token.get(),
                 'transferOwnerShip',
                 [new_owner])
 
@@ -62,7 +62,7 @@ class TestSmartTokenController(unittest.TestCase):
             assert_inter_call(
                 self,
                 self.score.address,
-                self.score.token.get(),
+                self.score._token.get(),
                 'acceptOwnerShip',
                 []
             )
@@ -79,7 +79,7 @@ class TestSmartTokenController(unittest.TestCase):
             assert_inter_call(
                 self,
                 self.score.address,
-                self.score.token.get(),
+                self.score._token.get(),
                 'disableTransfer',
                 [disable]
             )
@@ -98,7 +98,7 @@ class TestSmartTokenController(unittest.TestCase):
             assert_inter_call(
                 self,
                 self.score.address,
-                self.score.token.get(),
+                self.score._token.get(),
                 'withdrawTokens',
                 [token, to, amount]
             )
