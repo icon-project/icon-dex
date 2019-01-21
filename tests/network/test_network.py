@@ -275,12 +275,12 @@ class TestNetwork(unittest.TestCase):
                               self.network_score.tokenFallback,
                               from_address, value, b'None')
 
-            self.assertRaises(AttributeError,
+            self.assertRaises(RevertException,
                               self.network_score.tokenFallback,
                               from_address, value, None)
 
         # failure case: msg.sender is not equal to path[0] ( should be equal )
-        msg_sender= Address.from_string("cx" + "c" * 40)
+        msg_sender = Address.from_string("cx" + "c" * 40)
         with patch([(IconScoreBase, 'msg', Message(msg_sender)),
                     (Network, '_convert_for_internal', PropertyMock())]):
             self.assertRaises(RevertException,

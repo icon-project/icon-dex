@@ -32,8 +32,8 @@ SmartToken = ProxyScore(ABCSmartToken)
 Converter = ProxyScore(ABCConverter)
 
 
+# noinspection PyPep8Naming,PyMethodOverriding
 class Network(TokenHolder):
-    _MAX_CONVERSION_FEE = 1000000
     _MAX_CONVERSION_COUNT = 10
 
     def __init__(self, db: IconScoreDatabase) -> None:
@@ -71,7 +71,7 @@ class Network(TokenHolder):
 
             amount = converter.getReturn(from_token_address, to_token_address, amount)["amount"]
             from_token_address = to_token_address
-        #todo: consider about returning fee (in solidity, return amount and fee)
+        # todo: consider about returning fee (in solidity, return amount and fee)
         return amount
 
     @external(readonly=True)
@@ -86,7 +86,7 @@ class Network(TokenHolder):
 
     @staticmethod
     def _convert_path(path: str):
-        converted_path = path.replace(" ", "").split(",")
+        converted_path = map(lambda address: address.strip(), path.split(","))
         return [Address.from_string(address) for address in converted_path]
 
     def _convert_bytes_data(self, data: bytes, token_sender_address: 'Address'):
@@ -99,22 +99,24 @@ class Network(TokenHolder):
         :return: converted dictionary data
         """
         result_dict_data = dict()
+        dict_data = dict()
         try:
             dict_data = json_loads(data.decode(encoding="utf-8"))
+            result_dict_data["path"] = self._convert_path(dict_data["path"])
+            result_dict_data["minReturn"] = dict_data["minReturn"]
         except UnicodeDecodeError:
             revert("data's encoding type is invalid. utf-8 is valid encoding type.")
         except ValueError as e:
             revert(f"json format error: {e}")
-        try:
-            result_dict_data["path"] = dict_data["path"]
-            result_dict_data["minReturn"] = dict_data["minReturn"]
         except KeyError as e:
             revert(f"missing key and value: {e}")
+        except Exception as e:
+            # InvalidParamsException could be raised when converting the path
+            revert(str(e))
 
-        result_dict_data["path"] = self._convert_path(result_dict_data["path"])
-        if not isinstance(dict_data["minReturn"], int):
+        if not isinstance(result_dict_data["minReturn"], int):
             revert("need valid minReturn data")
-        if "for" not in dict_data.keys() or dict_data["for"] is None:
+        if "for" not in dict_data or dict_data["for"] is None:
             result_dict_data["for"] = token_sender_address
         else:
             result_dict_data["for"] = Address.from_string(dict_data["for"])
