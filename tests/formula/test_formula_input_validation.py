@@ -24,40 +24,40 @@ class TestFormulaInputValidation(unittest.TestCase):
 
     def test_input_validation_for_calculate_purchase_return(self):
         # checks if supply should be more than 0 (supply > 0)
-        self.assertRaises(RevertException, formula.calculatePurchaseReturn, 0, 10, 10, 10)
+        self.assertRaises(RevertException, formula.calculate_purchase_return, 0, 10, 10, 10)
         # checks if connector balance should be more than 0
-        self.assertRaises(RevertException, formula.calculatePurchaseReturn, 10, 0, 10, 10)
+        self.assertRaises(RevertException, formula.calculate_purchase_return, 10, 0, 10, 10)
         # checks if connector weight should be more than 0
-        self.assertRaises(RevertException, formula.calculatePurchaseReturn, 10, 10, 0, 10)
+        self.assertRaises(RevertException, formula.calculate_purchase_return, 10, 10, 0, 10)
         # checks if connector weight <= MAX WEIGHT
-        self.assertRaises(RevertException, formula.calculatePurchaseReturn, 10, 10, formula._MAX_WEIGHT+1, 10)
+        self.assertRaises(RevertException, formula.calculate_purchase_return, 10, 10, formula._MAX_WEIGHT + 1, 10)
 
     def test_input_validation_for_calculate_sale_return(self):
         # checks if supply should be more than 0
-        self.assertRaises(RevertException, formula.calculateSaleReturn, 0, 10, 10, 10)
+        self.assertRaises(RevertException, formula.calculate_sale_return, 0, 10, 10, 10)
         # checks if connector balance should be more than 0
-        self.assertRaises(RevertException, formula.calculateSaleReturn, 10, 0, 10, 10)
+        self.assertRaises(RevertException, formula.calculate_sale_return, 10, 0, 10, 10)
         # checks if connector weight should be more than 0
-        self.assertRaises(RevertException, formula.calculateSaleReturn, 10, 10, 0, 10)
+        self.assertRaises(RevertException, formula.calculate_sale_return, 10, 10, 0, 10)
         # checks if connector weight <= MAX WEIGHT
-        self.assertRaises(RevertException, formula.calculateSaleReturn, 10, 10, formula._MAX_WEIGHT + 1, 10)
+        self.assertRaises(RevertException, formula.calculate_sale_return, 10, 10, formula._MAX_WEIGHT + 1, 10)
         # checks if sell amount <= supply
-        self.assertRaises(RevertException, formula.calculateSaleReturn, 10, 10, 10, 10+1)
+        self.assertRaises(RevertException, formula.calculate_sale_return, 10, 10, 10, 10 + 1)
 
     def test_input_validation_for_calculate_cross_connector_return(self):
         # checks if from connector balance should be more than 0
-        self.assertRaises(RevertException, formula.calculateCrossConnectorReturn, 0, 10, 10, 10, 10)
+        self.assertRaises(RevertException, formula.calculate_cross_connector_return, 0, 10, 10, 10, 10)
         # checks if from connector weight should be more than 0
-        self.assertRaises(RevertException, formula.calculateCrossConnectorReturn, 10, 0, 10, 10, 10)
+        self.assertRaises(RevertException, formula.calculate_cross_connector_return, 10, 0, 10, 10, 10)
         # checks if from connector weight <= MAX WEIGHT
-        self.assertRaises(RevertException, formula.calculateCrossConnectorReturn, 10, formula._MAX_WEIGHT + 1, 10, 10, 10)
+        self.assertRaises(RevertException, formula.calculate_cross_connector_return, 10, formula._MAX_WEIGHT + 1, 10, 10, 10)
 
         # checks if to connector balance should be more than 0
-        self.assertRaises(RevertException, formula.calculateCrossConnectorReturn, 10, 10, 0, 10, 10)
+        self.assertRaises(RevertException, formula.calculate_cross_connector_return, 10, 10, 0, 10, 10)
         # checks if to connector weight should be more than 0
-        self.assertRaises(RevertException, formula.calculateCrossConnectorReturn, 10, 10, 10, 0, 10)
+        self.assertRaises(RevertException, formula.calculate_cross_connector_return, 10, 10, 10, 0, 10)
         # checks if to connector weight <= MAX WEIGHT
-        self.assertRaises(RevertException, formula.calculateCrossConnectorReturn, 10, 10, 10, formula._MAX_WEIGHT + 1, 10)
+        self.assertRaises(RevertException, formula.calculate_cross_connector_return, 10, 10, 10, formula._MAX_WEIGHT + 1, 10)
 
 
 

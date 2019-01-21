@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2018 ICON Foundation
+# Copyright 2019 ICON Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -169,112 +169,112 @@ class FixedMapFormula(ABCFormula):
     _max_exp_array[126] = 0x008b380f3558668c46c91c49a2f8e967b9
     _max_exp_array[127] = 0x00857ddf0117efa215952912839f6473e6
 
-    def calculatePurchaseReturn(self, _supply: int, _connector_balance: int, _connector_weight: int,
-                                _deposit_amount: int) -> int:
+    def calculate_purchase_return(self, supply: int, connector_balance: int, connector_weight: int,
+                                  deposit_amount: int) -> int:
         """
         Given a token supply, connector balance, weight and a deposit amount (in the connector token),
         calculates the return for a given conversion (in the main token)
 
         Formula:
-        Return = _supply * ((1 + _depositAmount / _connectorBalance) ^ (_connectorWeight / 1000000) - 1)
+        Return = supply * ((1 + deposit_amount / connector_balance) ^ (connector_weight / 1000000) - 1)
 
-        :param _supply: token total supply
-        :param _connector_balance: total connector balance
-        :param _connector_weight: connector weight, represented in ppm, 1-1000000
-        :param _deposit_amount: deposit amount, in connector token
+        :param supply: token total supply
+        :param connector_balance: total connector balance
+        :param connector_weight: connector weight, represented in ppm, 1-1000000
+        :param deposit_amount: deposit amount, in connector token
         :return: purchase return amount
         """
         # validate input
-        if not (_supply > 0 and _connector_balance > 0 and self._MAX_WEIGHT >= _connector_weight > 0):
+        if not (supply > 0 and connector_balance > 0 and self._MAX_WEIGHT >= connector_weight > 0):
             revert("Invalid input")
 
         # special case for 0 deposit amount
-        if _deposit_amount == 0:
+        if deposit_amount == 0:
             return 0
 
         # special case if the weight = 100%
-        if _connector_weight == self._MAX_WEIGHT:
-            return (_supply * _deposit_amount) // _connector_balance
+        if connector_weight == self._MAX_WEIGHT:
+            return (supply * deposit_amount) // connector_balance
 
-        base_n = _deposit_amount + _connector_balance
-        result, precision = self._power(base_n, _connector_balance, _connector_weight, self._MAX_WEIGHT)
-        temp = _supply * result >> precision
-        return temp - _supply
+        base_n = deposit_amount + connector_balance
+        result, precision = self._power(base_n, connector_balance, connector_weight, self._MAX_WEIGHT)
+        temp = supply * result >> precision
+        return temp - supply
 
-    def calculateSaleReturn(self, _supply: int, _connector_balance: int, _connector_weight: int, _sell_amount: int) -> int:
+    def calculate_sale_return(self, supply: int, connector_balance: int, connector_weight: int, sell_amount: int) -> int:
         """
         Given a token supply, connector balance, weight and a sell amount (in the main token),
         calculates the return for a given conversion (in the connector token)
 
         Formula:
-        Return = _connectorBalance * (1 - (1 - _sellAmount / _supply) ^ (1 / (_connectorWeight / 1000000)))
+        Return = connector_balance * (1 - (1 - sell_amount / supply) ^ (1 / (connector_weight / 1000000)))
 
-        :param _supply: token total supply
-        :param _connector_balance: total connector
-        :param _connector_weight: constant connector Weight, represented in ppm, 1-1000000
-        :param _sell_amount: sell amount, in the token itself
+        :param supply: token total supply
+        :param connector_balance: total connector
+        :param connector_weight: constant connector Weight, represented in ppm, 1-1000000
+        :param sell_amount: sell amount, in the token itself
         :return: sale return amount
         """
         # validate input
-        if not (_supply > 0 and _connector_balance > 0 and self._MAX_WEIGHT >= _connector_weight > 0
-                and _sell_amount <= _supply):
+        if not (supply > 0 and connector_balance > 0 and self._MAX_WEIGHT >= connector_weight > 0
+                and sell_amount <= supply):
             revert("Invalid input")
 
         # special case for 0 sell amount
-        if _sell_amount == 0:
+        if sell_amount == 0:
             return 0
 
         # special case for selling the entire supply
-        if _sell_amount == _supply:
-            return _connector_balance
+        if sell_amount == supply:
+            return connector_balance
 
         # special case if the weight == 100%
-        if _connector_weight == self._MAX_WEIGHT:
-            return (_connector_balance * _sell_amount) // _supply
+        if connector_weight == self._MAX_WEIGHT:
+            return (connector_balance * sell_amount) // supply
 
-        base_d = _supply - _sell_amount
-        result, precision = self._power(_supply, base_d, self._MAX_WEIGHT, _connector_weight)
-        temp1 = _connector_balance * result
-        temp2 = _connector_balance << precision
-        return (temp1 - temp2) // result
+        base_d = supply - sell_amount
+        result, precision = self._power(supply, base_d, self._MAX_WEIGHT, connector_weight)
+        temp_1 = connector_balance * result
+        temp_2 = connector_balance << precision
+        return (temp_1 - temp_2) // result
 
-    def calculateCrossConnectorReturn(self, _from_connector_balance: int, _from_connector_weight: int,
-                                      _to_connector_balance: int, _to_connector_weight: int, _amount: int) -> int:
+    def calculate_cross_connector_return(self, from_connector_balance: int, from_connector_weight: int,
+                                         to_connector_balance: int, to_connector_weight: int, amount: int) -> int:
         """
         Given two connector balances/weights and a sell amount (in the first connector token),
         calculates the return for a conversion from the first connector token to the second connector token
         (in the second connector token)
 
         Formula:
-        Return = _toConnectorBalance * (1 - (_fromConnectorBalance / (_fromConnectorBalance + _amount)) ^ (_fromConnectorWeight / _toConnectorWeight))
+        Return = to_connector_balance * (1 - (from_connector_balance / (from_connector_balance + amount)) ^ (from_connector_weight / to_connector_weight))
 
-        :param _from_connector_balance: input connector balance
-        :param _from_connector_weight: input connector weight, represented in ppm, 1-1000000
-        :param _to_connector_balance: output connector balance
-        :param _to_connector_weight: output connector weight, represented in ppm, 1-1000000
-        :param _amount: input connector amount
+        :param from_connector_balance: input connector balance
+        :param from_connector_weight: input connector weight, represented in ppm, 1-1000000
+        :param to_connector_balance: output connector balance
+        :param to_connector_weight: output connector weight, represented in ppm, 1-1000000
+        :param amount: input connector amount
         :return: second connector amount
         """
         # validate input
-        if not (_from_connector_balance > 0 and self._MAX_WEIGHT >= _from_connector_weight > 0
-                and _to_connector_balance > 0 and self._MAX_WEIGHT >= _to_connector_weight > 0):
+        if not (from_connector_balance > 0 and self._MAX_WEIGHT >= from_connector_weight > 0
+                and to_connector_balance > 0 and self._MAX_WEIGHT >= to_connector_weight > 0):
             revert("Invalid input")
 
         # special case for equal weights
-        if _from_connector_weight == _to_connector_weight:
-            return (_to_connector_balance * _amount) // (_from_connector_balance + _amount)
+        if from_connector_weight == to_connector_weight:
+            return (to_connector_balance * amount) // (from_connector_balance + amount)
 
-        base_n = _from_connector_balance + _amount
-        result, precision = self._power(base_n, _from_connector_balance, _from_connector_weight, _to_connector_weight)
-        temp1 = _to_connector_balance * result
-        temp2 = _to_connector_balance << precision
-        return (temp1 - temp2) // result
+        base_n = from_connector_balance + amount
+        result, precision = self._power(base_n, from_connector_balance, from_connector_weight, to_connector_weight)
+        temp_1 = to_connector_balance * result
+        temp_2 = to_connector_balance << precision
+        return (temp_1 - temp_2) // result
 
-    def _power(self, _base_n: int, _base_d: int, _exp_n: int, _exp_d: int) -> (int, int):
+    def _power(self, base_n: int, base_d: int, exp_n: int, exp_d: int) -> (int, int):
         """
         General Description:
             Determine a value of precision.
-            Calculate an integer approximation of (_baseN / _baseD) ^ (_expN / _expD) * 2 ^ precision.
+            Calculate an integer approximation of (base_n / base_d) ^ (exp_n / exp_d) * 2 ^ precision.
             Return the result along with the precision used.
 
         Detailed Description:
@@ -288,22 +288,22 @@ class FixedMapFormula(ABCFormula):
             This allows us to compute "base ^ exp" with maximum accuracy and without exceeding 256 bits in any of the intermediate computations.
             This functions assumes that "_expN < 2 ^ 256 / log(MAX_NUM - 1)", otherwise the multiplication should be replaced with a "safeMul".
 
-        :param _base_n:
-        :param _base_d:
-        :param _exp_n:
-        :param _exp_d:
+        :param base_n:
+        :param base_d:
+        :param exp_n:
+        :param exp_d:
         :return:
         """
-        if not (_base_n < self._MAX_NUM):
+        if not (base_n < self._MAX_NUM):
             revert("Invalid input")
 
-        base = _base_n * self._FIXED_1 // _base_d
+        base = base_n * self._FIXED_1 // base_d
         if base < self._OPT_LOG_MAX_VAL:
             base_log = self._optimal_log(base)
         else:
             base_log = self._general_log(base)
 
-        base_log_times_exp = base_log * _exp_n // _exp_d
+        base_log_times_exp = base_log * exp_n // exp_d
         if base_log_times_exp < self._OPT_EXP_MAX_VAL:
             return self._optimal_exp(base_log_times_exp), self._MAX_PRECISION
         else:
@@ -338,36 +338,36 @@ class FixedMapFormula(ABCFormula):
 
         return res * self._LN2_NUMERATOR // self._LN2_DENOMINATOR
 
-    def _floor_log2(self, _n: int) -> int:
+    def _floor_log2(self, n: int) -> int:
         """Compute the largest integer smaller than or equal to the binary logarithm of the input.
 
-        :param _n:
+        :param n:
         :return:
         """
         res = 0
 
-        if _n < 256:
+        if n < 256:
             # At most 8 iterations
-            while _n > 1:
-                _n >>= 1
+            while n > 1:
+                n >>= 1
                 res += 1
         else:
             # Exactly 8 iterations
             s = 128
             while s > 0:
-                if _n >= (self._ONE << s):
-                    _n >>= s
+                if n >= (self._ONE << s):
+                    n >>= s
                     res |= s
                 s >>= 1
         return res
 
-    def _find_position_in_max_exp_array(self, _x: int) -> int:
+    def _find_position_in_max_exp_array(self, x: int) -> int:
         """
         The global "_max_exp_array" is sorted in descending order, and therefore the following statements are equivalent:
         - This function finds the position of [the smallest value in "_max_exp_array" larger than or equal to "x"]
         - This function finds the highest position of [a value in "_max_exp_array" larger than or equal to "x"]
 
-        :param _x:
+        :param x:
         :return:
         """
         lo = self._MIN_PRECISION
@@ -375,19 +375,19 @@ class FixedMapFormula(ABCFormula):
 
         while lo + 1 < hi:
             mid = (lo + hi) // 2
-            if self._max_exp_array[mid] >= _x:
+            if self._max_exp_array[mid] >= x:
                 lo = mid
             else:
                 hi = mid
 
-        if self._max_exp_array[hi] >= _x:
+        if self._max_exp_array[hi] >= x:
             return hi
-        if self._max_exp_array[lo] >= _x:
+        if self._max_exp_array[lo] >= x:
             return lo
 
         return 0
 
-    def _general_exp(self, _x: int, _precision: int) -> int:
+    def _general_exp(self, x: int, precision: int) -> int:
         """
         This function can be auto-generated by the script 'PrintFunctionGeneralExp.py'.
         It approximates "e ^ x" via maclaurin summation: "(x^0)/0! + (x^1)/1! + ... + (x^n)/n!".
@@ -395,111 +395,111 @@ class FixedMapFormula(ABCFormula):
         The global "_max_exp_array" maps each "precision" to "((maximumExponent + 1) << (MAX_PRECISION - precision)) - 1".
         The maximum permitted value for "x" is therefore given by "_max_exp_array[precision] >> (MAX_PRECISION - precision)".
 
-        :param _x:
-        :param _precision:
+        :param x:
+        :param precision:
         :return:
         """
-        xi = _x
+        xi = x
         res = 0
         # add x^02 * (33! / 02!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x3442c4e6074a82f1797f72ac0000000
         # add x^03 * (33! / 03!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x116b96f757c380fb287fd0e40000000
         # add x^04 * (33! / 04!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x045ae5bdd5f0e03eca1ff4390000000
         # add x^05 * (33! / 05!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x00defabf91302cd95b9ffda50000000
         # add x^06 * (33! / 06!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x002529ca9832b22439efff9b8000000
         # add x^07 * (33! / 07!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x00054f1cf12bd04e516b6da88000000
         # add x^08 * (33! / 08!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000a9e39e257a09ca2d6db51000000
         # add x^09 * (33! / 09!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x000012e066e7b839fa050c309000000
         # add x^10 * (33! / 10!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x000001e33d7d926c329a1ad1a800000
         # add x^11 * (33! / 11!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000002bee513bdb4a6b19b5f800000
         # add x^12 * (33! / 12!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x00000003a9316fa79b88eccf2a00000
         # add x^13 * (33! / 13!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000000048177ebe1fa812375200000
         # add x^14 * (33! / 14!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000000005263fe90242dcbacf00000
         # add x^15 * (33! / 15!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x000000000057e22099c030d94100000
         # add x^16 * (33! / 16!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000000000057e22099c030d9410000
         # add x^17 * (33! / 17!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x00000000000052b6b54569976310000
         # add x^18 * (33! / 18!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x00000000000004985f67696bf748000
         # add x^19 * (33! / 19!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x000000000000003dea12ea99e498000
         # add x^20 * (33! / 20!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x00000000000000031880f2214b6e000
         # add x^21 * (33! / 21!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x000000000000000025bcff56eb36000
         # add x^22 * (33! / 22!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x000000000000000001b722e10ab1000
         # add x^23 * (33! / 23!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000000000000000001317c70077000
         # add x^24 * (33! / 24!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x00000000000000000000cba84aafa00
         # add x^25 * (33! / 25!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x00000000000000000000082573a0a00
         # add x^26 * (33! / 26!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x00000000000000000000005035ad900
         # add x^27 * (33! / 27!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x000000000000000000000002f881b00
         # add x^28 * (33! / 28!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000000000000000000000001b29340
         # add x^29 * (33! / 29!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x00000000000000000000000000efc40
         # add x^30 * (33! / 30!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000000000000000000000000007fe0
         # add x^31 * (33! / 31!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000000000000000000000000000420
         # add x^32 * (33! / 32!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000000000000000000000000000021
         # add x^33 * (33! / 33!)
-        xi = (xi * _x) >> _precision
+        xi = (xi * x) >> precision
         res += xi * 0x0000000000000000000000000000001
 
         # divide by 33! and then add x^1 / 1! + x^0 / 0!
-        return res // 0x688589cc0e9505e2f2fee5580000000 + _x + (self._ONE << _precision)
+        return res // 0x688589cc0e9505e2f2fee5580000000 + x + (self._ONE << precision)
 
     def _optimal_log(self, x: int) -> int:
         """

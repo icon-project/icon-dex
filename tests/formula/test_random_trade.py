@@ -12,8 +12,8 @@ class TestRandomTrade(unittest.TestCase):
 
     @staticmethod
     def _formula_test(supply, balance, weight, amount):
-        new_amount = formula.calculatePurchaseReturn(supply, balance, weight, amount)
-        old_amount = formula.calculateSaleReturn(supply + new_amount, balance + amount, weight, new_amount)
+        new_amount = formula.calculate_purchase_return(supply, balance, weight, amount)
+        old_amount = formula.calculate_sale_return(supply + new_amount, balance + amount, weight, new_amount)
         if old_amount > amount:
             error = ['Implementation Error:']
             error.append('supply    = {}'.format(supply))

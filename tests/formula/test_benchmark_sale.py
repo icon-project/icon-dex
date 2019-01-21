@@ -24,8 +24,8 @@ class TestBenchmarkSale(unittest.TestCase):
 
     @staticmethod
     def _formula_test(supply, balance, weight, amount):
-        result_formula = formula.calculateSaleReturn(supply, balance, weight, amount)
-        result_formula_native_python = formula_native_python.calculateSaleReturn(supply, balance, weight, amount)
+        result_formula = formula.calculate_sale_return(supply, balance, weight, amount)
+        result_formula_native_python = formula_native_python.calculate_sale_return(supply, balance, weight, amount)
         if result_formula > result_formula_native_python:
             error = ['Implementation Error:']
             error.append('supply             = {}'.format(supply))

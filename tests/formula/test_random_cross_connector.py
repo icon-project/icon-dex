@@ -14,23 +14,23 @@ class TestRandomCrossConnector(unittest.TestCase):
     @staticmethod
     def _singleHopTestFixed(balance1, weight1, balance2, weight2, amount):
         try:
-            return formula.calculateCrossConnectorReturn(balance1, weight1, balance2, weight2, amount)
+            return formula.calculate_cross_connector_return(balance1, weight1, balance2, weight2, amount)
         except:
             return -1
 
     @staticmethod
     def _doubleHopTestFixed(supply, balance1, weight1, balance2, weight2, amount):
         try:
-            amount = formula.calculatePurchaseReturn(supply, balance1, weight1, amount)
-            return formula.calculateSaleReturn(supply + amount, balance2, weight2, amount)
+            amount = formula.calculate_purchase_return(supply, balance1, weight1, amount)
+            return formula.calculate_sale_return(supply + amount, balance2, weight2, amount)
         except:
             return -1
 
     @staticmethod
     def _doubleHopTestFloat(supply, balance1, weight1, balance2, weight2, amount):
         try:
-            amount = formula_native_python.calculatePurchaseReturn(supply, balance1, weight1, amount)
-            return formula_native_python.calculateSaleReturn(supply + amount, balance2, weight2, amount)
+            amount = formula_native_python.calculate_purchase_return(supply, balance1, weight1, amount)
+            return formula_native_python.calculate_sale_return(supply + amount, balance2, weight2, amount)
         except:
             return -1
 
