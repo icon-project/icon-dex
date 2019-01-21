@@ -10,6 +10,7 @@ from iconservice.iconscore.internal_call import InternalCall
 from contracts.converter.converter import Converter, TRANSFER_DATA
 from contracts.score_registry.score_registry import ScoreRegistry
 from contracts.utility.smart_token_controller import SmartTokenController
+from contracts.formula import Formula
 from tests import patch, ScorePatcher, create_db, assert_inter_call
 
 
@@ -34,7 +35,7 @@ class TestConverter(unittest.TestCase):
             self.score.on_install(token, registry, max_conversion_fee,
                                   self.initial_connector_token, self.initial_connector_weight)
             SmartTokenController.on_install.assert_called_with(self.score, token)
-            self.score.token.set(token)
+            self.score._token.set(token)
 
             self.assertEqual(registry, self.score._registry.get())
             self.assertEqual(registry, self.score._prev_registry.get())
@@ -50,7 +51,7 @@ class TestConverter(unittest.TestCase):
     def test_tokenFallback_deposit(self):
         # Mocks parent functions
         self.score.getOwner.return_value = self.owner
-        self.score.is_active.return_value = False
+        self.score._is_active.return_value = False
 
         network_address = Address.from_string("cx" + os.urandom(20).hex())
 
@@ -95,7 +96,7 @@ class TestConverter(unittest.TestCase):
             self.assertRaises(RevertException, self.score.tokenFallback, sender, value, b'None')
 
         # the converter is active
-        self.score.is_active.return_value = True
+        self.score._is_active.return_value = True
         token = self.initial_connector_token
         sender = self.owner
         value = 100
@@ -108,7 +109,7 @@ class TestConverter(unittest.TestCase):
     def test_tokenFallback_convert_called(self):
         # Mocks parent functions
         self.score.getOwner.return_value = self.owner
-        self.score.is_active.return_value = True
+        self.score._is_active.return_value = True
         self.score._convert = Mock()
 
         network_address = Address.from_string("cx" + os.urandom(20).hex())
@@ -160,12 +161,12 @@ class TestConverter(unittest.TestCase):
             result = self.score._buy(trader, connector_token2, amount, min_return)
             assert_inter_call(self,
                               self.score.address,
-                              self.score.token.get(),
+                              self.score._token.get(),
                               'issue',
                               [trader, return_amount])
             self.score.Conversion.assert_called_with(
                 connector_token2,
-                self.score.token.get(),
+                self.score._token.get(),
                 trader,
                 amount,
                 return_amount,
@@ -202,11 +203,11 @@ class TestConverter(unittest.TestCase):
             result = self.score._sell(trader, connector_token2, amount, min_return)
             assert_inter_call(self,
                               self.score.address,
-                              self.score.token.get(),
+                              self.score._token.get(),
                               'destroy',
                               [self.score.address, return_amount])
             self.score.Conversion.assert_called_with(
-                self.score.token.get(),
+                self.score._token.get(),
                 connector_token2,
                 trader,
                 amount,
@@ -372,43 +373,43 @@ class TestConverter(unittest.TestCase):
         to = Address.from_string("hx" + os.urandom(20).hex())
         amount = 100
 
-        self.score.is_active.return_value = True
+        self.score._is_active.return_value = True
         self.score._connectors[self.initial_connector_token].is_set.set(False)
         with patch([
             (IconScoreBase, 'msg', Message(self.owner))
         ]):
             self.score.withdrawTokens(self.initial_connector_token, to, amount)
-            self.score.is_active.assert_called()
+            self.score._is_active.assert_called()
             SmartTokenController.withdrawTokens.assert_called_with(
-                self.score, self.initial_connector_token, to, amount)
+                self.initial_connector_token, to, amount)
 
-        self.score.is_active.reset_mock()
-        self.score.is_active.return_value = False
+        self.score._is_active.reset_mock()
+        self.score._is_active.return_value = False
         self.score._connectors[self.initial_connector_token].is_set.set(True)
         with patch([
             (IconScoreBase, 'msg', Message(self.owner))
         ]):
             self.score.withdrawTokens(self.initial_connector_token, to, amount)
-            self.score.is_active.assert_called()
+            self.score._is_active.assert_called()
             SmartTokenController.withdrawTokens.assert_called_with(
-                self.score, self.initial_connector_token, to, amount)
+                self.initial_connector_token, to, amount)
 
-        self.score.is_active.reset_mock()
-        self.score.is_active.return_value = False
+        self.score._is_active.reset_mock()
+        self.score._is_active.return_value = False
         self.score._connectors[self.initial_connector_token].is_set.set(False)
         with patch([
             (IconScoreBase, 'msg', Message(self.owner))
         ]):
             self.score.withdrawTokens(self.initial_connector_token, to, amount)
-            self.score.is_active.assert_called()
+            self.score._is_active.assert_called()
             SmartTokenController.withdrawTokens.assert_called_with(
-                self.score, self.initial_connector_token, to, amount)
+                self.initial_connector_token, to, amount)
 
     def test_withdrawTokens_failure(self):
         to = Address.from_string("hx" + os.urandom(20).hex())
         amount = 100
 
-        self.score.is_active.return_value = True
+        self.score._is_active.return_value = True
         self.score._connectors[self.initial_connector_token].is_set.set(True)
         with patch([
             (IconScoreBase, 'msg', Message(self.owner))
@@ -416,7 +417,7 @@ class TestConverter(unittest.TestCase):
             self.assertRaises(RevertException,
                               self.score.withdrawTokens,
                               self.initial_connector_token, to, amount)
-            self.score.is_active.assert_called()
+            self.score._is_active.assert_called()
 
     def test_getConnectorTokenCount(self):
         size_by_db = len(self.score._connector_tokens)
@@ -464,16 +465,12 @@ class TestConverter(unittest.TestCase):
 
         formula_address = Address.from_string("cx" + os.urandom(20).hex())
 
-        mock_interface_score = Mock()
-        mock_interface_score.getAddress = Mock(return_value=formula_address)
-        mock_interface_score.totalSupply = Mock(return_value=10000)
-        mock_interface_score.calculatePurchaseReturn = Mock(return_value=1000)
-
         self.score.getConnectorBalance = Mock(return_value=10000)
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
-            (IconScoreBase, 'create_interface_score', mock_interface_score)
+            (InternalCall, 'other_external_call', 10000),
+            (Formula, 'calculate_purchase_return', 1000)
         ]):
             result = self.score.getPurchaseReturn(self.initial_connector_token, amount)
             self.assertEqual(1000, result['amount'])
@@ -485,7 +482,8 @@ class TestConverter(unittest.TestCase):
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
-            (IconScoreBase, 'create_interface_score', mock_interface_score)
+            (InternalCall, 'other_external_call', 10000),
+            (Formula, 'calculate_purchase_return', 1000)
         ]):
             result = self.score.getPurchaseReturn(self.initial_connector_token, amount)
             self.assertEqual(990, result['amount'])
@@ -494,18 +492,12 @@ class TestConverter(unittest.TestCase):
     def test_getSaleReturn(self):
         amount = 1000
 
-        formula_address = Address.from_string("cx" + os.urandom(20).hex())
-
-        mock_interface_score = Mock()
-        mock_interface_score.getAddress = Mock(return_value=formula_address)
-        mock_interface_score.totalSupply = Mock(return_value=10000)
-        mock_interface_score.calculateSaleReturn = Mock(return_value=1000)
-
         self.score.getConnectorBalance = Mock(return_value=10000)
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
-            (IconScoreBase, 'create_interface_score', mock_interface_score)
+            (InternalCall, 'other_external_call', 10000),
+            (Formula, 'calculate_sale_return', 1000)
         ]):
             result = self.score.getSaleReturn(self.initial_connector_token, amount)
             self.assertEqual(1000, result['amount'])
@@ -517,7 +509,8 @@ class TestConverter(unittest.TestCase):
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
-            (IconScoreBase, 'create_interface_score', mock_interface_score)
+            (InternalCall, 'other_external_call', 10000),
+            (Formula, 'calculate_sale_return', 1000)
         ]):
             result = self.score.getSaleReturn(self.initial_connector_token, amount)
             self.assertEqual(990, result['amount'])
@@ -530,17 +523,11 @@ class TestConverter(unittest.TestCase):
 
         amount = 1000
 
-        formula_address = Address.from_string("cx" + os.urandom(20).hex())
-
-        mock_interface_score = Mock()
-        mock_interface_score.getAddress = Mock(return_value=formula_address)
-        mock_interface_score.calculateCrossConnectorReturn = Mock(return_value=1000)
-
         self.score.getConnectorBalance = Mock(return_value=10000)
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
-            (IconScoreBase, 'create_interface_score', mock_interface_score)
+            (Formula, 'calculate_cross_connector_return', 1000),
         ]):
             result = self.score.getCrossConnectorReturn(
                 self.initial_connector_token,
@@ -555,7 +542,7 @@ class TestConverter(unittest.TestCase):
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
-            (IconScoreBase, 'create_interface_score', mock_interface_score)
+            (Formula, 'calculate_cross_connector_return', 1000),
         ]):
             result = self.score.getCrossConnectorReturn(
                 self.initial_connector_token,

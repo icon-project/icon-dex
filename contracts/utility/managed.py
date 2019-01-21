@@ -33,7 +33,7 @@ class Managed(Owned):
 
     # allows execution by either the owner or the manager only
     def require_owner_or_manager_only(self):
-        Utils.require(self.msg.sender == self._manager.get() or self.msg.sender == self.getOwner,
+        Utils.require(self.msg.sender == self._manager.get() or self.msg.sender == self.getOwner(),
                       "Invalid sender")
 
     @external(readonly=True)
