@@ -62,5 +62,19 @@ config = {
         "utility/owned.py",
         "utility/utils.py",
         "utility/proxy_score.py",
+    ],
+    "network": [
+        "interfaces/__init__.py",
+        "interfaces/abc_smart_token.py",
+        "interfaces/abc_irc_token.py",
+        "interfaces/abc_icx_token.py",
+        "interfaces/abc_token_holder.py",
+        "interfaces/abc_owned.py",
+        "interfaces/abc_converter.py",
+        "utility/__init__.py",
+        "utility/owned.py",
+        "utility/token_holder.py",
+        "utility/utils.py",
+        "utility/proxy_score.py",
     ]
 }
