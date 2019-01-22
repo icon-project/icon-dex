@@ -77,4 +77,25 @@ config = {
         "utility/utils.py",
         "utility/proxy_score.py",
     ]
+    ,
+    "converter": [
+        "formula/__init__.py",
+        "formula/fixed_map_formula.py",
+        "interfaces/__init__.py",
+        "interfaces/abc_formula.py",
+        "interfaces/abc_converter.py",
+        "interfaces/abc_irc_token.py",
+        "interfaces/abc_score_registry.py",
+        "interfaces/abc_smart_token.py",
+        "interfaces/abc_irc_token.py",
+        "interfaces/abc_token_holder.py",
+        "interfaces/abc_owned.py",
+        "utility/__init__.py",
+        "utility/managed.py",
+        "utility/owned.py",
+        "utility/utils.py",
+        "utility/proxy_score.py",
+        "utility/smart_token_controller.py",
+        "utility/token_holder.py"
+    ]
 }

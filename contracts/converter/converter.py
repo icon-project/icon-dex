@@ -15,14 +15,14 @@
 
 from iconservice import *
 
-from contracts.formula import formula
-from contracts.interfaces.abc_converter import ABCConverter
-from contracts.interfaces.abc_irc_token import ABCIRCToken
-from contracts.interfaces.abc_score_registry import ABCScoreRegistry
-from contracts.interfaces.abc_smart_token import ABCSmartToken
-from contracts.utility.managed import Managed
-from contracts.utility.proxy_score import ProxyScore
-from contracts.utility.smart_token_controller import SmartTokenController
+from ..formula import formula
+from ..interfaces.abc_converter import ABCConverter
+from ..interfaces.abc_irc_token import ABCIRCToken
+from ..interfaces.abc_score_registry import ABCScoreRegistry
+from ..interfaces.abc_smart_token import ABCSmartToken
+from ..utility.managed import Managed
+from ..utility.proxy_score import ProxyScore
+from ..utility.smart_token_controller import SmartTokenController
 from ..utility.utils import *
 
 TAG = 'Converter'

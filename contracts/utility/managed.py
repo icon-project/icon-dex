@@ -15,8 +15,8 @@
 
 from iconservice import *
 
-from contracts.utility.owned import Owned
-from contracts.utility.utils import *
+from .owned import Owned
+from .utils import *
 
 
 # noinspection PyPep8Naming

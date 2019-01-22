@@ -15,9 +15,9 @@
 
 from iconservice import *
 
-from contracts.interfaces.abc_smart_token import ABCSmartToken
-from contracts.utility.proxy_score import ProxyScore
-from contracts.utility.token_holder import TokenHolder
+from ..interfaces.abc_smart_token import ABCSmartToken
+from .proxy_score import ProxyScore
+from .token_holder import TokenHolder
 from .utils import *
 
 # interface SCORE of `SmartToken`
