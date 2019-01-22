@@ -10,7 +10,7 @@ from iconservice.iconscore.internal_call import InternalCall
 from contracts.converter.converter import Converter, TRANSFER_DATA
 from contracts.score_registry.score_registry import ScoreRegistry
 from contracts.utility.smart_token_controller import SmartTokenController
-from contracts.formula import Formula
+from contracts.formula import FixedMapFormula
 from tests import patch, ScorePatcher, create_db, assert_inter_call
 
 
@@ -463,14 +463,12 @@ class TestConverter(unittest.TestCase):
     def test_getPurchaseReturn(self):
         amount = 1000
 
-        formula_address = Address.from_string("cx" + os.urandom(20).hex())
-
         self.score.getConnectorBalance = Mock(return_value=10000)
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
             (InternalCall, 'other_external_call', 10000),
-            (Formula, 'calculate_purchase_return', 1000)
+            (FixedMapFormula, 'calculate_purchase_return', 1000)
         ]):
             result = self.score.getPurchaseReturn(self.initial_connector_token, amount)
             self.assertEqual(1000, result['amount'])
@@ -483,7 +481,7 @@ class TestConverter(unittest.TestCase):
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
             (InternalCall, 'other_external_call', 10000),
-            (Formula, 'calculate_purchase_return', 1000)
+            (FixedMapFormula, 'calculate_purchase_return', 1000)
         ]):
             result = self.score.getPurchaseReturn(self.initial_connector_token, amount)
             self.assertEqual(990, result['amount'])
@@ -497,7 +495,7 @@ class TestConverter(unittest.TestCase):
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
             (InternalCall, 'other_external_call', 10000),
-            (Formula, 'calculate_sale_return', 1000)
+            (FixedMapFormula, 'calculate_sale_return', 1000)
         ]):
             result = self.score.getSaleReturn(self.initial_connector_token, amount)
             self.assertEqual(1000, result['amount'])
@@ -510,7 +508,7 @@ class TestConverter(unittest.TestCase):
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
             (InternalCall, 'other_external_call', 10000),
-            (Formula, 'calculate_sale_return', 1000)
+            (FixedMapFormula, 'calculate_sale_return', 1000)
         ]):
             result = self.score.getSaleReturn(self.initial_connector_token, amount)
             self.assertEqual(990, result['amount'])
@@ -527,7 +525,7 @@ class TestConverter(unittest.TestCase):
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
-            (Formula, 'calculate_cross_connector_return', 1000),
+            (FixedMapFormula, 'calculate_cross_connector_return', 1000),
         ]):
             result = self.score.getCrossConnectorReturn(
                 self.initial_connector_token,
@@ -542,7 +540,7 @@ class TestConverter(unittest.TestCase):
 
         with patch([
             (IconScoreBase, 'msg', Message(self.owner)),
-            (Formula, 'calculate_cross_connector_return', 1000),
+            (FixedMapFormula, 'calculate_cross_connector_return', 1000),
         ]):
             result = self.score.getCrossConnectorReturn(
                 self.initial_connector_token,
