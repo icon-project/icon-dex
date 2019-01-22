@@ -33,3 +33,15 @@ class Utils:
     @staticmethod
     def is_valid_address(address: 'Address'):
         return address is not None and address != ZERO_SCORE_ADDRESS
+
+    @staticmethod
+    def safe_sub(_x: int, _y: int) -> int:
+        """Returns the difference of _x minus _y, asserts if the subtraction results in a negative number
+
+        :param _x: minuend
+        :param _y: subtrahend
+        :return: difference
+        """
+        if _x < _y:
+            revert("Difference between two numbers should be positive")
+        return _x - _y
