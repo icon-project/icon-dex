@@ -16,31 +16,7 @@ class ABCConverter(ABC):
         :param _toToken: address of IRC2 token to convert to
         :param _amount: amount to convert, in fromToken
         :return: expected conversion return amount and conversion fee, in dict
-        """
-        pass
-
-    @abstractmethod
-    def convert(self,
-                _fromToken: 'Address', _toToken: 'Address', _amount: int, _minReturn: int) -> int:
-        """
-        Converts a specific amount of _fromToken to _toToken
-
-        :param _fromToken: address of IRC2 token to convert from
-        :param _toToken: address of IRC2 token to convert to
-        :param _amount: amount to convert, in fromToken
-        :param _minReturn: if the conversion results in an amount smaller than the minimum return
-        - it is cancelled, must be nonzero
-        :return: conversion return amount
-        """
-        pass
-
-    @abstractmethod
-    def getConversionWhitelist(self) -> 'Address':
-        """
-        Returns an address of whitelist contract with list of addresses that are allowed to use
-        the converter
-
-        :return: address of whitelist contract
+            e.g.) {'amount': [INT], 'fee': [INT]}
         """
         pass
 
@@ -71,5 +47,25 @@ class ABCConverter(ABC):
 
         :param _connectorToken: connector token address
         :return: connector balance
+        """
+        pass
+
+    @abstractmethod
+    def tokenFallback(self, _from: Address, _value: int, _data: bytes):
+        """
+        invoked when the contract receives tokens.
+        if the data param is parsed as conversion format,
+        token conversion is executed.
+        conversion format is:
+        ```
+        {
+            'toToken': [ADDRESS],
+            'minReturn': [INT]
+        }
+        ```
+
+        :param _from: token sender. should be network
+        :param _value: amount of tokens
+        :param _data: additional data
         """
         pass

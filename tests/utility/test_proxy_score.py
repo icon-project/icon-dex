@@ -5,6 +5,7 @@ from iconservice import ABC, abstractmethod, Address, IconScoreBase
 from iconservice.iconscore.internal_call import InternalCall
 
 from contracts.utility.proxy_score import ProxyScore
+from tests import assert_inter_call
 
 
 class ABCToken1(ABC):
@@ -21,6 +22,13 @@ class ABCToken2(ABC):
         pass
 
 
+class ABCToken3(ABCToken1):
+
+    @abstractmethod
+    def transfer_from(self, _from: Address, _to: 'Address', _value: int, _data: bytes = None):
+        pass
+
+
 ScoreInterface = ProxyScore(ABCToken1)
 
 
@@ -28,7 +36,7 @@ class TestProxyScore(unittest.TestCase):
 
     def test_proxy_creation(self):
         # tests the attributes are properly imported
-        assert hasattr(ScoreInterface, 'transfer')
+        self.assertTrue(hasattr(ScoreInterface, 'transfer'))
 
         # tests the proxy class cache
         ScoreInterface0 = ProxyScore(ABCToken1)
@@ -36,9 +44,18 @@ class TestProxyScore(unittest.TestCase):
         ScoreInterface2 = ProxyScore(ABCToken2)
 
         # If the ABC class names are same each other, the proxy class will be created once.
-        assert ScoreInterface0 is ScoreInterface1
+        self.assertEqual(ScoreInterface0, ScoreInterface1)
         # otherwise creates new one
-        assert ScoreInterface0 is not ScoreInterface2
+        self.assertNotEqual(ScoreInterface0, ScoreInterface2)
+
+    def test_proxy_creation_with_inheritance(self):
+        InheritedScoreInterface = ProxyScore(ABCToken3)
+
+        # asserts own function exists
+        self.assertTrue(hasattr(InheritedScoreInterface, 'transfer_from'))
+
+        # asserts parent function exists
+        self.assertTrue(hasattr(InheritedScoreInterface, 'transfer'))
 
     def test_proxy_call(self):
         # tests the proxy call
@@ -54,13 +71,12 @@ class TestProxyScore(unittest.TestCase):
 
         score = ScoreInterface(score_address, icon_score_base)
 
-        with patch.object(InternalCall, 'other_external_call') as external_call:
+        with patch.object(InternalCall, 'other_external_call'):
             score.transfer(to_address, value)
 
-            external_call.assert_called()
-            call_args = external_call.call_args_list[0][0]
-            assert call_args[1] is self_address  # from score
-            assert call_args[2] is score_address  # to score
-            assert call_args[4] == 'transfer'  # function name
-            assert call_args[5][0] is to_address  # param1: _to address
-            assert call_args[5][1] == 1  # param2: _value
+            assert_inter_call(
+                self,
+                self_address,
+                score_address,
+                'transfer',
+                [to_address, 1])
