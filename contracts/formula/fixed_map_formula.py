@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# source code from
+# https://github.com/bancorprotocol/contracts
+
 from iconservice import *
 
 from ..interfaces.abc_formula import ABCFormula
