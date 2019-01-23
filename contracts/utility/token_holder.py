@@ -19,7 +19,7 @@ from ..interfaces.abc_irc_token import ABCIRCToken
 from ..interfaces.abc_token_holder import ABCTokenHolder
 from ..utility.proxy_score import ProxyScore
 from .owned import Owned
-from .utils import Utils
+from .utils import *
 
 
 class TokenHolder(Owned, ABCTokenHolder):
@@ -34,10 +34,10 @@ class TokenHolder(Owned, ABCTokenHolder):
 
     @external
     def withdrawTokens(self, _token: 'Address', _to: 'Address', _amount: int) -> None:
-        self.owner_only()
-        Utils.check_positive_value(_amount)
-        Utils.check_not_this(self.address, _to)
-        Utils.check_valid_address(_to)
+        self.require_owner_only()
+        require_positive_value(_amount)
+        require_not_this(self.address, _to)
+        require_valid_address(_to)
 
         irc_token_score = self.create_interface_score(_token, ProxyScore(ABCIRCToken))
         irc_token_score.transfer(_to, _amount)

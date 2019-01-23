@@ -18,7 +18,7 @@ from iconservice import *
 from contracts.interfaces.abc_smart_token import ABCSmartToken
 from contracts.utility.proxy_score import ProxyScore
 from contracts.utility.token_holder import TokenHolder
-from .utils import Utils
+from .utils import *
 
 # interface SCORE of `SmartToken`
 SmartToken = ProxyScore(ABCSmartToken)
@@ -44,7 +44,7 @@ class SmartTokenController(TokenHolder):
         self._token = VarDB('token', db, Address)
 
     def on_install(self, _token: 'Address') -> None:
-        Utils.check_valid_address(_token)
+        require_valid_address(_token)
         TokenHolder.on_install(self)
         self._token.set(_token)
 
@@ -63,13 +63,13 @@ class SmartTokenController(TokenHolder):
         """
         ensures that the controller is the token's owner
         """
-        Utils.require(self._is_active())
+        require(self._is_active())
 
     def _require_inactive(self):
         """
         ensures that the controller is not the token's owner
         """
-        Utils.require(not self._is_active())
+        require(not self._is_active())
 
     @external
     def transferTokenOwnership(self, _newOwner: Address) -> None:
@@ -79,7 +79,7 @@ class SmartTokenController(TokenHolder):
 
         :param _newOwner: new token owner
         """
-        self.owner_only()
+        self.require_owner_only()
         smart_token = self.create_interface_score(self._token.get(), SmartToken)
         smart_token.transferOwnerShip(_newOwner)
 
@@ -89,7 +89,7 @@ class SmartTokenController(TokenHolder):
         used by a new owner to accept a token ownership transfer
         can only be called by the contract owner
         """
-        self.owner_only()
+        self.require_owner_only()
         smart_token = self.create_interface_score(self._token.get(), SmartToken)
         smart_token.acceptOwnerShip()
 
@@ -101,7 +101,7 @@ class SmartTokenController(TokenHolder):
 
         :param _disable: true to disable transfers, false to enable them
         """
-        self.owner_only()
+        self.require_owner_only()
         smart_token = self.create_interface_score(self._token.get(), SmartToken)
         smart_token.disableTransfer(_disable)
 
@@ -115,6 +115,6 @@ class SmartTokenController(TokenHolder):
         :param _to: account to receive the new amount
         :param _amount: amount to withdraw
         """
-        self.owner_only()
+        self.require_owner_only()
         smart_token = self.create_interface_score(self._token.get(), SmartToken)
         smart_token.withdrawTokens(_token, _to, _amount)

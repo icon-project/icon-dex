@@ -18,7 +18,7 @@ from iconservice import *
 from ..interfaces.abc_smart_token import ABCSmartToken
 from ..irc_token.irc_token import IRCToken
 from ..utility.token_holder import TokenHolder
-from ..utility.utils import Utils
+from ..utility.utils import *
 
 TAG = 'SmartToken'
 
@@ -56,13 +56,12 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
         IRCToken.on_update(self)
         TokenHolder.on_update(self)
 
-    def check_transfer_possibility(self):
-        if not self._transfer_possibility.get():
-            revert("This smart token cannot transfer")
+    def require_transfer_allowed(self):
+        require(self._transfer_possibility.get(), "This smart token cannot transfer")
 
     @external
     def disableTransfer(self, _disable: bool) -> None:
-        self.owner_only()
+        self.require_owner_only()
         self._transfer_possibility.set(not _disable)
 
     @external(readonly=True)
@@ -75,10 +74,10 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
 
     @external
     def issue(self, _to: Address, _amount: int) -> None:
-        Utils.check_positive_value(_amount)
-        self.owner_only()
-        Utils.check_valid_address(_to)
-        Utils.check_not_this(self.address, _to)
+        require_positive_value(_amount)
+        self.require_owner_only()
+        require_valid_address(_to)
+        require_not_this(self.address, _to)
 
         self._balances[_to] += _amount
         total_supply = self._total_supply.get()
@@ -89,11 +88,10 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
 
     @external
     def destroy(self, _from: Address, _amount: int) -> None:
-        Utils.check_positive_value(_amount)
-        if self._balances[_from] < _amount:
-            revert("Out of balance")
-        if not self.msg.sender == _from and not self.msg.sender == self._owner.get():
-            revert("You are not token holder or smart token owner")
+        require_positive_value(_amount)
+        require(self._balances[_from] >= _amount, "Out of balance")
+        require(self.msg.sender == _from or self.msg.sender == self._owner.get(),
+                "You are not token holder or smart token owner")
 
         self._balances[_from] -= _amount
         total_supply = self._total_supply.get()
@@ -104,5 +102,5 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
 
     @external
     def transfer(self, _to: Address, _value: int, _data: bytes = None):
-        self.check_transfer_possibility()
+        self.require_transfer_allowed()
         IRCToken.transfer(self, _to, _value, _data)

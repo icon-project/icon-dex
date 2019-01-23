@@ -22,7 +22,7 @@ from iconservice.iconscore.internal_call import InternalCall
 from contracts.icx_token.icx_token import IcxToken
 from contracts.utility.smart_token_controller import SmartTokenController
 from contracts.utility.token_holder import TokenHolder
-from contracts.utility.utils import Utils
+from contracts.utility.utils import *
 from tests import patch, ScorePatcher, create_db, assert_inter_call
 
 
@@ -38,13 +38,12 @@ class TestSmartTokenController(unittest.TestCase):
         self.score = SmartTokenController(create_db(self.score_address))
 
         self.owner = Address.from_string("hx" + "2" * 40)
+        # todo: test if require_valid_address method have been called
         with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (Utils, 'check_valid_address', None),
+            (IconScoreBase, 'msg', Message(self.owner))
         ]):
             self.score.on_install(self.smart_token_address)
             TokenHolder.on_install.assert_called_with(self.score)
-            Utils.check_valid_address.assert_called_with(self.smart_token_address)
 
     def tearDown(self):
         self.patcher.stop()
@@ -57,7 +56,7 @@ class TestSmartTokenController(unittest.TestCase):
             (InternalCall, 'other_external_call', None),
         ]):
             self.score.transferTokenOwnership(new_owner)
-            self.score.owner_only.assert_called()
+            self.score.require_owner_only.assert_called()
 
             assert_inter_call(
                 self,
@@ -72,7 +71,7 @@ class TestSmartTokenController(unittest.TestCase):
             (InternalCall, 'other_external_call', None),
         ]):
             self.score.acceptTokenOwnership()
-            self.score.owner_only.assert_called()
+            self.score.require_owner_only.assert_called()
 
             assert_inter_call(
                 self,
@@ -89,7 +88,7 @@ class TestSmartTokenController(unittest.TestCase):
             (InternalCall, 'other_external_call', None),
         ]):
             self.score.disableTokenTransfers(disable)
-            self.score.owner_only.assert_called()
+            self.score.require_owner_only.assert_called()
 
             assert_inter_call(
                 self,
@@ -108,7 +107,7 @@ class TestSmartTokenController(unittest.TestCase):
             (InternalCall, 'other_external_call', None),
         ]):
             self.score.withdrawFromToken(token, to, amount)
-            self.score.owner_only.assert_called()
+            self.score.require_owner_only.assert_called()
 
             assert_inter_call(
                 self,
