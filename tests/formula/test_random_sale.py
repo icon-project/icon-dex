@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# source code from
+# original source
 # https://github.com/bancorprotocol/contracts
 
 import unittest
