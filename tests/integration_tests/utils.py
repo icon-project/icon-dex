@@ -16,7 +16,7 @@
 from os import path
 
 from iconsdk.icon_service import IconService
-from iconsdk.builder.transaction_builder import CallTransactionBuilder, DeployTransactionBuilder
+from iconsdk.builder.transaction_builder import CallTransactionBuilder, DeployTransactionBuilder, TransactionBuilder
 from iconsdk.builder.call_builder import CallBuilder
 from iconsdk.signed_transaction import SignedTransaction
 from iconsdk.wallet.wallet import KeyWallet
@@ -64,8 +64,12 @@ def deploy_score(icon_integrate_test_base: IconIntegrateTestBase, content_as_byt
     return tx_result
 
 
-def icx_call(icon_integrate_test_base: IconIntegrateTestBase, from_: str, to_: str, method: str,
-             params: dict = None, icon_service: IconService = None):
+def icx_call(icon_integrate_test_base: IconIntegrateTestBase,
+             from_: str,
+             to_: str,
+             method: str,
+             params: dict = None,
+             icon_service: IconService = None):
     # Generates a call instance using the CallBuilder
     call = CallBuilder().from_(from_) \
         .to(to_) \
@@ -78,7 +82,13 @@ def icx_call(icon_integrate_test_base: IconIntegrateTestBase, from_: str, to_: s
     return response
 
 
-def transaction_call(icon_integrate_test_base: IconIntegrateTestBase, from_: KeyWallet, to_: str, method: str, params: dict = None, icon_service: IconService = None) -> dict:
+def transaction_call(icon_integrate_test_base: IconIntegrateTestBase,
+                     from_: KeyWallet,
+                     to_: str,
+                     method: str,
+                     params: dict = None,
+                     value: int = 0,
+                     icon_service: IconService = None) -> dict:
     # Generates an instance of transaction for calling method in SCORE.
     transaction = CallTransactionBuilder() \
         .from_(from_.get_address()) \
@@ -88,6 +98,34 @@ def transaction_call(icon_integrate_test_base: IconIntegrateTestBase, from_: Key
         .nonce(100) \
         .method(method) \
         .params(params) \
+        .value(value) \
+        .build()
+
+    # Returns the signed transaction object having a signature
+    signed_transaction = SignedTransaction(transaction, from_)
+
+    # Sends the transaction to the network
+    tx_result = icon_integrate_test_base.process_transaction(signed_transaction, icon_service)
+
+    assert 'status' in tx_result
+    assert 1 == tx_result['status']
+
+    return tx_result
+
+
+def icx_transfer_call(icon_integrate_test_base: IconIntegrateTestBase,
+                      from_: KeyWallet,
+                      to_: str,
+                      value: int = 0,
+                      icon_service: IconService = None):
+    # Generates an instance of transaction for calling method in SCORE.
+    transaction = TransactionBuilder() \
+        .from_(from_.get_address()) \
+        .to(to_) \
+        .step_limit(10_000_000) \
+        .nid(3) \
+        .nonce(100) \
+        .value(value) \
         .build()
 
     # Returns the signed transaction object having a signature
