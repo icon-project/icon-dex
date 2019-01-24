@@ -21,7 +21,7 @@ from ..interfaces.abc_irc_token import ABCIRCToken
 from ..interfaces.abc_smart_token import ABCSmartToken
 from ..utility.proxy_score import ProxyScore
 from ..utility.token_holder import TokenHolder
-from ..utility.utils import Utils
+from ..utility.utils import *
 
 TAG = 'Network'
 
@@ -58,8 +58,8 @@ class Network(TokenHolder):
         :return: expected conversion return amount and conversion fee
         """
         converted_path = self._convert_path(_path)
-        self._check_valid_path(converted_path)
-        Utils.check_positive_value(_amount)
+        self._require_valid_path(converted_path)
+        require_positive_value(_amount)
 
         amount = _amount
         from_token_address = converted_path[0]
@@ -114,15 +114,14 @@ class Network(TokenHolder):
             # InvalidParamsException could be raised when converting the path
             revert(str(e))
 
-        if not isinstance(result_dict_data["minReturn"], int):
-            revert("need valid minReturn data")
+        require(isinstance(result_dict_data["minReturn"], int), "need valid minReturn data")
         if "for" not in dict_data or dict_data["for"] is None:
             result_dict_data["for"] = token_sender_address
         else:
             result_dict_data["for"] = Address.from_string(dict_data["for"])
         return result_dict_data
 
-    def _check_valid_path(self, path: list):
+    def _require_valid_path(self, path: list):
         """
         validates a conversion path.
         verifies that the number of elements is odd and that maximum number of 'conversion' is 10
@@ -131,12 +130,10 @@ class Network(TokenHolder):
         :param path: converted path
         """
         path_len = len(path)
-        if not 2 < path_len <= self._MAX_CONVERSION_COUNT * 2 + 1 or not path_len % 2 == 1:
-            revert("invalid path")
+        require(2 < path_len <= self._MAX_CONVERSION_COUNT * 2 + 1 and path_len % 2 == 1, "invalid path")
 
         path_set = {address for i, address in enumerate(path) if i % 2 == 1}
-        if len(path_set) != path_len // 2:
-            revert("do not support circular path")
+        require(len(path_set) == path_len // 2, "do not support circular path")
 
     @external
     def registerIcxToken(self, _icxToken: 'Address', _register: bool):
@@ -146,9 +143,9 @@ class Network(TokenHolder):
         :param _icxToken: Icx token contract address
         :param _register: true to register, false to unregister
         """
-        self.owner_only()
-        Utils.check_valid_address(_icxToken)
-        Utils.check_not_this(self.address, _icxToken)
+        self.require_owner_only()
+        require_valid_address(_icxToken)
+        require_not_this(self.address, _icxToken)
 
         self._icx_tokens[_icxToken] = _register
 
@@ -178,12 +175,11 @@ class Network(TokenHolder):
 
         dict_data = self._convert_bytes_data(_data, _from)
         # check the value of dict_data
-        if dict_data["path"][0] != self.msg.sender:
-            revert("wrong access, only token can call this method")
+        require(dict_data["path"][0] == self.msg.sender, "wrong access, only token can call this method")
 
-        Utils.check_positive_value(dict_data["minReturn"])
-        Utils.check_valid_address(dict_data["for"])
-        self._check_valid_path(dict_data["path"])
+        require_positive_value(dict_data["minReturn"])
+        require_valid_address(dict_data["for"])
+        self._require_valid_path(dict_data["path"])
 
         self._convert_for_internal(dict_data["path"], _value, dict_data["minReturn"], dict_data["for"])
 
@@ -218,15 +214,14 @@ class Network(TokenHolder):
         :return: tokens issued in return
         """
         converted_path = self._convert_path(_path)
-        self._check_valid_path(converted_path)
-        Utils.check_positive_value(_minReturn)
-        Utils.check_valid_address(_for)
-        Utils.check_not_this(self.address, _for)
+        self._require_valid_path(converted_path)
+        require_positive_value(_minReturn)
+        require_valid_address(_for)
+        require_not_this(self.address, _for)
         icx_amount = self.msg.value
 
         icx_token = converted_path[0]
-        if not self._icx_tokens[icx_token]:
-            revert("wrong path, first address must be icx token")
+        require(self._icx_tokens[icx_token], "wrong path, first address must be icx token")
 
         # transfer ICX coin to IcxToken SCORE. network will get same amount of icx token instead
         self.icx.transfer(icx_token, icx_amount)

@@ -18,7 +18,7 @@ from iconservice import *
 from ..interfaces.abc_icx_token import ABCIcxToken
 from ..irc_token.irc_token import IRCToken
 from ..utility.token_holder import TokenHolder
-from ..utility.utils import Utils
+from ..utility.utils import *
 
 TAG = 'IcxToken'
 
@@ -64,7 +64,7 @@ class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
 
     @external
     def withdrawTo(self, _amount: int, _to: 'Address'):
-        Utils.check_positive_value(_amount)
+        require_positive_value(_amount)
         if self._balances[self.msg.sender] < _amount:
             revert("Out of balance")
 
@@ -77,5 +77,5 @@ class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
 
     @external
     def transfer(self, _to: Address, _value: int, _data: bytes = None):
-        Utils.check_not_this(self.address, _to)
+        require_not_this(self.address, _to)
         IRCToken.transfer(self, _to, _value, _data)

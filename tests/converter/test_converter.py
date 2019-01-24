@@ -290,14 +290,14 @@ class TestConverter(unittest.TestCase):
             self.assertEqual(second_price_update_event[0][3], connector_token2_weight)
 
     def test_addConnector(self):
-        self.score.owner_only.reset_mock()
+        self.score.require_owner_only.reset_mock()
 
         connector_token = Address.from_string("cx" + os.urandom(20).hex())
         connector_weight = 500000
 
         with patch([(IconScoreBase, 'msg', Message(self.owner))]):
             self.score.addConnector(connector_token, connector_weight, False)
-            self.score.owner_only.assert_called()
+            self.score.require_owner_only.assert_called()
 
             self.assertEqual(connector_weight, self.score._connectors[connector_token].weight.get())
             self.assertEqual(

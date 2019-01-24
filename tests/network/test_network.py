@@ -30,7 +30,7 @@ from contracts.interfaces.abc_irc_token import ABCIRCToken
 from contracts.network.network import Network
 from contracts.utility.proxy_score import ProxyScore
 from contracts.utility.token_holder import TokenHolder
-from contracts.utility.utils import Utils
+from contracts.utility.utils import *
 from tests import patch, ScorePatcher, create_db
 
 if TYPE_CHECKING:
@@ -63,39 +63,39 @@ class TestNetwork(unittest.TestCase):
     def test_check_valid_path(self):
         # success case: input the valid path
         path = [self.connector_token_list[0], self.smart_token_address_list[0], self.connector_token_list[1]]
-        self.network_score._check_valid_path(path)
+        self.network_score._require_valid_path(path)
 
         # failure case: input path whose length under 3
         invalid_path = [self.connector_token_list[0], self.smart_token_address_list[0]]
-        self.assertRaises(RevertException, self.network_score._check_valid_path, invalid_path)
+        self.assertRaises(RevertException, self.network_score._require_valid_path, invalid_path)
 
         # failure case: input path whose length is more than 21
         random = SystemRandom()
         # use random data to avoid same address is made
         invalid_path = [Address.from_string(
             "cx" + str(random.randrange(10)) + str(random.randrange(10)) * 39) in range(0, 22)]
-        self.assertRaises(RevertException, self.network_score._check_valid_path, invalid_path)
+        self.assertRaises(RevertException, self.network_score._require_valid_path, invalid_path)
 
         # failure case: input path whose length is even
         invalid_path = [self.connector_token_list[0], self.smart_token_address_list[0],
                         self.connector_token_list[1], self.smart_token_address_list[1]]
-        self.assertRaises(RevertException, self.network_score._check_valid_path, invalid_path)
+        self.assertRaises(RevertException, self.network_score._require_valid_path, invalid_path)
 
         # failure case: input path which has the same smart token address in it
         invalid_path = [self.connector_token_list[0], self.smart_token_address_list[0], self.connector_token_list[1],
                         self.smart_token_address_list[0], self.connector_token_list[1]]
-        self.assertRaises(RevertException, self.network_score._check_valid_path, invalid_path)
+        self.assertRaises(RevertException, self.network_score._require_valid_path, invalid_path)
 
         # success case: input path which has the same smart token address in the 'from' or 'to' position in it
         # path: [connector0 - smart token0 - smart token1 - smart token2, smart token0]
         path = [self.connector_token_list[0], self.smart_token_address_list[0], self.smart_token_address_list[1],
                 self.smart_token_address_list[2], self.smart_token_address_list[0]]
-        self.network_score._check_valid_path(path)
+        self.network_score._require_valid_path(path)
 
         # success case: input path which has the same smart tokens that only exist in 'from' or 'to' in it
         path = [self.smart_token_address_list[0], self.smart_token_address_list[1], self.connector_token_list[0],
                 self.smart_token_address_list[2], self.smart_token_address_list[0]]
-        self.network_score._check_valid_path(path)
+        self.network_score._require_valid_path(path)
 
     def test_check_and_convert_bytes_data(self):
         # failure case: input invalid JSON format data
@@ -303,16 +303,14 @@ class TestNetwork(unittest.TestCase):
                               from_address, value, decoded_data)
 
         # success case: input valid data
+        # todo: test if require_positive_value method have been called
+        # todo: test if require_valid_address method have been called
         with patch([(IconScoreBase, 'msg', Message(self.connector_token_list[0])),
                     (Network, '_convert_for_internal', PropertyMock()),
-                    (Network, '_check_valid_path', PropertyMock()),
-                    (Utils, 'check_positive_value', PropertyMock()),
-                    (Utils, 'check_valid_address', PropertyMock())]):
+                    (Network, '_require_valid_path', PropertyMock())
+                    ]):
             self.network_score.tokenFallback(from_address, value, decoded_data)
-
-            Utils.check_positive_value.assert_called_with(min_return)
-            Utils.check_valid_address.assert_called_with(for_address)
-            self.network_score._check_valid_path.assert_called_with(converted_path)
+            self.network_score._require_valid_path.assert_called_with(converted_path)
             self.network_score._convert_for_internal. \
                 assert_called_with(converted_path, value, min_return, for_address)
 

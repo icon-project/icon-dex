@@ -17,7 +17,7 @@ from iconservice import *
 
 from ..interfaces.abc_score_registry import ABCScoreRegistry
 from ..utility.owned import Owned
-from ..utility.utils import Utils
+from ..utility.utils import *
 
 TAG = 'ScoreRegistry'
 
@@ -52,21 +52,18 @@ class ScoreRegistry(Owned, ABCScoreRegistry):
 
     @external
     def registerAddress(self, _scoreName: str, _scoreAddress: 'Address'):
-        self.owner_only()
-        Utils.check_valid_address(_scoreAddress)
-        if not _scoreAddress.is_contract:
-            revert("only SCORE address can be registered")
-        if _scoreName not in self.SCORE_KEYS:
-            revert(f"_scoreName is not in the score key list: {_scoreName}")
+        self.require_owner_only()
+        require_valid_address(_scoreAddress)
+        require(_scoreAddress.is_contract, "only SCORE address can be registered")
+        require(_scoreName in self.SCORE_KEYS, f"_scoreName is not in the score key list: {_scoreName}")
 
         self._score_address[_scoreName] = _scoreAddress
         self.AddressUpdate(_scoreName, _scoreAddress)
 
     @external
     def unregisterAddress(self, _scoreName: str):
-        self.owner_only()
-        if self._score_address[_scoreName] is None:
-            revert("this score is not registered")
+        self.require_owner_only()
+        require(self._score_address[_scoreName] is not None, "this score is not registered")
 
         del self._score_address[_scoreName]
         self.AddressUpdate(_scoreName, ZERO_SCORE_ADDRESS)

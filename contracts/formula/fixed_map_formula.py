@@ -18,6 +18,7 @@
 
 from iconservice import *
 
+from ..utility.utils import *
 from ..interfaces.abc_formula import ABCFormula
 
 
@@ -188,8 +189,7 @@ class FixedMapFormula(ABCFormula):
         :return: purchase return amount
         """
         # validate input
-        if not (supply > 0 and connector_balance > 0 and self._MAX_WEIGHT >= connector_weight > 0):
-            revert("Invalid input")
+        require(supply > 0 and connector_balance > 0 and self._MAX_WEIGHT >= connector_weight > 0, "Invalid input")
 
         # special case for 0 deposit amount
         if deposit_amount == 0:
@@ -219,9 +219,10 @@ class FixedMapFormula(ABCFormula):
         :return: sale return amount
         """
         # validate input
-        if not (supply > 0 and connector_balance > 0 and self._MAX_WEIGHT >= connector_weight > 0
-                and sell_amount <= supply):
-            revert("Invalid input")
+        require(supply > 0 and connector_balance > 0 and
+                self._MAX_WEIGHT >= connector_weight > 0 and
+                sell_amount <= supply,
+                "Invalid input")
 
         # special case for 0 sell amount
         if sell_amount == 0:
@@ -259,9 +260,11 @@ class FixedMapFormula(ABCFormula):
         :return: second connector amount
         """
         # validate input
-        if not (from_connector_balance > 0 and self._MAX_WEIGHT >= from_connector_weight > 0
-                and to_connector_balance > 0 and self._MAX_WEIGHT >= to_connector_weight > 0):
-            revert("Invalid input")
+        require(from_connector_balance > 0 and
+                self._MAX_WEIGHT >= from_connector_weight > 0 and
+                to_connector_balance > 0 and
+                self._MAX_WEIGHT >= to_connector_weight > 0,
+                "Invalid input")
 
         # special case for equal weights
         if from_connector_weight == to_connector_weight:
@@ -297,8 +300,7 @@ class FixedMapFormula(ABCFormula):
         :param exp_d:
         :return:
         """
-        if not (base_n < self._MAX_NUM):
-            revert("Invalid input")
+        require(base_n < self._MAX_NUM, "Invalid input")
 
         base = base_n * self._FIXED_1 // base_d
         if base < self._OPT_LOG_MAX_VAL:

@@ -63,9 +63,9 @@ class TestOwned(unittest.TestCase):
 
         # success case: transfer ownership to new_owner
         with patch([(IconScoreBase, 'msg', Message(self.sender))]):
-            self.score.owner_only = Mock()
+            self.score.require_owner_only = Mock()
             self.score.transferOwnerShip(new_owner)
-            self.score.owner_only.assert_called()
+            self.score.require_owner_only.assert_called()
             self.assertEqual(self.sender, self.score._owner.get())
             self.assertEqual(new_owner, self.score._new_owner.get())
 

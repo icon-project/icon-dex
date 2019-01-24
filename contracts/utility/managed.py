@@ -16,7 +16,7 @@
 from iconservice import *
 
 from contracts.utility.owned import Owned
-from contracts.utility.utils import Utils
+from contracts.utility.utils import *
 
 
 # noinspection PyPep8Naming
@@ -44,12 +44,12 @@ class Managed(Owned):
 
     # allows execution by the manager only
     def require_manager_only(self):
-        Utils.require(self.msg.sender == self._manager.get(), "Invalid manager")
+        require(self.msg.sender == self._manager.get(), "Invalid manager")
 
     # allows execution by either the owner or the manager only
     def require_owner_or_manager_only(self):
-        Utils.require(self.msg.sender == self._manager.get() or self.msg.sender == self.getOwner(),
-                      "Invalid sender")
+        require(self.msg.sender == self._manager.get() or self.msg.sender == self.getOwner(),
+                "Invalid sender")
 
     @external(readonly=True)
     def getManager(self) -> 'Address':
@@ -70,7 +70,7 @@ class Managed(Owned):
         :return:
         """
         self.require_owner_or_manager_only()
-        Utils.require(self._manager.get() != _newManager, "New manager is already manager")
+        require(self._manager.get() != _newManager, "New manager is already manager")
         self._new_manager.set(_newManager)
 
     @external

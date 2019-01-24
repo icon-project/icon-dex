@@ -55,22 +55,22 @@ class TestSmartToken(unittest.TestCase):
 
     def test_check_transfer_possibility(self):
         self.smart_token._transfer_possibility.set(True)
-        self.smart_token.check_transfer_possibility()
+        self.smart_token.require_transfer_allowed()
 
         self.smart_token._transfer_possibility.set(False)
-        self.assertRaises(RevertException, self.smart_token.check_transfer_possibility)
+        self.assertRaises(RevertException, self.smart_token.require_transfer_allowed)
 
     def test_disableTransfer(self):
         self.smart_token._transfer_possibility.set(True)
         with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
-            self.smart_token.owner_only = Mock()
+            self.smart_token.require_owner_only = Mock()
 
             self.smart_token.disableTransfer(True)
-            self.smart_token.owner_only.assert_called()
+            self.smart_token.require_owner_only.assert_called()
             self.assertEqual(False, self.smart_token._transfer_possibility.get())
 
             self.smart_token.disableTransfer(False)
-            self.smart_token.owner_only.assert_called()
+            self.smart_token.require_owner_only.assert_called()
             self.assertEqual(True, self.smart_token._transfer_possibility.get())
 
     def test_issue(self):
@@ -82,7 +82,7 @@ class TestSmartToken(unittest.TestCase):
             before_total_supply = self.smart_token._total_supply.get()
 
             self.smart_token.issue(token_receiver, 10)
-            self.smart_token.owner_only.assert_called()
+            self.smart_token.require_owner_only.assert_called()
             self.assertEqual(before_balance + 10, self.smart_token._balances[token_receiver])
             self.assertEqual(before_total_supply + 10, self.smart_token._total_supply.get())
 

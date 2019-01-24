@@ -23,7 +23,7 @@ from contracts.interfaces.abc_smart_token import ABCSmartToken
 from contracts.utility.managed import Managed
 from contracts.utility.proxy_score import ProxyScore
 from contracts.utility.smart_token_controller import SmartTokenController
-from ..utility.utils import Utils
+from ..utility.utils import *
 
 TAG = 'Converter'
 TRANSFER_DATA = b'conversionResult'
@@ -127,31 +127,31 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
     # verifies that the address belongs to one of the connector tokens
     def _require_valid_connector(self, address: Address):
-        Utils.require(self._connectors[address].is_set.get())
+        require(self._connectors[address].is_set.get())
 
     # verifies that the address belongs to one of the convertible tokens
     def _require_valid_token(self, address: Address):
-        Utils.require(address == self._token.get() or self._connectors[address].is_set.get())
+        require(address == self._token.get() or self._connectors[address].is_set.get())
 
     # verifies maximum conversion fee
     def _require_valid_max_conversion_fee(self, conversion_fee: int):
-        Utils.require(0 <= conversion_fee <= self._MAX_CONVERSION_FEE)
+        require(0 <= conversion_fee <= self._MAX_CONVERSION_FEE)
 
     # verifies conversion fee
     def _require_valid_conversion_fee(self, conversion_fee: int):
-        Utils.require(0 <= conversion_fee <= self._max_conversion_fee.get())
+        require(0 <= conversion_fee <= self._max_conversion_fee.get())
 
     # verifies connector weight range
     def _require_valid_connector_weight(self, weight: int):
-        Utils.require(0 < weight <= self._MAX_WEIGHT)
+        require(0 < weight <= self._MAX_WEIGHT)
 
     # verifies the total weight is 100%
     def _require_max_total_weight_only(self):
-        Utils.require(self._total_connector_weight.get() == self._MAX_WEIGHT)
+        require(self._total_connector_weight.get() == self._MAX_WEIGHT)
 
     # verifies conversions aren't disabled
     def _require_conversions_allowed(self):
-        Utils.require(self._conversions_enabled.get())
+        require(self._conversions_enabled.get())
 
     def __init__(self, db: IconScoreDatabase):
         super().__init__(db)
@@ -191,7 +191,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
                     initial connector, allows defining the first connector at deployment time
         :param _connectorWeight: optional, weight for the initial connector
         """
-        Utils.check_valid_address(_registry)
+        require_valid_address(_registry)
         self._require_valid_max_conversion_fee(_maxConversionFee)
         SmartTokenController.on_install(self, _token)
 
@@ -201,7 +201,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         self._conversions_enabled.set(True)
         self._max_conversion_fee.set(_maxConversionFee)
 
-        if Utils.is_valid_address(_connectorToken):
+        if is_valid_address(_connectorToken):
             self.addConnector(_connectorToken, _connectorWeight, False)
 
     def on_update(self) -> None:
@@ -225,7 +225,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         :param _value: amount of tokens
         :param _data: additional data
         """
-        Utils.check_positive_value(_value)
+        require_positive_value(_value)
         from_token = self.msg.sender
 
         if (_from == self.getOwner() or _from == self.getManager) \
@@ -238,7 +238,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
             # verifies whether the token sender is the network
             registry = self.create_interface_score(self._registry.get(), ScoreRegistry)
             network = registry.getAddress(ScoreRegistry.BANCOR_NETWORK)
-            Utils.require(_from == network)
+            require(_from == network)
 
             # noinspection PyBroadException
             try:
@@ -267,8 +267,8 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         :return: conversion return amount
         """
         self._require_conversions_allowed()
-        Utils.check_positive_value(min_return)
-        Utils.require(from_token != to_token)
+        require_positive_value(min_return)
+        require(from_token != to_token)
 
         smart_token = self._token.get()
         # conversion between the token and one of its connectors
@@ -295,7 +295,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         return_amount = returns['amount']
         fee_amount = returns['fee']
         # ensure the trade gives something in return and meets the minimum requested amount
-        Utils.require(return_amount >= min_return)
+        require(return_amount >= min_return)
 
         # update virtual balance if relevant
         connector = self._connectors[connector_token]
@@ -335,7 +335,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         return_amount = returns['amount']
         fee_amount = returns['fee']
         # ensure the trade gives something in return and meets the minimum requested amount
-        Utils.require(return_amount >= min_return)
+        require(return_amount >= min_return)
 
         smart_token_address = self._token.get()
         smart_token = self.create_interface_score(smart_token_address, SmartToken)
@@ -344,14 +344,14 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         # depleted as well
         token_supply = smart_token.totalSupply()
         connector_balance = self.getConnectorBalance(connector_token)
-        Utils.require(return_amount < connector_balance or
+        require(return_amount < connector_balance or
                       (return_amount == connector_balance and amount == token_supply))
 
         # update virtual balance if relevant
         connector = self._connectors[connector_token]
         if connector.is_virtual_balance_enabled.get():
             connector.virtual_balance.set(
-                Utils.safe_sub(connector.virtual_balance.get(), return_amount))
+                safe_sub(connector.virtual_balance.get(), return_amount))
 
         # destroy _sellAmount from the caller's balance in the smart token
         smart_token.destroy(self.address, amount)
@@ -395,7 +395,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         return_amount = returns['amount']
         fee_amount = returns['fee']
         # ensure the trade gives something in return and meets the minimum requested amount
-        Utils.require(return_amount >= min_return)
+        require(return_amount >= min_return)
         # update the source token virtual balance if relevant
         from_connector = self._connectors[from_token]
         if from_connector.is_virtual_balance_enabled.get():
@@ -404,10 +404,10 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         to_connector = self._connectors[to_token]
         if to_connector.is_virtual_balance_enabled.get():
             to_connector.virtual_balance.set(
-                Utils.safe_sub(to_connector.virtual_balance.get(), return_amount))
+                safe_sub(to_connector.virtual_balance.get(), return_amount))
         # ensure that the trade won't deplete the connector balance
         to_connector_balance = self.getConnectorBalance(to_token)
-        Utils.require(return_amount < to_connector_balance)
+        require(return_amount < to_connector_balance)
         # transfer funds to the caller in the to connector token
         # the transfer might fail if the actual connector balance is smaller than
         # the virtual balance
@@ -437,15 +437,15 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         :param _enableVirtualBalance: true to enable virtual balance for the connector,
             false to disable it
         """
-        self.owner_only()
+        self.require_owner_only()
         self._require_inactive()
-        Utils.check_valid_address(_token)
-        Utils.check_not_this(self.address, _token)
+        require_valid_address(_token)
+        require_not_this(self.address, _token)
         self._require_valid_connector_weight(_weight)
 
-        Utils.require(self._token.get() != _token and
-                      not self._connectors[_token].is_set.get() and
-                      self._total_connector_weight.get() + _weight <= self._MAX_WEIGHT)
+        require(self._token.get() != _token and
+                not self._connectors[_token].is_set.get() and
+                self._total_connector_weight.get() + _weight <= self._MAX_WEIGHT)
 
         self._connectors[_token].virtual_balance.set(0)
         self._connectors[_token].weight.set(_weight)
@@ -463,15 +463,15 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         """
 
         # require that upgrading is allowed or that the caller is the owner
-        Utils.require(self._allow_registry_update.get() or self.msg.sender == self.getOwner())
+        require(self._allow_registry_update.get() or self.msg.sender == self.getOwner())
 
         # get the address of whichever registry the current registry is pointing to
         registry = self.create_interface_score(self._registry.get(), ScoreRegistry)
         new_registry = registry.getAddress(ScoreRegistry.SCORE_REGISTRY)
 
         # if the new registry hasn't changed or is the zero address, revert
-        Utils.check_valid_address(new_registry)
-        Utils.require(new_registry != self._registry.get())
+        require_valid_address(new_registry)
+        require(new_registry != self._registry.get())
 
         # set the previous registry as current registry and current registry as newRegistry
         self._prev_registry.set(self._registry.get())
@@ -546,7 +546,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         :param _to: account to receive the new amount
         :param _amount: amount to withdraw
         """
-        Utils.require(not self._is_active() or not self._connectors[_token].is_set.get())
+        require(not self._is_active() or not self._connectors[_token].is_set.get())
         super().withdrawTokens(_token, _to, _amount)
 
     @external(readonly=True)
@@ -661,7 +661,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         :param _amount: amount to convert, in fromToken
         :return: expected conversion return amount and conversion fee, in dict
         """
-        Utils.require(_fromToken != _toToken)
+        require(_fromToken != _toToken)
 
         # conversion between the token and one of its connectors
         smart_token = self._token.get()
@@ -686,7 +686,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         self._require_valid_connector(_connectorToken)
 
         connector = self._connectors[_connectorToken]
-        Utils.require(connector.is_purchase_enabled.get())
+        require(connector.is_purchase_enabled.get())
 
         smart_token = self.create_interface_score(self._token.get(), SmartToken)
 
@@ -697,7 +697,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
             token_supply, connector_balance, connector.weight.get(), _amount)
 
         final_amount = self.getFinalAmount(calculated_amount, 1)
-        return {'amount': final_amount, 'fee': Utils.safe_sub(calculated_amount, final_amount)}
+        return {'amount': final_amount, 'fee': safe_sub(calculated_amount, final_amount)}
 
     @external(readonly=True)
     def getSaleReturn(self, _connectorToken: Address, _amount: int) -> dict:
@@ -722,7 +722,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
             token_supply, connector_balance, connector.weight.get(), _amount)
 
         final_amount = self.getFinalAmount(calculated_amount, 1)
-        return {'amount': final_amount, 'fee': Utils.safe_sub(calculated_amount, final_amount)}
+        return {'amount': final_amount, 'fee': safe_sub(calculated_amount, final_amount)}
 
     @external(readonly=True)
     def getCrossConnectorReturn(self,
@@ -742,7 +742,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
         from_connector = self._connectors[_fromToken]
         to_connector = self._connectors[_toToken]
-        Utils.require(to_connector.is_purchase_enabled.get())
+        require(to_connector.is_purchase_enabled.get())
 
         from_connector_balance = self.getConnectorBalance(_fromToken)
         to_connector_balance = self.getConnectorBalance(_toToken)
@@ -754,7 +754,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
                                                                      _amount)
 
         final_amount = self.getFinalAmount(calculated_amount, 2)
-        return {'amount': final_amount, 'fee': Utils.safe_sub(calculated_amount, final_amount)}
+        return {'amount': final_amount, 'fee': safe_sub(calculated_amount, final_amount)}
 
     @external(readonly=True)
     def getFinalAmount(self, _amount: int, _magnitude: int) -> int:

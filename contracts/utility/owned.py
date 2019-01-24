@@ -36,7 +36,8 @@ class Owned(IconScoreBase, ABCOwned):
     def on_update(self) -> None:
         IconScoreBase.on_update(self)
 
-    def owner_only(self):
+    def require_owner_only(self):
+        # not use utils.require for preventing unnecessary import
         if self.msg.sender != self._owner.get():
             revert("Invalid owner")
 
@@ -50,7 +51,7 @@ class Owned(IconScoreBase, ABCOwned):
 
     @external
     def transferOwnerShip(self, _newOwner: 'Address'):
-        self.owner_only()
+        self.require_owner_only()
         if _newOwner == self._owner.get():
             revert("New owner is already owner")
         self._new_owner.set(_newOwner)
