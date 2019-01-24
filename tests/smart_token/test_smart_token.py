@@ -19,11 +19,11 @@ from unittest.mock import Mock
 from iconservice import *
 from iconservice.base.exception import RevertException
 from iconservice.base.message import Message
-from contracts.irc_token.irc_token import IRCToken
-from contracts.utility.token_holder import TokenHolder
 
+from contracts.irc_token.irc_token import IRCToken
 from contracts.smart_token.smart_token import SmartToken
-from tests import patch, ScorePatcher, create_db
+from contracts.utility.token_holder import TokenHolder
+from tests import patch_property, ScorePatcher, create_db
 
 
 # noinspection PyUnresolvedReferences
@@ -41,7 +41,17 @@ class TestSmartToken(unittest.TestCase):
         token_decimals = 18
 
         self.token_owner = Address.from_string("hx" + "2" * 40)
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+
+        # with MultiPatch({'msg': mock.patch.object(IconScoreBase, 'msg')}) as mocks:
+        #     self.smart_token.on_install(token_name, token_symbol, token_supply, token_decimals)
+        #
+        #     IRCToken.on_install.assert_called_with(self.smart_token, token_name, token_symbol, token_supply, token_decimals)
+        #     TokenHolder.on_install.assert_called_with(self.smart_token)
+        #     self.assertEqual(self.smart_token._VERSION, self.smart_token._version.get())
+        #     self.assertEqual(True, self.smart_token._transfer_possibility.get())
+        #     self.smart_token.NewSmartToken.assert_called_with(self.score_address)
+
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             self.smart_token.on_install(token_name, token_symbol, token_supply, token_decimals)
 
             IRCToken.on_install.assert_called_with(self.smart_token, token_name, token_symbol, token_supply, token_decimals)
@@ -62,7 +72,7 @@ class TestSmartToken(unittest.TestCase):
 
     def test_disableTransfer(self):
         self.smart_token._transfer_possibility.set(True)
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             self.smart_token.require_owner_only = Mock()
 
             self.smart_token.disableTransfer(True)
@@ -77,7 +87,7 @@ class TestSmartToken(unittest.TestCase):
         token_receiver = Address.from_string("hx" + "3" * 40)
 
         # success_case: issue 10 token to public
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             before_balance = self.smart_token._balances[token_receiver]
             before_total_supply = self.smart_token._total_supply.get()
 
@@ -90,13 +100,13 @@ class TestSmartToken(unittest.TestCase):
             self.smart_token.Transfer.assert_called_with(self.score_address, token_receiver, 10, b'None')
 
         # failure_case: amount is under 0
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             minus_amount = -10
             self.assertRaises(RevertException, self.smart_token.issue, token_receiver, minus_amount)
 
         # failure_case: 'to' address is invalid
         to_address = ZERO_SCORE_ADDRESS
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             self.assertRaises(RevertException, self.smart_token.issue, to_address, 10)
 
     def test_destroy(self):
@@ -114,20 +124,20 @@ class TestSmartToken(unittest.TestCase):
         before_total_supply = self.smart_token._total_supply.get()
 
         # failure case: amount is under 0
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             self.assertRaises(RevertException, self.smart_token.destroy, token_holder, -10)
 
         # failure case: amount is higher than token_holder's balance
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             self.assertRaises(RevertException, self.smart_token.destroy, token_holder, 20)
 
         # failure case: msg.sender is not 'from' nor the owner
         eoa_address = Address.from_string("hx" + "4" * 40)
-        with patch([(IconScoreBase, 'msg', Message(eoa_address))]):
+        with patch_property(IconScoreBase, 'msg', Message(eoa_address)):
             self.assertRaises(RevertException, self.smart_token.destroy, token_holder, 10)
 
         # success case: token_owner destroy 5 tokens from token_holder
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             destroy_amount = 5
             self.smart_token.destroy(token_holder, destroy_amount)
 
@@ -138,7 +148,7 @@ class TestSmartToken(unittest.TestCase):
             self.smart_token.Transfer.assert_called_with(token_holder, self.score_address, destroy_amount, b'None')
 
         # success case: token_holder destroy 5 their own token
-        with patch([(IconScoreBase, 'msg', Message(token_holder))]):
+        with patch_property(IconScoreBase, 'msg', Message(token_holder)):
             destroy_amount = 5
             before_balance = self.smart_token._balances[token_holder]
             before_total_supply = self.smart_token._total_supply.get()
@@ -156,7 +166,7 @@ class TestSmartToken(unittest.TestCase):
         token_receiver = Address.from_string("hx" + "3" * 40)
 
         # failure case: transfer tokens when transfer possibility is False
-        with patch([(IconScoreBase, 'msg', Message(sender))]):
+        with patch_property(IconScoreBase, 'msg', Message(sender)):
             self.smart_token._transfer_possibility.set(False)
             self.assertRaises(RevertException, self.smart_token.transfer, token_receiver, 10)
             IRCToken.transfer.assert_not_called()

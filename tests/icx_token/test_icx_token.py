@@ -22,7 +22,7 @@ from iconservice.base.message import Message
 from contracts.icx_token.icx_token import IcxToken
 from contracts.irc_token.irc_token import IRCToken
 from contracts.utility.token_holder import TokenHolder
-from tests import patch, ScorePatcher, create_db
+from tests import patch_property, ScorePatcher, create_db
 
 
 # noinspection PyUnresolvedReferences
@@ -36,7 +36,7 @@ class TestIcxToken(unittest.TestCase):
         self.icx_token = IcxToken(create_db(self.score_address))
 
         self.token_owner = Address.from_string("hx" + "2" * 40)
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             self.icx_token.on_install()
             IRCToken.on_install.assert_called_with(self.icx_token, 'icx_token', 'ICX', 0, 18)
             TokenHolder.on_install.assert_called_with(self.icx_token)
@@ -47,7 +47,7 @@ class TestIcxToken(unittest.TestCase):
     def test_deposit(self):
         value = 10
 
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner, value=value))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner, value=value)):
             before_balance = self.icx_token._balances[self.token_owner]
             before_total_supply = self.icx_token._total_supply.get()
 
@@ -64,7 +64,7 @@ class TestIcxToken(unittest.TestCase):
         self.icx_token._balances[self.token_owner] = 10
         self.icx_token._total_supply.set(10)
 
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             # failure case: amount is under 0
             self.assertRaises(RevertException, self.icx_token.withdrawTo, -1, to)
 
@@ -81,7 +81,7 @@ class TestIcxToken(unittest.TestCase):
 
     def test_transfer(self):
         # failure case: transfer token to this score (should raise error)
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             self.assertRaises(RevertException, self.icx_token.transfer, self.score_address, 10)
             IRCToken.transfer.assert_not_called()
 

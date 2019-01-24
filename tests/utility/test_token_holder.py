@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import unittest
-from unittest.mock import PropertyMock
+from unittest.mock import patch, Mock
 
 from iconservice import *
 from iconservice.base.exception import RevertException
@@ -24,7 +24,7 @@ from contracts.interfaces.abc_irc_token import ABCIRCToken
 from contracts.utility.owned import Owned
 from contracts.utility.proxy_score import ProxyScore
 from contracts.utility.token_holder import TokenHolder
-from tests import patch, ScorePatcher, create_db
+from tests import patch_property, ScorePatcher, create_db, MultiPatch
 
 
 class TestTokenHolder(unittest.TestCase):
@@ -36,7 +36,7 @@ class TestTokenHolder(unittest.TestCase):
         self.token_holder = TokenHolder(create_db(self.score_address))
 
         self.token_owner = Address.from_string("hx" + "2" * 40)
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.token_owner)):
             self.token_holder.on_install()
             Owned.on_install.assert_called_with(self.token_holder)
 
@@ -48,14 +48,18 @@ class TestTokenHolder(unittest.TestCase):
         token_receiver = Address.from_string("hx" + "3" * 40)
         irc_token_score_interface = \
             self.token_holder.create_interface_score(token_address, ProxyScore(ABCIRCToken))
-        irc_token_score_interface.transfer = PropertyMock()
+        irc_token_score_interface.transfer = Mock()
 
-        with patch([(IconScoreBase, 'msg', Message(self.token_owner)),
-                    (TokenHolder, 'create_interface_score', irc_token_score_interface)]):
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.token_owner)),
+            patch.object(TokenHolder, 'create_interface_score',
+                         return_value=irc_token_score_interface)
+        ]):
             amount = 10
             # success case: withdraw 10 token
             self.token_holder.withdrawTokens(token_address, token_receiver, amount)
-            self.token_holder.create_interface_score.assert_called_with(token_address, ProxyScore(ABCIRCToken))
+            self.token_holder.create_interface_score.assert_called_with(token_address,
+                                                                        ProxyScore(ABCIRCToken))
             irc_token_score_interface.transfer.assert_called_with(token_receiver, amount)
             self.token_holder.create_interface_score.reset_mock()
             irc_token_score_interface.transfer.reset_mock()

@@ -14,8 +14,8 @@
 # limitations under the License.
 
 import unittest
+from unittest.mock import patch
 
-from iconservice import *
 from iconservice.base.message import Message
 from iconservice.iconscore.internal_call import InternalCall
 
@@ -23,7 +23,7 @@ from contracts.icx_token.icx_token import IcxToken
 from contracts.utility.smart_token_controller import SmartTokenController
 from contracts.utility.token_holder import TokenHolder
 from contracts.utility.utils import *
-from tests import patch, ScorePatcher, create_db, assert_inter_call
+from tests import MultiPatch, patch_property, ScorePatcher, create_db, assert_inter_call
 
 
 # noinspection PyUnresolvedReferences
@@ -38,12 +38,13 @@ class TestSmartTokenController(unittest.TestCase):
         self.score = SmartTokenController(create_db(self.score_address))
 
         self.owner = Address.from_string("hx" + "2" * 40)
-        # todo: test if require_valid_address method have been called
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner))
-        ]):
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch('contracts.utility.smart_token_controller.require_valid_address')
+        ]) as mocks:
             self.score.on_install(self.smart_token_address)
             TokenHolder.on_install.assert_called_with(self.score)
+            mocks[1].assert_called()
 
     def tearDown(self):
         self.patcher.stop()
@@ -51,9 +52,9 @@ class TestSmartTokenController(unittest.TestCase):
     def test_transferTokenOwnership(self):
         new_owner = Address.from_string("hx" + "3" * 40)
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (InternalCall, 'other_external_call', None),
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call'),
         ]):
             self.score.transferTokenOwnership(new_owner)
             self.score.require_owner_only.assert_called()
@@ -66,9 +67,9 @@ class TestSmartTokenController(unittest.TestCase):
                 [new_owner])
 
     def test_acceptTokenOwnership(self):
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (InternalCall, 'other_external_call', None),
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call'),
         ]):
             self.score.acceptTokenOwnership()
             self.score.require_owner_only.assert_called()
@@ -83,9 +84,9 @@ class TestSmartTokenController(unittest.TestCase):
 
     def test_disableTokenTransfers(self):
         disable = True
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (InternalCall, 'other_external_call', None),
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call'),
         ]):
             self.score.disableTokenTransfers(disable)
             self.score.require_owner_only.assert_called()
@@ -102,9 +103,9 @@ class TestSmartTokenController(unittest.TestCase):
         token = Address.from_string("cx" + "3" * 40)
         to = Address.from_string("hx" + "3" * 40)
         amount = 100
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (InternalCall, 'other_external_call', None),
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call'),
         ]):
             self.score.withdrawFromToken(token, to, amount)
             self.score.require_owner_only.assert_called()

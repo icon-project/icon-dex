@@ -15,7 +15,7 @@
 
 import os
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from iconservice import *
 from iconservice.base.exception import RevertException
@@ -23,10 +23,10 @@ from iconservice.base.message import Message
 from iconservice.iconscore.internal_call import InternalCall
 
 from contracts.converter.converter import Converter, TRANSFER_DATA
+from contracts.formula import FixedMapFormula
 from contracts.score_registry.score_registry import ScoreRegistry
 from contracts.utility.smart_token_controller import SmartTokenController
-from contracts.formula import FixedMapFormula
-from tests import patch, ScorePatcher, create_db, assert_inter_call
+from tests import MultiPatch, patch_property, ScorePatcher, create_db, assert_inter_call
 
 
 # noinspection PyUnresolvedReferences
@@ -46,7 +46,7 @@ class TestConverter(unittest.TestCase):
         self.initial_connector_token = Address.from_string("cx" + os.urandom(20).hex())
         self.initial_connector_weight = 500000
 
-        with patch([(IconScoreBase, 'msg', Message(self.owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.on_install(token, registry, max_conversion_fee,
                                   self.initial_connector_token, self.initial_connector_weight)
             SmartTokenController.on_install.assert_called_with(self.score, token)
@@ -74,9 +74,9 @@ class TestConverter(unittest.TestCase):
         token = self.initial_connector_token
         sender = self.owner
         value = 100
-        with patch([
-            (IconScoreBase, 'msg', Message(token)),
-            (InternalCall, 'other_external_call', network_address)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(token)),
+            patch.object(InternalCall, 'other_external_call', return_value=network_address)
         ]):
             self.score.tokenFallback(sender, value, b'None')
 
@@ -84,9 +84,9 @@ class TestConverter(unittest.TestCase):
         token = self.initial_connector_token
         sender = self.owner
         value = -100
-        with patch([
-            (IconScoreBase, 'msg', Message(token)),
-            (InternalCall, 'other_external_call', network_address)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(token)),
+            patch.object(InternalCall, 'other_external_call', return_value=network_address)
         ]):
             self.assertRaises(RevertException, self.score.tokenFallback, sender, value, b'None')
 
@@ -94,9 +94,9 @@ class TestConverter(unittest.TestCase):
         token = self.initial_connector_token
         sender = Address.from_string("hx" + os.urandom(20).hex())
         value = 100
-        with patch([
-            (IconScoreBase, 'msg', Message(token)),
-            (InternalCall, 'other_external_call', network_address)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(token)),
+            patch.object(InternalCall, 'other_external_call', return_value=network_address)
         ]):
             self.assertRaises(RevertException, self.score.tokenFallback, sender, value, b'None')
 
@@ -104,9 +104,9 @@ class TestConverter(unittest.TestCase):
         token = Address.from_string("cx" + os.urandom(20).hex())
         sender = self.owner
         value = 100
-        with patch([
-            (IconScoreBase, 'msg', Message(token)),
-            (InternalCall, 'other_external_call', network_address)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(token)),
+            patch.object(InternalCall, 'other_external_call', return_value=network_address)
         ]):
             self.assertRaises(RevertException, self.score.tokenFallback, sender, value, b'None')
 
@@ -115,9 +115,9 @@ class TestConverter(unittest.TestCase):
         token = self.initial_connector_token
         sender = self.owner
         value = 100
-        with patch([
-            (IconScoreBase, 'msg', Message(token)),
-            (InternalCall, 'other_external_call', network_address)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(token)),
+            patch.object(InternalCall, 'other_external_call', return_value=network_address)
         ]):
             self.assertRaises(RevertException, self.score.tokenFallback, sender, value, b'None')
 
@@ -140,9 +140,9 @@ class TestConverter(unittest.TestCase):
         # success case
         token = self.initial_connector_token
         value = 100
-        with patch([
-            (IconScoreBase, 'msg', Message(token)),
-            (InternalCall, 'other_external_call', network_address)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(token)),
+            patch.object(InternalCall, 'other_external_call', return_value=network_address)
         ]):
             self.score.tokenFallback(network_address, value, json_dumps(data).encode())
             assert_inter_call(self,
@@ -170,9 +170,7 @@ class TestConverter(unittest.TestCase):
         self.score.getConnectorBalance = Mock(return_value=connector_balance)
         inter_call_return = Mock()
 
-        with patch([
-            (InternalCall, 'other_external_call', inter_call_return)
-        ]):
+        with patch.object(InternalCall, 'other_external_call', return_value=inter_call_return):
             result = self.score._buy(trader, connector_token2, amount, min_return)
             assert_inter_call(self,
                               self.score.address,
@@ -212,9 +210,7 @@ class TestConverter(unittest.TestCase):
         self.score.getConnectorBalance = Mock(return_value=connector_balance)
         inter_call_return = Mock()
 
-        with patch([
-            (InternalCall, 'other_external_call', inter_call_return)
-        ]):
+        with patch.object(InternalCall, 'other_external_call', return_value=inter_call_return):
             result = self.score._sell(trader, connector_token2, amount, min_return)
             assert_inter_call(self,
                               self.score.address,
@@ -254,9 +250,7 @@ class TestConverter(unittest.TestCase):
         self.score.getConnectorBalance = Mock(return_value=connector_balance)
         inter_call_return = Mock()
 
-        with patch([
-            (InternalCall, 'other_external_call', inter_call_return)
-        ]):
+        with patch.object(InternalCall, 'other_external_call', return_value=inter_call_return):
             self.score._convert_cross_connector(
                 trader,
                 self.initial_connector_token,
@@ -295,7 +289,7 @@ class TestConverter(unittest.TestCase):
         connector_token = Address.from_string("cx" + os.urandom(20).hex())
         connector_weight = 500000
 
-        with patch([(IconScoreBase, 'msg', Message(self.owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.addConnector(connector_token, connector_weight, False)
             self.score.require_owner_only.assert_called()
 
@@ -310,9 +304,9 @@ class TestConverter(unittest.TestCase):
         old_registry = self.score._registry.get()
         new_registry = Address.from_string("cx" + os.urandom(20).hex())
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (InternalCall, 'other_external_call', new_registry)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call', return_value=new_registry)
         ]):
             self.score.updateRegistry()
 
@@ -331,9 +325,7 @@ class TestConverter(unittest.TestCase):
 
         prev_registry = self.score._prev_registry.get()
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-        ]):
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.restoreRegistry()
             self.score.require_owner_or_manager_only.assert_called()
 
@@ -343,9 +335,7 @@ class TestConverter(unittest.TestCase):
     def test_disableRegistryUpdate(self):
         self.score.require_owner_or_manager_only.reset_mock()
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-        ]):
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.disableRegistryUpdate(True)
             self.score.require_owner_or_manager_only.assert_called()
 
@@ -358,9 +348,7 @@ class TestConverter(unittest.TestCase):
 
         self.score._conversions_enabled.set(True)
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-        ]):
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.disableConversions(True)
             self.score.require_owner_or_manager_only.assert_called()
             self.score.ConversionsEnable.assert_called_with(False)
@@ -375,9 +363,7 @@ class TestConverter(unittest.TestCase):
         old_conversion_fee = self.score._conversion_fee.get()
         conversion_fee = 10000
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-        ]):
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.setConversionFee(conversion_fee)
             self.score.require_owner_or_manager_only.assert_called()
             self.score.ConversionFeeUpdate.assert_called_with(old_conversion_fee, conversion_fee)
@@ -390,9 +376,7 @@ class TestConverter(unittest.TestCase):
 
         self.score._is_active.return_value = True
         self.score._connectors[self.initial_connector_token].is_set.set(False)
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner))
-        ]):
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.withdrawTokens(self.initial_connector_token, to, amount)
             self.score._is_active.assert_called()
             SmartTokenController.withdrawTokens.assert_called_with(
@@ -401,9 +385,7 @@ class TestConverter(unittest.TestCase):
         self.score._is_active.reset_mock()
         self.score._is_active.return_value = False
         self.score._connectors[self.initial_connector_token].is_set.set(True)
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner))
-        ]):
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.withdrawTokens(self.initial_connector_token, to, amount)
             self.score._is_active.assert_called()
             SmartTokenController.withdrawTokens.assert_called_with(
@@ -412,9 +394,7 @@ class TestConverter(unittest.TestCase):
         self.score._is_active.reset_mock()
         self.score._is_active.return_value = False
         self.score._connectors[self.initial_connector_token].is_set.set(False)
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner))
-        ]):
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.withdrawTokens(self.initial_connector_token, to, amount)
             self.score._is_active.assert_called()
             SmartTokenController.withdrawTokens.assert_called_with(
@@ -426,9 +406,7 @@ class TestConverter(unittest.TestCase):
 
         self.score._is_active.return_value = True
         self.score._connectors[self.initial_connector_token].is_set.set(True)
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner))
-        ]):
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.assertRaises(RevertException,
                               self.score.withdrawTokens,
                               self.initial_connector_token, to, amount)
@@ -460,9 +438,9 @@ class TestConverter(unittest.TestCase):
     def test_getConnectorBalance(self):
         balance = 100
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (InternalCall, 'other_external_call', balance)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call', return_value=balance)
         ]):
             result_balance = self.score.getConnectorBalance(self.initial_connector_token)
 
@@ -480,10 +458,10 @@ class TestConverter(unittest.TestCase):
 
         self.score.getConnectorBalance = Mock(return_value=10000)
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (InternalCall, 'other_external_call', 10000),
-            (FixedMapFormula, 'calculate_purchase_return', 1000)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call', return_value=10000),
+            patch.object(FixedMapFormula, 'calculate_purchase_return', return_value=1000)
         ]):
             result = self.score.getPurchaseReturn(self.initial_connector_token, amount)
             self.assertEqual(1000, result['amount'])
@@ -493,10 +471,10 @@ class TestConverter(unittest.TestCase):
         self.score._max_conversion_fee.set(1000000)
         self.score._conversion_fee.set(10000)
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (InternalCall, 'other_external_call', 10000),
-            (FixedMapFormula, 'calculate_purchase_return', 1000)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call', return_value=10000),
+            patch.object(FixedMapFormula, 'calculate_purchase_return', return_value=1000)
         ]):
             result = self.score.getPurchaseReturn(self.initial_connector_token, amount)
             self.assertEqual(990, result['amount'])
@@ -507,10 +485,10 @@ class TestConverter(unittest.TestCase):
 
         self.score.getConnectorBalance = Mock(return_value=10000)
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (InternalCall, 'other_external_call', 10000),
-            (FixedMapFormula, 'calculate_sale_return', 1000)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call', return_value=10000),
+            patch.object(FixedMapFormula, 'calculate_sale_return', return_value=1000)
         ]):
             result = self.score.getSaleReturn(self.initial_connector_token, amount)
             self.assertEqual(1000, result['amount'])
@@ -520,10 +498,10 @@ class TestConverter(unittest.TestCase):
         self.score._max_conversion_fee.set(1000000)
         self.score._conversion_fee.set(10000)
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (InternalCall, 'other_external_call', 10000),
-            (FixedMapFormula, 'calculate_sale_return', 1000)
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call', return_value=10000),
+            patch.object(FixedMapFormula, 'calculate_sale_return', return_value=1000)
         ]):
             result = self.score.getSaleReturn(self.initial_connector_token, amount)
             self.assertEqual(990, result['amount'])
@@ -538,9 +516,9 @@ class TestConverter(unittest.TestCase):
 
         self.score.getConnectorBalance = Mock(return_value=10000)
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (FixedMapFormula, 'calculate_cross_connector_return', 1000),
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(FixedMapFormula, 'calculate_cross_connector_return', return_value=1000)
         ]):
             result = self.score.getCrossConnectorReturn(
                 self.initial_connector_token,
@@ -553,9 +531,9 @@ class TestConverter(unittest.TestCase):
         self.score._max_conversion_fee.set(1000000)
         self.score._conversion_fee.set(10000)
 
-        with patch([
-            (IconScoreBase, 'msg', Message(self.owner)),
-            (FixedMapFormula, 'calculate_cross_connector_return', 1000),
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(FixedMapFormula, 'calculate_cross_connector_return', return_value=1000)
         ]):
             result = self.score.getCrossConnectorReturn(
                 self.initial_connector_token,

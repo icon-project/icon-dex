@@ -19,8 +19,8 @@ from random import SystemRandom
 from typing import TYPE_CHECKING
 from unittest.mock import Mock
 from unittest.mock import PropertyMock
+from unittest.mock import patch
 
-from iconservice import *
 from iconservice.base.exception import InvalidParamsException
 from iconservice.base.exception import RevertException
 from iconservice.base.message import Message
@@ -31,7 +31,7 @@ from contracts.network.network import Network
 from contracts.utility.proxy_score import ProxyScore
 from contracts.utility.token_holder import TokenHolder
 from contracts.utility.utils import *
-from tests import patch, ScorePatcher, create_db
+from tests import patch_property, MultiPatch, ScorePatcher, create_db
 
 if TYPE_CHECKING:
     from iconservice.base.address import Address
@@ -53,7 +53,7 @@ class TestNetwork(unittest.TestCase):
         self.connector_token_list = [Address.from_string("cx" + str(i) * 40) for i in range(3, 7)]
         self.icx_token = Address.from_string("cx" + "7" * 40)
 
-        with patch([(IconScoreBase, 'msg', Message(self.network_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.network_owner)):
             self.network_score.on_install()
             TokenHolder.on_install.assert_called_with(self.network_score)
 
@@ -205,7 +205,7 @@ class TestNetwork(unittest.TestCase):
         invalid_path = "{0}/{1}/{2}".format(str(self.icx_token),
                                             str(self.smart_token_address_list[0]),
                                             str(self.connector_token_list[0]))
-        with patch([(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount)):
             self.assertRaises(InvalidParamsException,
                               self.network_score.convertFor,
                               invalid_path, min_return, for_address)
@@ -216,7 +216,7 @@ class TestNetwork(unittest.TestCase):
         invalid_path = "{0},{1},{2}".format(str(self.icx_token),
                                             str("invalid_address"),
                                             str(self.connector_token_list[1]))
-        with patch([(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount)):
             self.assertRaises(InvalidParamsException,
                               self.network_score.convertFor,
                               invalid_path, min_return, for_address)
@@ -227,7 +227,7 @@ class TestNetwork(unittest.TestCase):
         path = "{0},{1},{2}".format(str(self.icx_token),
                                     str(self.smart_token_address_list[0]),
                                     str(self.connector_token_list[0]))
-        with patch([(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount)):
             self.assertRaises(RevertException,
                               self.network_score.convertFor,
                               path, invalid_min_return, for_address)
@@ -238,7 +238,7 @@ class TestNetwork(unittest.TestCase):
         invalid_path = "{0},{1},{2}".format(str(self.connector_token_list[0]),
                                             str(self.smart_token_address_list[0]),
                                             str(self.connector_token_list[1]))
-        with patch([(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount)):
             self.assertRaises(RevertException,
                               self.network_score.convertFor,
                               invalid_path, min_return, for_address)
@@ -250,8 +250,10 @@ class TestNetwork(unittest.TestCase):
                                     str(self.smart_token_address_list[0]),
                                     str(self.connector_token_list[1]))
         self.network_score._icx_tokens[self.icx_token] = True
-        with patch([(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount)),
-                    (Network, '_convert_for_internal', PropertyMock())]):
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount)),
+            patch.object(Network, '_convert_for_internal')
+        ]):
             self.network_score.convertFor(path, min_return, for_address)
             self.network_score.icx.transfer.assert_called_with(self.icx_token, icx_amount)
             converted_path = [self.icx_token, self.smart_token_address_list[0], self.connector_token_list[1]]
@@ -278,14 +280,18 @@ class TestNetwork(unittest.TestCase):
         stringed_data = json.dumps(data)
         decoded_data = stringed_data.encode(encoding='utf-8')
 
-        with patch([(IconScoreBase, 'msg', Message(self.connector_token_list[0])),
-                    (Network, '_convert_for_internal', PropertyMock())]):
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.connector_token_list[0])),
+            patch.object(Network, '_convert_for_internal')
+        ]):
             self.network_score.tokenFallback(from_address, value, b'conversionResult')
             self.network_score._convert_for_internal.assert_not_called()
 
         # failure case: input None data to the _data
-        with patch([(IconScoreBase, 'msg', Message(self.connector_token_list[0])),
-                    (Network, '_convert_for_internal', PropertyMock())]):
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.connector_token_list[0])),
+            patch.object(Network, '_convert_for_internal')
+        ]):
             self.assertRaises(RevertException,
                               self.network_score.tokenFallback,
                               from_address, value, b'None')
@@ -296,20 +302,25 @@ class TestNetwork(unittest.TestCase):
 
         # failure case: msg.sender is not equal to path[0] ( should be equal )
         msg_sender = Address.from_string("cx" + "c" * 40)
-        with patch([(IconScoreBase, 'msg', Message(msg_sender)),
-                    (Network, '_convert_for_internal', PropertyMock())]):
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(msg_sender)),
+            patch.object(Network, '_convert_for_internal')
+        ]):
             self.assertRaises(RevertException,
                               self.network_score.tokenFallback,
                               from_address, value, decoded_data)
 
         # success case: input valid data
-        # todo: test if require_positive_value method have been called
-        # todo: test if require_valid_address method have been called
-        with patch([(IconScoreBase, 'msg', Message(self.connector_token_list[0])),
-                    (Network, '_convert_for_internal', PropertyMock()),
-                    (Network, '_require_valid_path', PropertyMock())
-                    ]):
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.connector_token_list[0])),
+            patch.object(Network, '_convert_for_internal'),
+            patch.object(Network, '_require_valid_path'),
+            patch('contracts.network.network.require_positive_value'),
+            patch('contracts.network.network.require_valid_address'),
+        ]) as mocks:
             self.network_score.tokenFallback(from_address, value, decoded_data)
+            mocks[3].assert_called()  # patched mock of require_positive_value
+            mocks[4].assert_called()  # patched mock of require_valid_address
             self.network_score._require_valid_path.assert_called_with(converted_path)
             self.network_score._convert_for_internal. \
                 assert_called_with(converted_path, value, min_return, for_address)
@@ -331,9 +342,11 @@ class TestNetwork(unittest.TestCase):
         # success case: finally converted token is Icx token ( Icx token SCORE's 'withdrawTo' method should be called )
         converted_path = [self.connector_token_list[0], self.smart_token_address_list[0], self.icx_token]
         # '_convert_by_path' method returns 'to' token Address, and converted amount
-        with patch([(IconScoreBase, 'msg', Message(self.network_owner)),
-                    (Network, '_convert_by_path', (self.icx_token, convert_result_amount)),
-                    (Network, 'create_interface_score', icx_token_score_interface)]):
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.network_owner)),
+            patch.object(Network, '_convert_by_path', return_value=(self.icx_token, convert_result_amount)),
+            patch.object(Network, 'create_interface_score', return_value=icx_token_score_interface)
+        ]):
             # register icx_token
             self.network_score._icx_tokens[self.icx_token] = True
 
@@ -343,9 +356,11 @@ class TestNetwork(unittest.TestCase):
         # success case: finally converted token is irc token ( token SCORE's 'transfer' method should be called )
         converted_path = [self.icx_token, self.smart_token_address_list[0], self.connector_token_list[1]]
         # '_convert_by_path' method returns 'to' token Address, and converted amount
-        with patch([(IconScoreBase, 'msg', Message(self.network_owner)),
-                    (Network, '_convert_by_path', (self.connector_token_list[1], convert_result_amount)),
-                    (Network, 'create_interface_score', irc_token_score_interface)]):
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.network_owner)),
+            patch.object(Network, '_convert_by_path', return_value=(self.connector_token_list[1], convert_result_amount)),
+            patch.object(Network, 'create_interface_score', return_value=irc_token_score_interface)
+        ]):
             self.network_score._convert_for_internal(converted_path, amount_to_convert, min_return, for_address)
             irc_token_score_interface.transfer.assert_called_with(for_address, convert_result_amount, b'None')
 
@@ -369,7 +384,7 @@ class TestNetwork(unittest.TestCase):
                 token_address.balanceOf = PropertyMock(return_value=0)
             return token_address
 
-        with patch([(IconScoreBase, 'msg', Message(self.network_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.network_owner)):
             # the amount is set to 0. in this unit test, do not check the exact return value
             # just check whether if specific methods have been called or not
             amount = 0
@@ -447,7 +462,7 @@ class TestNetwork(unittest.TestCase):
                     address.getReturn = Mock(return_value={"amount": amount + index, "fee": 0})
                     return address
 
-        with patch([(IconScoreBase, 'msg', Message(self.network_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.network_owner)):
             self.network_score.create_interface_score = create_interface_score_mock
 
             actual_amount = self.network_score.getExpectedReturnByPath(stringed_path, amount)

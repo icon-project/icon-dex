@@ -22,7 +22,7 @@ from iconservice.base.message import Message
 
 from contracts.score_registry.score_registry import ScoreRegistry
 from contracts.utility.owned import Owned
-from tests import patch, ScorePatcher, create_db
+from tests import patch_property, ScorePatcher, create_db
 
 if TYPE_CHECKING:
     from iconservice.base.address import Address
@@ -39,7 +39,7 @@ class TestScoreRegistry(unittest.TestCase):
         self.registry_score = ScoreRegistry(create_db(self.score_address))
 
         self.registry_owner = Address.from_string("hx" + "1" * 40)
-        with patch([(IconScoreBase, 'msg', Message(self.registry_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.registry_owner)):
             self.registry_score.on_install()
             Owned.on_install.assert_called_with(self.registry_score)
 
@@ -67,7 +67,7 @@ class TestScoreRegistry(unittest.TestCase):
         bancor_network_id = self.registry_score.BANCOR_NETWORK
         bancor_network_address = Address.from_string("cx" + "2" * 40)
 
-        with patch([(IconScoreBase, 'msg', Message(self.registry_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.registry_owner)):
             # failure case: invalid register score address
             self.assertRaises(RevertException,
                               self.registry_score.registerAddress,
@@ -97,7 +97,7 @@ class TestScoreRegistry(unittest.TestCase):
         # register bancor network
         self.registry_score._score_address[bancor_network_id] = bancor_network_address
 
-        with patch([(IconScoreBase, 'msg', Message(self.registry_owner))]):
+        with patch_property(IconScoreBase, 'msg', Message(self.registry_owner)):
             # failure case: try to unregister not recorded score address
             non_registered_id = self.registry_score.BANCOR_FORMULA
             self.assertRaises(RevertException,
