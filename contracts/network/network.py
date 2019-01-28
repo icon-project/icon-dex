@@ -196,7 +196,7 @@ class Network(TokenHolder):
         if the conversion results in an amount smaller than the minimum return - it is cancelled, must be nonzero
         :return: tokens issued in return
         """
-        return self.convertFor(_path, self.msg.value, _minReturn, self.msg.sender)
+        return self.convertFor(_path, _minReturn, self.msg.sender)
 
     @external
     @payable
