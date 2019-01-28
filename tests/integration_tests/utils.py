@@ -15,6 +15,7 @@
 
 from os import path
 
+from iconsdk.exception import IconServiceBaseException
 from iconsdk.icon_service import IconService
 from iconsdk.builder.transaction_builder import CallTransactionBuilder, DeployTransactionBuilder, TransactionBuilder
 from iconsdk.builder.call_builder import CallBuilder
@@ -39,10 +40,28 @@ def get_content_as_bytes(score_name: str) -> bytes:
     contracts_path = path.join(root_path, 'contracts')
 
     builder = Builder(contracts_path, [score_name])
-    zip_writer = ZipWriter()
+    zip_writer = ZipWriter(compression="ZIP_DEFLATED")
     builder.build(zip_writer)
     contents_as_bytes = zip_writer.to_bytes()
     return contents_as_bytes
+
+
+def get_icx_balance(icon_integrate_test_base: IconIntegrateTestBase,
+                    address: 'Address',
+                    icon_service: IconService = None):
+    try:
+        if icon_service is not None:
+            response = icon_service.get_balance(address)
+        else:
+            request = {
+                "address": address
+            }
+            response = icon_integrate_test_base._query(request=request, method="icx_getBalance")
+    except IconServiceBaseException as e:
+        response = e.message
+
+    # Sends the call request
+    return response
 
 
 def deploy_score(icon_integrate_test_base: IconIntegrateTestBase,
