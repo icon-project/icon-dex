@@ -14,10 +14,9 @@
 # limitations under the License.
 
 from iconservice import *
-from iconsdk.wallet.wallet import KeyWallet
-from tbears.libs.icon_integrate_test import IconIntegrateTestBase, Account
+from iconservice.base.exception import RevertException
+from tbears.libs.icon_integrate_test import Account
 
-from contracts.interfaces.abc_score_registry import ABCScoreRegistry
 from tests.integration_tests.utils import *
 
 
@@ -44,6 +43,7 @@ class TestNetwork(IconIntegrateTestBase):
 
     # TEST_HTTP_ENDPOINT_URI_V3 = "http://127.0.0.1:9000/api/v3"
 
+    # todo: implement checking method which get path as a params and checking automatically
     def setUp(self):
         self.network_owner_wallet = KeyWallet.create()
         self.network_owner_address = self.network_owner_wallet.get_address()
@@ -323,14 +323,283 @@ class TestNetwork(IconIntegrateTestBase):
                                                      params={"_scoreName": "BancorNetwork"})
         self.assertEqual(str(self.network_score_address), actual_registered_network_address)
 
-    def test_convert(self):
-        pass
+    def test_getExpectedReturn_short_path(self):
+        # success case: check if the expected return amount is equal to actual converting result (short path)
+        converting_st2_amount = 10
+        min_return = 1
+        buy_path = "{0},{1},{2}".format(str(self.smart_token_2_address),
+                                        str(self.smart_token_1_address),
+                                        str(self.smart_token_1_address))
 
-    def test_getExpectedReturn(self):
-        pass
+        expected_return_amount = icx_call(icon_integrate_test_base=super(),
+                                          from_=self.network_owner_wallet.get_address(),
+                                          to_=self.network_score_address,
+                                          method="getExpectedReturnByPath",
+                                          params={"_path": buy_path,
+                                                  "_amount": converting_st2_amount})
 
-    def test_registerIcxToken(self):
-        pass
+        before_client_st1_amount = icx_call(icon_integrate_test_base=super(),
+                                            from_=self.network_owner_wallet.get_address(),
+                                            to_=self.smart_token_1_address,
+                                            method="balanceOf",
+                                            params={"_owner": str(self.network_owner_address)})
+
+        converting_params = {"path": buy_path,
+                             "minReturn": min_return}
+        stringed_converting_params = json_dumps(converting_params)
+        encoded_converting_params = stringed_converting_params.encode(encoding="utf-8")
+        send_tx_params = {"_to": str(self.network_score_address),
+                          "_value": converting_st2_amount,
+                          "_data": encoded_converting_params}
+
+        transaction_call(icon_integrate_test_base=super(),
+                         from_=self.network_owner_wallet,
+                         to_=self.smart_token_2_address,
+                         method="transfer",
+                         params=send_tx_params)
+
+        after_client_st1_amount = icx_call(icon_integrate_test_base=super(),
+                                           from_=self.network_owner_wallet.get_address(),
+                                           to_=self.smart_token_1_address,
+                                           method="balanceOf",
+                                           params={"_owner": str(self.network_owner_address)})
+
+        actual_issued_st1_amount = int(after_client_st1_amount, 16) - int(before_client_st1_amount, 16)
+        self.assertEqual(int(expected_return_amount, 16), actual_issued_st1_amount)
+
+    def test_getExpectedReturn_long_path(self):
+        # success case: check if the expected return amount is equal to actual converting result (long path)
+        converting_st2_amount = 10
+        min_return = 1
+        long_path = "{0},{1},{2},{3},{4}".format(self.smart_token_2_address,
+                                                 self.smart_token_1_address,
+                                                 self.icx_token_address,
+                                                 self.smart_token_2_address,
+                                                 self.smart_token_1_address)
+
+        before_client_st1_amount = icx_call(icon_integrate_test_base=super(),
+                                            from_=self.network_owner_wallet.get_address(),
+                                            to_=self.smart_token_1_address,
+                                            method="balanceOf",
+                                            params={"_owner": str(self.network_owner_address)})
+
+        expected_return_amount = icx_call(icon_integrate_test_base=super(),
+                                          from_=self.network_owner_wallet.get_address(),
+                                          to_=self.network_score_address,
+                                          method="getExpectedReturnByPath",
+                                          params={"_path": long_path,
+                                                  "_amount": converting_st2_amount})
+
+        converting_params = {"path": long_path,
+                             "minReturn": min_return}
+        stringed_converting_params = json_dumps(converting_params)
+        encoded_converting_params = stringed_converting_params.encode(encoding="utf-8")
+        send_tx_params = {"_to": self.network_score_address,
+                          "_value": converting_st2_amount,
+                          "_data": encoded_converting_params}
+
+        transaction_call(icon_integrate_test_base=super(),
+                         from_=self.network_owner_wallet,
+                         to_=self.smart_token_2_address,
+                         method="transfer",
+                         params=send_tx_params)
+
+        after_client_st1_amount = icx_call(icon_integrate_test_base=super(),
+                                           from_=self.network_owner_wallet.get_address(),
+                                           to_=self.smart_token_1_address,
+                                           method="balanceOf",
+                                           params={"_owner": str(self.network_owner_address)})
+
+        actual_received_st1_amount = int(after_client_st1_amount, 16) - int(before_client_st1_amount, 16)
+        self.assertEqual(int(expected_return_amount, 16), actual_received_st1_amount)
+
+    def test_getExpectedReturn_input_invalid_convert_path(self):
+        # failure case: input path which invalid length
+        converting_st2_amount = 10
+        invalid_path = "{0},{1}".format(self.smart_token_2_address,
+                                        self.smart_token_1_address)
+
+        self.assertRaises(RevertException, icx_call,
+                          super(),
+                          self.network_owner_wallet.get_address(),
+                          self.network_score_address,
+                          "getExpectedReturnByPath",
+                          {"_path": invalid_path,
+                           "_amount": converting_st2_amount})
+
+        invalid_score_address = Address.from_string("cx" + "0" * 40)
+        invalid_path = "{0},{1},{2}".format(self.smart_token_2_address,
+                                            self.smart_token_1_address,
+                                            invalid_score_address)
+
+        # failure case: input the path which involves the not existed score address (when from is token)
+        self.assertRaises(RevertException, icx_call,
+                          super(),
+                          self.network_owner_wallet.get_address(),
+                          self.network_score_address,
+                          "getExpectedReturnByPath",
+                          {"_path": invalid_path,
+                           "_amount": converting_st2_amount})
+
+    def test_convert_input_invalid_convert_path(self):
+        # failure case: input the path which involves the not existed score address (when from is icx)
+        invalid_score_address = Address.from_string("cx" + "0" * 40)
+
+        converting_icx_amount = 10
+        invalid_path = "{0},{1},{2}".format(self.icx_token_address,
+                                            self.smart_token_1_address,
+                                            invalid_score_address)
+        min_return = 1
+        send_tx_params = {"_path": invalid_path,
+                          "_minReturn": min_return}
+        self.assertRaises(AssertionError, transaction_call,
+                          super(),
+                          self.network_owner_wallet,
+                          self.network_score_address,
+                          "convert",
+                          send_tx_params,
+                          converting_icx_amount)
+
+        # failure case: input the path which involves the not existed score address (when from is token)
+        converting_st2_amount = 10
+        invalid_path = "{0},{1},{2}".format(self.smart_token_2_address,
+                                            self.smart_token_1_address,
+                                            invalid_score_address)
+        min_return = 1
+        converting_params = {"path": invalid_path,
+                             "minReturn": min_return}
+        stringed_converting_params = json_dumps(converting_params)
+        encoded_converting_params = stringed_converting_params.encode(encoding="utf-8")
+        send_tx_params = {"_to": str(self.network_score_address),
+                          "_value": converting_st2_amount,
+                          "_data": encoded_converting_params}
+
+        self.assertRaises(AssertionError, transaction_call,
+                          super(),
+                          self.network_owner_wallet,
+                          self.smart_token_2_address,
+                          "transfer",
+                          send_tx_params)
+
+        # failure case: input the invalid path (when from is icx)
+        invalid_score_address = Address.from_string("cx" + "0" * 40)
+
+        converting_icx_amount = 10
+        invalid_path = "{0},{1}".format(self.icx_token_address,
+                                        self.smart_token_1_address)
+        min_return = 1
+        send_tx_params = {"_path": invalid_path,
+                          "_minReturn": min_return}
+        self.assertRaises(AssertionError, transaction_call,
+                          super(),
+                          self.network_owner_wallet,
+                          self.network_score_address,
+                          "convert",
+                          send_tx_params,
+                          converting_icx_amount)
+
+        # failure case: input the invalid path (when from is token)
+        converting_st2_amount = 10
+        invalid_path = "{0},{1}".format(self.smart_token_2_address,
+                                            self.smart_token_1_address)
+        min_return = 1
+        converting_params = {"path": invalid_path,
+                             "minReturn": min_return}
+        stringed_converting_params = json_dumps(converting_params)
+        encoded_converting_params = stringed_converting_params.encode(encoding="utf-8")
+        send_tx_params = {"_to": str(self.network_score_address),
+                          "_value": converting_st2_amount,
+                          "_data": encoded_converting_params}
+
+        self.assertRaises(AssertionError, transaction_call,
+                          super(),
+                          self.network_owner_wallet,
+                          self.smart_token_2_address,
+                          "transfer",
+                          send_tx_params)
+
+    def test_convert_less_than_min_return(self):
+        # failure case: converted token amount is less than min return
+        converting_icx_amount = 10
+        invalid_ = "{0},{1},{2}".format(self.icx_token_address,
+                                        self.smart_token_1_address,
+                                        self.smart_token_2_address)
+        min_return = 100
+        send_tx_params = {"_path": invalid_,
+                          "_minReturn": min_return}
+        self.assertRaises(AssertionError, transaction_call,
+                          super(),
+                          self.network_owner_wallet,
+                          self.network_score_address,
+                          "convert",
+                          send_tx_params,
+                          converting_icx_amount)
+
+    def test_convertFor(self):
+        receiver_address = Address.from_string("hx" + "0" * 40)
+        # success case: icx coin convert 'for'
+        before_receiver_st2_amount = icx_call(icon_integrate_test_base=super(),
+                                              from_=self.network_owner_wallet.get_address(),
+                                              to_=self.smart_token_2_address,
+                                              method="balanceOf",
+                                              params={"_owner": str(receiver_address)})
+
+        converting_icx_amount = 10
+        cross_path = "{0},{1},{2}".format(self.icx_token_address,
+                                          self.smart_token_1_address,
+                                          self.smart_token_2_address)
+        min_return = 1
+        send_tx_params = {"_path": cross_path,
+                          "_minReturn": min_return,
+                          "_for": str(receiver_address)}
+
+        transaction_call(icon_integrate_test_base=super(),
+                         from_=self.network_owner_wallet,
+                         to_=self.network_score_address,
+                         method="convertFor",
+                         value=converting_icx_amount,
+                         params=send_tx_params)
+
+        # check receiver's st2 token amount
+        after_receiver_st2_amount = icx_call(icon_integrate_test_base=super(),
+                                             from_=self.network_owner_wallet.get_address(),
+                                             to_=self.smart_token_2_address,
+                                             method="balanceOf",
+                                             params={"_owner": str(receiver_address)})
+
+        received_st2_amount = int(after_receiver_st2_amount, 16) - int(before_receiver_st2_amount, 16)
+        # todo: should check exact value
+        self.assertGreater(received_st2_amount, 0)
+
+        # success case: token convert 'for'
+        before_receiver_icx_amount = get_icx_balance(icon_integrate_test_base=super(),
+                                                     address=receiver_address)
+
+        converting_st2_amount = 10
+        buy_path = "{0},{1},{2}".format(str(self.smart_token_2_address),
+                                        str(self.smart_token_1_address),
+                                        str(self.icx_token_address))
+        min_return = 1
+        converting_params = {"path": buy_path,
+                             "minReturn": min_return,
+                             "for": str(receiver_address)}
+        stringed_converting_params = json_dumps(converting_params)
+        encoded_converting_params = stringed_converting_params.encode(encoding="utf-8")
+        send_tx_params = {"_to": str(self.network_score_address),
+                          "_value": converting_st2_amount,
+                          "_data": encoded_converting_params}
+
+        transaction_call(icon_integrate_test_base=super(),
+                         from_=self.network_owner_wallet,
+                         to_=self.smart_token_2_address,
+                         method="transfer",
+                         params=send_tx_params)
+
+        after_receiver_icx_amount = get_icx_balance(icon_integrate_test_base=super(),
+                                                    address=receiver_address)
+
+        received_icx_amount = int(after_receiver_icx_amount, 16) - int(before_receiver_icx_amount, 16)
+        self.assertGreater(received_icx_amount, 0)
 
     def test_convert_with_short_path_buy(self):
         # test using ST1 converter
@@ -1083,5 +1352,43 @@ class TestNetwork(IconIntegrateTestBase):
                          int(st2_total_supply, 16))
 
     def test_tokenFallback(self):
+        # success: input 'conversionResult' as a _data (token should be deposited  on network SCORE)
+        token_amount = 10
 
-        pass
+        send_tx_params = {"_to": self.network_score_address,
+                          "_value": token_amount,
+                          "_data": b"conversionResult"}
+
+        transaction_call(icon_integrate_test_base=super(),
+                         from_=self.network_owner_wallet,
+                         to_=self.smart_token_2_address,
+                         method="transfer",
+                         params=send_tx_params)
+
+        network_st2_amount = icx_call(icon_integrate_test_base=super(),
+                                      from_=self.network_owner_wallet.get_address(),
+                                      to_=self.smart_token_2_address,
+                                      method="balanceOf",
+                                      params={"_owner": str(self.network_score_address)})
+        self.assertEqual(token_amount, int(network_st2_amount, 16))
+
+        # failure case: EOA try to call tokenFallback directly
+        converting_st2_amount = 10
+        valid_path = "{0},{1},{2}".format(self.smart_token_2_address,
+                                          self.smart_token_1_address,
+                                          self.icx_token_address)
+        min_return = 1
+        converting_params = {"path": valid_path,
+                             "minReturn": min_return}
+        stringed_converting_params = json_dumps(converting_params)
+        encoded_converting_params = stringed_converting_params.encode(encoding="utf-8")
+        send_tx_params = {"_from": self.network_owner_address,
+                          "_value": converting_st2_amount,
+                          "_data": encoded_converting_params}
+
+        self.assertRaises(AssertionError, transaction_call,
+                          super(),
+                          self.network_owner_wallet,
+                          self.network_score_address,
+                          "tokenFallback",
+                          send_tx_params)
