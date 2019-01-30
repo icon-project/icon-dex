@@ -20,6 +20,7 @@ import unittest
 
 from iconservice import *
 from iconservice.base.exception import RevertException
+
 from contracts.formula import formula
 
 

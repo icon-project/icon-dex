@@ -48,7 +48,6 @@ class TestScoreRegistry(IconIntegrateTestBase):
         tx_result = deploy_score(icon_integrate_test_base=super(),
                                  content_as_bytes=get_content_as_bytes("score_registry"), from_=self._test1, params={})
 
-        self.assertEqual(tx_result['status'], int(True))
         self.score_registry_address = tx_result['scoreAddress']
 
     def test_score_registry_property(self):

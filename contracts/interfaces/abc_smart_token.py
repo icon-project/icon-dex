@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from iconservice import *
+
 from .abc_irc_token import ABCIRCToken
 from .abc_token_holder import ABCTokenHolder
 
