@@ -33,7 +33,7 @@ class TestScoreRegistry(IconIntegrateTestBase):
         # If you want to send request to network, uncomment next line
         # self.icon_service = IconService(HTTPProvider(self.TEST_HTTP_ENDPOINT_URI_V3))
 
-        update_governance(icon_integrate_test_base=super(), score_name='governance', from_=self._test1, params={})
+        update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
 
         # Adds import white list
         params = {"importStmt": "{'iconservice.iconscore.icon_score_constant' : ['T']}"}

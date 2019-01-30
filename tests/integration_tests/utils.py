@@ -190,21 +190,19 @@ def icx_transfer_call(icon_integrate_test_base: IconIntegrateTestBase,
     return tx_result
 
 
-def _get_governance_score_as_bytes(score_name: str) -> bytes:
-    """Gets governance SCORE as bytes from score name
+def _get_governance_score_as_bytes() -> bytes:
+    """Gets the latest governance SCORE as bytes
 
-    :param score_name: governance SCORE name
     :return: governance as bytes
     """
     dir_path = path.abspath(path.dirname(__file__))
-    governance_path = path.join(dir_path, score_name)
+    governance_path = path.join(dir_path, 'governance')
     mz = InMemoryZip()
     mz.zip_in_memory(governance_path)
     return mz.data
 
 
 def update_governance(icon_integrate_test_base: IconIntegrateTestBase,
-                      score_name: str,
                       from_: KeyWallet,
                       params: dict = None,
                       icon_service: IconService = None) -> None:
@@ -213,15 +211,15 @@ def update_governance(icon_integrate_test_base: IconIntegrateTestBase,
     Cause it skips an audit process for System SCORE update, it does not need it.
 
     :param icon_integrate_test_base: IconIntegrateTestBase
-    :param score_name: governance SCORE name
     :param from_: Message sender(owner of built-in SCORE)'s key-wallet instance
     :param params: parameters for the method `on_update`
     :param icon_service: IconService
     :return: None
     """
-    governance_as_bytes = _get_governance_score_as_bytes(score_name)
-    tx_result = deploy_score(icon_integrate_test_base=icon_integrate_test_base, content_as_bytes=governance_as_bytes,
-                             from_=from_, to_=str(GOVERNANCE_SCORE_ADDRESS), params=params, icon_service=icon_service)
+    tx_result = deploy_score(icon_integrate_test_base=icon_integrate_test_base,
+                             content_as_bytes=_get_governance_score_as_bytes(), from_=from_,
+                             to_=str(GOVERNANCE_SCORE_ADDRESS), params=params, icon_service=icon_service)
+
     assert 'status' in tx_result
     assert 1 == tx_result['status']
 
