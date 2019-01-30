@@ -13,53 +13,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TYPE_CHECKING, Any
-
 from iconservice import ZERO_SCORE_ADDRESS
+from iconservice.base.address import Address, GOVERNANCE_SCORE_ADDRESS
+from iconservice.base.exception import RevertException
+from iconsdk.wallet.wallet import KeyWallet
+from tbears.libs.icon_integrate_test import IconIntegrateTestBase
 
 from tests.integration_tests import create_address
-from tests.integration_tests.test_integrate_base import TestIntegrateBase
-
-if TYPE_CHECKING:
-    from iconservice.base.address import Address
+from tests.integration_tests.utils import get_content_as_bytes, deploy_score, icx_call, transaction_call, \
+    icx_transfer_call, update_governance
 
 
-class TestIcxToken(TestIntegrateBase):
+class TestIcxToken(IconIntegrateTestBase):
     _TOKEN_INITIAL_TOTAL_SUPPLY_WITH_DECIMALS = 10000 * 10 ** 18
+
+    # TEST_HTTP_ENDPOINT_URI_V3 = "http://127.0.0.1:9000/api/v3"
 
     def setUp(self):
         super().setUp()
-        deploy_result = self._deploy_score("icx_token")
-        self.assertEqual(deploy_result.status, int(True))
-        self.icx_token_address = deploy_result.score_address
 
-    def _deploy_score(self, score_path: str, deploy_params: dict = {}, update_score_addr: 'Address' = None) -> Any:
-        address = ZERO_SCORE_ADDRESS
-        if update_score_addr:
-            address = update_score_addr
+        self.icon_service = None
+        # If you want to send request to network, uncomment next line
+        # self.icon_service = IconService(HTTPProvider(self.TEST_HTTP_ENDPOINT_URI_V3))
 
-        tx = self._make_deploy_tx("",
-                                  score_path,
-                                  self._owner,
-                                  address,
-                                  deploy_params=deploy_params)
+        update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
 
-        prev_block, tx_results = self._make_and_req_block([tx])
-        self._write_precommit_state(prev_block)
-        return tx_results[0]
+        # Adds import white list
+        params = {"importStmt": "{'iconservice.iconscore.icon_score_constant' : ['T']}"}
+        transaction_call(icon_integrate_test_base=super(),
+                         from_=self._test1,
+                         to_=str(GOVERNANCE_SCORE_ADDRESS),
+                         method="addImportWhiteList",
+                         params=params,
+                         icon_service=self.icon_service)
 
-    def _query_score(self, score_address: 'Address', method: str, params: dict = None):
-        query_request = {
-            "version": self._version,
-            "from": self._owner,
-            "to": score_address,
-            "dataType": "call",
-            "data": {
-                "method": method,
-                "params": {} if params is None else params
-            }
-        }
-        return self._query(query_request)
+        # Deploys score_registry SCORE
+        tx_result = deploy_score(icon_integrate_test_base=super(),
+                                 content_as_bytes=get_content_as_bytes("icx_token"), from_=self._test1, params={})
+
+        self.icx_token_address = tx_result['scoreAddress']
 
     def _get_icx_value(self, address: 'Address'):
         query_request = {
@@ -67,153 +59,149 @@ class TestIcxToken(TestIntegrateBase):
         }
         return self._query(query_request, "icx_getBalance")
 
-    def _call_score(self,
-                    score_address: 'Address',
-                    sender_address: 'Address',
-                    method: str = "",
-                    params: dict = {},
-                    value: int = 0):
-        tx = self._make_score_call_tx(sender_address,
-                                      score_address,
-                                      method,
-                                      params,
-                                      value)
+    def _icx_call_default(self, to_: str = None, method: str = None, params: dict = None):
+        return icx_call(icon_integrate_test_base=super(), from_=self._test1.get_address(),
+                        to_=to_, method=method, params=params, icon_service=self.icon_service)
 
-        prev_block, tx_results = self._make_and_req_block([tx])
-        self._write_precommit_state(prev_block)
-        return tx_results[0]
+    def _transaction_call_default(self, to_: str = None, method: str = None, params: dict = None, value: int = 0):
+        return transaction_call(icon_integrate_test_base=super(), from_=self._test1, to_=to_,
+                                method=method, params=params, value=value, icon_service=self.icon_service)
 
     def test_icx_token_property(self):
-        actual_token_name = self._query_score(self.icx_token_address, "name")
+        # Checks if token name is right
+        actual_token_name = self._icx_call_default(to_=self.icx_token_address, method="name")
         self.assertEqual("icx_token", actual_token_name)
 
-        actual_token_symbol = self._query_score(self.icx_token_address, "symbol")
+        # Checks if token symbol is right
+        actual_token_symbol = self._icx_call_default(to_=self.icx_token_address, method="symbol")
         self.assertEqual("ICX", actual_token_symbol)
 
-        actual_total_supply = self._query_score(self.icx_token_address, "totalSupply")
-        self.assertEqual(0, actual_total_supply)
+        # Checks if total supply is 0
+        actual_total_supply = self._icx_call_default(self.icx_token_address, "totalSupply")
+        self.assertEqual(0, int(actual_total_supply, 0))
 
-        actual_decimals = self._query_score(self.icx_token_address, "decimals")
-        self.assertEqual(18, actual_decimals
-                         )
-        actual_owner_balance = self._query_score(self.icx_token_address, "balanceOf", {"_owner": str(self._owner)})
-        self.assertEqual(0, actual_owner_balance)
+        # Checks if decimals is right
+        actual_decimals = self._icx_call_default(self.icx_token_address, "decimals")
+        self.assertEqual(18, int(actual_decimals, 0))
 
-        actual_owner = self._query_score(self.icx_token_address, "getOwner")
-        self.assertEqual(self._owner, actual_owner)
+        # Checks if result of operating method `balance of` is 0
+        actual_owner_balance = self._icx_call_default(self.icx_token_address, "balanceOf",
+                                                      {"_owner": str(self.icx_token_address)})
+        self.assertEqual(0, int(actual_owner_balance, 0))
 
-        actual_new_owner = self._query_score(self.icx_token_address, "getNewOwner")
-        self.assertEqual(ZERO_SCORE_ADDRESS, actual_new_owner)
+        # Checks if result of operating method `getOwner` is the actual owner
+        actual_owner = self._icx_call_default(self.icx_token_address, "getOwner")
+        self.assertEqual(self._test1.get_address(), actual_owner)
+
+        # Checks if result of operating method `getNewOwner is the zero score address
+        actual_new_owner = self._icx_call_default(self.icx_token_address, "getNewOwner")
+        self.assertEqual(str(ZERO_SCORE_ADDRESS), actual_new_owner)
 
     def test_icx_token_deposit(self):
-        initial_owner_icx_value = self._get_icx_value(self._owner)
+        initial_owner_icx_value = self._get_icx_value(Address.from_string(self._test1.get_address()))
         deposit_icx = 10 * 10 ** 18
 
-        # success case: deposit 10 icx to icx_token
-        tx_result = self._call_score(self.icx_token_address, self._owner, "deposit", {}, deposit_icx)
-        self.assertEqual(True, tx_result.status)
+        # Success case: deposit 10 icx to icx_token
+        tx_result = self._transaction_call_default(self.icx_token_address, "deposit", {}, deposit_icx)
 
-        # check event log (Issuance)
-        self.assertEqual(deposit_icx, tx_result.event_logs[0].data[0])
+        # Checks event log (Issuance)
+        self.assertEqual(deposit_icx, int(tx_result["eventLogs"][0]["data"][0], 0))
 
-        # check event log (Transfer)
-        self.assertEqual(self.icx_token_address, tx_result.event_logs[1].indexed[1])
-        self.assertEqual(self._owner, tx_result.event_logs[1].indexed[2])
-        self.assertEqual(deposit_icx, tx_result.event_logs[1].indexed[3])
+        # Checks event log (Transfer)
+        self.assertEqual(self.icx_token_address, tx_result["eventLogs"][1]["indexed"][1])
+        self.assertEqual(self._test1.get_address(), tx_result["eventLogs"][1]["indexed"][2])
+        self.assertEqual(deposit_icx, int(tx_result["eventLogs"][1]["indexed"][3], 0))
 
-        # check owner token balance (should be 10 * 10 ** 18)
-        actual_icx_balance = self._query_score(self.icx_token_address, "balanceOf", {"_owner": str(self._owner)})
-        self.assertEqual(deposit_icx, actual_icx_balance)
+        # Checks owner token balance (should be 10 * 10 ** 18)
+        actual_icx_balance = self._icx_call_default(self.icx_token_address, "balanceOf",
+                                                    {"_owner": self._test1.get_address()})
+        self.assertEqual(deposit_icx, int(actual_icx_balance, 0))
 
-        # check icx token's total supply (should be 10 * 10 ** 18)
-        actual_total_supply = self._query_score(self.icx_token_address, "totalSupply")
-        self.assertEqual(deposit_icx, actual_total_supply)
+        # Checks icx token's total supply (should be 10 * 10 ** 18)
+        actual_total_supply = self._icx_call_default(self.icx_token_address, "totalSupply")
+        self.assertEqual(deposit_icx, int(actual_total_supply, 0))
 
-        owner_icx_value = self._get_icx_value(self._owner)
-        icx_token_score_value = self._get_icx_value(self.icx_token_address)
-        # check real ICX coin balance
-        self.assertEqual(initial_owner_icx_value - deposit_icx, owner_icx_value)
-        self.assertEqual(deposit_icx, icx_token_score_value)
+        owner_icx_value = self._get_icx_value(Address.from_string(self._test1.get_address()))
+        icx_token_score_value = self._get_icx_value(Address.from_string(self.icx_token_address))
 
-        # success case: deposit 10 icx without calling deposit method by sending icx to score address
-        tx = self._make_icx_send_tx(self._owner, self.icx_token_address, deposit_icx)
-        prev_block, tx_results = self._make_and_req_block([tx])
-        self._write_precommit_state(prev_block)
+        # Checks real ICX coin balance
+        self.assertEqual(int(initial_owner_icx_value, 0) - deposit_icx, int(owner_icx_value, 0))
+        self.assertEqual(deposit_icx, int(icx_token_score_value, 0))
 
-        self.assertEqual(True, tx_results[0].status)
+        # Success case: deposit 10 icx without calling deposit method by sending icx to score address
+        icx_transfer_call(super(), self._test1, self.icx_token_address, deposit_icx, self.icon_service)
 
-        # check owner token balance (should be 10 * 10 ** 18 * 2)
-        actual_icx_balance = self._query_score(self.icx_token_address, "balanceOf", {"_owner": str(self._owner)})
-        self.assertEqual(deposit_icx * 2, actual_icx_balance)
+        # Checks owner token balance (should be 10 * 10 ** 18 * 2)
+        actual_icx_balance = self._icx_call_default(self.icx_token_address, "balanceOf",
+                                                    {"_owner": self._test1.get_address()})
+        self.assertEqual(deposit_icx * 2, int(actual_icx_balance, 0))
 
-        # check icx token's total supply (should be 10 * 10 ** 18 * 2)
-        actual_total_supply = self._query_score(self.icx_token_address, "totalSupply")
-        self.assertEqual(deposit_icx * 2, actual_total_supply)
+        # Checks icx token's total supply (should be 10 * 10 ** 18 * 2)
+        actual_total_supply = self._icx_call_default(self.icx_token_address, "totalSupply")
+        self.assertEqual(deposit_icx * 2, int(actual_total_supply, 0))
 
     def test_icx_token_withdraw_to(self):
-        initial_owner_icx_value = self._get_icx_value(self._owner)
+        initial_owner_icx_value = self._get_icx_value(Address.from_string(self._test1.get_address()))
         icx_receiver = create_address()
         deposit_icx = 10 * 10 ** 18
 
-        # ##### start setting for testing withdraw
+        # Starts setting for testing withdraw
+        # Deposits 10 icx to owner
+        self._transaction_call_default(self.icx_token_address, "deposit", {}, deposit_icx)
 
-        # deposit 10 icx to owner
-        tx_result = self._call_score(self.icx_token_address, self._owner, "deposit", {}, deposit_icx)
-        self.assertEqual(True, tx_result.status)
+        # Checks owner token balance (should be 10 * 10 ** 18)
+        actual_icx_balance = self._icx_call_default(self.icx_token_address, "balanceOf",
+                                                    {"_owner": self._test1.get_address()})
+        self.assertEqual(deposit_icx, int(actual_icx_balance, 0))
 
-        # check owner token balance (should be 10 * 10 ** 18)
-        actual_icx_balance = self._query_score(self.icx_token_address, "balanceOf", {"_owner": str(self._owner)})
-        self.assertEqual(deposit_icx, actual_icx_balance)
-
-        # check icx token's total supply (should be 10 * 10 ** 18)
-        actual_total_supply = self._query_score(self.icx_token_address, "totalSupply")
-        self.assertEqual(deposit_icx, actual_total_supply)
+        # Checks icx token's total supply (should be 10 * 10 ** 18)
+        actual_total_supply = self._icx_call_default(self.icx_token_address, "totalSupply")
+        self.assertEqual(deposit_icx, int(actual_total_supply, 0))
 
         # ##### end setting for testing withdraw
 
-        # failure case: try to withdraw icx more than deposited icx value
+        # Failure case: try to withdraw icx more than deposited icx value
         withdraw_icx = 12 * 10 ** 18
-        send_tx_params = {"_amount": hex(withdraw_icx), "_to": str(icx_receiver)}
-        tx_result = self._call_score(self.icx_token_address, self._owner, "withdrawTo", send_tx_params)
-        self.assertEqual(False, tx_result.status)
-        self.assertEqual("Out of balance", tx_result.failure.message)
+        send_tx_params = {"_amount": withdraw_icx, "_to": str(icx_receiver)}
+        self.assertRaises(AssertionError, self._transaction_call_default,
+                          self.icx_token_address, "withdrawTo", send_tx_params)
 
-        # failure case: input _amount less than 0 as a parameter
+        # Failure case: input _amount less than 0 as a parameter
         withdraw_icx = -(10 * 10 ** 18)
-        send_tx_params = {"_amount": hex(withdraw_icx), "_to": str(icx_receiver)}
-        tx_result = self._call_score(self.icx_token_address, self._owner, "withdrawTo", send_tx_params)
-        self.assertEqual(False, tx_result.status)
-        self.assertEqual("Amount should be greater than 0", tx_result.failure.message)
+        send_tx_params = {"_amount": withdraw_icx, "_to": str(icx_receiver)}
+        self.assertRaises(AssertionError, self._transaction_call_default,
+                          self.icx_token_address, "withdrawTo", send_tx_params)
 
-        # success case: withdraw 10 icx from the score to icx_receiver
+        # Success case: withdraw 10 icx from the score to icx_receiver
         withdraw_icx = 10 * 10 ** 18
-        send_tx_params = {"_amount": hex(withdraw_icx), "_to": str(icx_receiver)}
-        tx_result = self._call_score(self.icx_token_address, self._owner, "withdrawTo", send_tx_params)
-        self.assertEqual(True, tx_result.status)
+        send_tx_params = {"_amount": withdraw_icx, "_to": str(icx_receiver)}
+        tx_result = self._transaction_call_default(self.icx_token_address, "withdrawTo", send_tx_params)
 
-        # check event log (ICXTransfer)
-        self.assertEqual(self.icx_token_address, tx_result.event_logs[0].indexed[1])
-        self.assertEqual(icx_receiver, tx_result.event_logs[0].indexed[2])
-        self.assertEqual(withdraw_icx, tx_result.event_logs[0].indexed[3])
-        # check event log (Destruction)
-        self.assertEqual(withdraw_icx, tx_result.event_logs[1].data[0])
+        # Checks event log (ICXTransfer)
+        self.assertEqual(self.icx_token_address, tx_result["eventLogs"][0]["indexed"][1])
+        self.assertEqual(str(icx_receiver), tx_result["eventLogs"][0]["indexed"][2])
+        self.assertEqual(withdraw_icx, int(tx_result["eventLogs"][0]["indexed"][3], 0))
 
-        # check owner token balance (should be 0)
-        actual_icx_balance = self._query_score(self.icx_token_address, "balanceOf", {"_owner": str(self._owner)})
-        self.assertEqual(0, actual_icx_balance)
+        # Checks event log (Destruction)
+        self.assertEqual(withdraw_icx, int(tx_result["eventLogs"][1]["data"][0], 0))
 
-        # check icx token's total supply (should be 0)
-        actual_total_supply = self._query_score(self.icx_token_address, "totalSupply")
-        self.assertEqual(0, actual_total_supply)
+        # Checks owner token balance (should be 0)
+        actual_icx_balance = self._icx_call_default(self.icx_token_address, "balanceOf",
+                                                    {"_owner": self._test1.get_address()})
+        self.assertEqual(0, int(actual_icx_balance, 0))
 
-        # check real ICX coin balance
-        owner_icx_value = self._get_icx_value(self._owner)
+        # Checks icx token's total supply (should be 0)
+        actual_total_supply = self._icx_call_default(self.icx_token_address, "totalSupply")
+        self.assertEqual(0, int(actual_total_supply, 0))
+
+        # Checks real ICX coin balance
+        owner_icx_value = self._get_icx_value(Address.from_string(self._test1.get_address()))
         receiver_icx_value = self._get_icx_value(icx_receiver)
-        icx_token_score_value = self._get_icx_value(self.icx_token_address)
+        icx_token_score_value = self._get_icx_value(Address.from_string(self.icx_token_address))
 
-        self.assertEqual(initial_owner_icx_value - withdraw_icx, owner_icx_value)
-        self.assertEqual(withdraw_icx, receiver_icx_value)
-        self.assertEqual(0, icx_token_score_value)
+        self.assertEqual(int(initial_owner_icx_value, 0) - withdraw_icx, int(owner_icx_value, 0))
+        self.assertEqual(withdraw_icx, int(receiver_icx_value, 0))
+        self.assertEqual(0, int(icx_token_score_value, 0))
 
     def test_icx_token_transfer(self):
         icx_receiver = create_address()
@@ -221,89 +209,86 @@ class TestIcxToken(TestIntegrateBase):
 
         # ##### start setting for testing withdraw
 
-        # deposit 10 icx to owner
-        tx_result = self._call_score(self.icx_token_address, self._owner, "deposit", {}, deposit_icx)
-        self.assertEqual(True, tx_result.status)
+        # Deposits 10 icx to owner
+        self._transaction_call_default(self.icx_token_address, "deposit", {}, deposit_icx)
 
-        # check owner token balance (should be 10 * 10 ** 18)
-        actual_icx_balance = self._query_score(self.icx_token_address, "balanceOf", {"_owner": str(self._owner)})
-        self.assertEqual(deposit_icx, actual_icx_balance)
+        # Checks owner token balance (should be 10 * 10 ** 18)
+        actual_icx_balance = self._icx_call_default(self.icx_token_address, "balanceOf",
+                                                    {"_owner": self._test1.get_address()})
+        self.assertEqual(deposit_icx, int(actual_icx_balance, 0))
 
-        # check icx token's total supply (should be 10 * 10 ** 18)
-        actual_total_supply = self._query_score(self.icx_token_address, "totalSupply")
-        self.assertEqual(deposit_icx, actual_total_supply)
+        # Checks icx token's total supply (should be 10 * 10 ** 18)
+        actual_total_supply = self._icx_call_default(self.icx_token_address, "totalSupply")
+        self.assertEqual(deposit_icx, int(actual_total_supply, 0))
 
-        # ##### end setting for testing withdraw
+        # #### end setting for testing withdraw
 
-        # failure case: cannot transfer icx to icx token SCORE
+        # Failure case: cannot transfer icx to icx token SCORE
         transfer_icx = 10 * 10 ** 18
-        send_tx_params = {"_to": str(self.icx_token_address), "_value": hex(transfer_icx)}
-        tx_result = self._call_score(self.icx_token_address, self._owner, "transfer", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        send_tx_params = {"_to": self.icx_token_address, "_value": transfer_icx}
+        self.assertRaises(AssertionError, self._transaction_call_default,
+                          self.icx_token_address, "transfer", send_tx_params)
 
-        # success case: transfer 10 icx to icx_receiver
+        # Success case: transfer 10 icx to icx_receiver
         send_tx_params = {"_to": str(icx_receiver), "_value": hex(transfer_icx)}
-        tx_result = self._call_score(self.icx_token_address, self._owner, "transfer", send_tx_params)
-        self.assertEqual(True, tx_result.status)
+        self._transaction_call_default(self.icx_token_address, "transfer", send_tx_params)
 
-        # check owner token balance (should be 0)
-        actual_icx_balance = self._query_score(self.icx_token_address, "balanceOf", {"_owner": str(self._owner)})
-        self.assertEqual(0, actual_icx_balance)
+        # Checks owner token balance (should be 0)
+        actual_icx_balance = self._icx_call_default(self.icx_token_address, "balanceOf",
+                                                    {"_owner": self._test1.get_address()})
+        self.assertEqual(0, int(actual_icx_balance, 0))
 
-        # check owner token balance (should be 10 icx)
-        actual_icx_balance = self._query_score(self.icx_token_address, "balanceOf", {"_owner": str(icx_receiver)})
-        self.assertEqual(transfer_icx, actual_icx_balance)
+        # Checks owner token balance (should be 10 icx)
+        actual_icx_balance = self._icx_call_default(self.icx_token_address, "balanceOf", {"_owner": str(icx_receiver)})
+        self.assertEqual(transfer_icx, int(actual_icx_balance, 0))
 
-        # check icx token's total supply (should be 10 icx)
-        actual_total_supply = self._query_score(self.icx_token_address, "totalSupply")
-        self.assertEqual(deposit_icx, actual_total_supply)
+        # Checks icx token's total supply (should be 10 icx)
+        actual_total_supply = self._icx_call_default(self.icx_token_address, "totalSupply")
+        self.assertEqual(deposit_icx, int(actual_total_supply, 0))
 
-        # check real ICX coin balance
+        # Checks real ICX coin balance
         receiver_icx_value = self._get_icx_value(icx_receiver)
-        icx_token_score_value = self._get_icx_value(self.icx_token_address)
+        icx_token_score_value = self._get_icx_value(Address.from_string(self.icx_token_address))
 
-        # receiver's real ICX coin balance should be 0 until withdraw
-        self.assertEqual(0, receiver_icx_value)
-        # icx token SCORE real ICX coin balance should be 10 until withdraw
-        self.assertEqual(deposit_icx, icx_token_score_value)
+        # Receiver's real ICX coin balance should be 0 until withdraw
+        self.assertEqual(0, int(receiver_icx_value, 0))
+
+        # Icx token SCORE real ICX coin balance should be 10 until withdraw
+        self.assertEqual(deposit_icx, int(icx_token_score_value, 0))
 
     def test_icx_token_transfer_ownership(self):
-        new_owner = create_address()
+        new_owner = KeyWallet.create()
 
-        # failure case: only owner can transfer ownership
-        send_tx_params = {"_newOwner": str(new_owner)}
-        tx_result = self._call_score(self.icx_token_address, self._genesis, "transferOwnerShip", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        # Failure case: only owner can transfer ownership
+        send_tx_params = {"_newOwner": new_owner.get_address()}
+        self.assertRaises(AssertionError, transaction_call, super(), self._genesis, self.icx_token_address,
+                          "transferOwnerShip", send_tx_params)
 
-        # failure case: cannot set new owner as previous owner
-        send_tx_params = {"_newOwner": str(self._owner)}
-        tx_result = self._call_score(self.icx_token_address, self._owner, "transferOwnerShip", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        # Failure case: cannot set new owner as previous owner
+        send_tx_params = {"_newOwner": self._test1.get_address()}
+        self.assertRaises(RevertException, self._icx_call_default, self.icx_token_address, "transferOwnerShip",
+                          send_tx_params)
 
-        # success case: owner can transfer ownership
-        send_tx_params = {"_newOwner": str(new_owner)}
-        tx_result = self._call_score(self.icx_token_address, self._owner, "transferOwnerShip", send_tx_params)
-        self.assertEqual(True, tx_result.status)
+        # Success case: owner can transfer ownership
+        send_tx_params = {"_newOwner": new_owner.get_address()}
+        self._transaction_call_default(self.icx_token_address, "transferOwnerShip", send_tx_params)
 
-        # check current owner, ownership can not be transferred until accept ownership
-        actual_owner = self._query_score(self.icx_token_address, "getOwner")
-        self.assertEqual(self._owner, actual_owner)
+        # Checks current owner, ownership can not be transferred until accept ownership
+        actual_owner = self._icx_call_default(self.icx_token_address, "getOwner")
+        self.assertEqual(self._test1.get_address(), actual_owner)
 
-        # failure case: except new owner, no one cannot accept ownership even owner
-        tx_result = self._call_score(self.icx_token_address, self._owner, "acceptOwnerShip", {})
-        self.assertEqual(False, tx_result.status)
+        # Failure case: except new owner, no one cannot accept ownership even owner
+        self.assertRaises(AssertionError, self._transaction_call_default, self.icx_token_address, "acceptOwnerShip", {})
+        self.assertRaises(AssertionError, transaction_call, super(), self._genesis, self.icx_token_address,
+                          "acceptOwnerShip", {})
 
-        tx_result = self._call_score(self.icx_token_address, self._genesis, "acceptOwnerShip", {})
-        self.assertEqual(False, tx_result.status)
+        # Success case: accept ownership
+        tx_result = transaction_call(super(), new_owner, self.icx_token_address, "acceptOwnerShip", {})
 
-        # success case: accept ownership
-        tx_result = self._call_score(self.icx_token_address, new_owner, "acceptOwnerShip", {})
-        self.assertEqual(True, tx_result.status)
+        # Checks event log
+        self.assertEqual(self._test1.get_address(), tx_result["eventLogs"][0]["indexed"][1])
+        self.assertEqual(new_owner.get_address(), tx_result["eventLogs"][0]["indexed"][2])
 
-        # check event log
-        self.assertEqual(self._owner, tx_result.event_logs[0].indexed[1])
-        self.assertEqual(new_owner, tx_result.event_logs[0].indexed[2])
-
-        # check current owner
-        actual_owner = self._query_score(self.icx_token_address, "getOwner")
-        self.assertEqual(new_owner, actual_owner)
+        # Checks current owner
+        actual_owner = self._icx_call_default(self.icx_token_address, "getOwner")
+        self.assertEqual(new_owner.get_address(), actual_owner)
