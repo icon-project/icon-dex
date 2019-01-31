@@ -559,6 +559,14 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         return self._allow_registry_update.get()
 
     @external(readonly=True)
+    def isActive(self) -> bool:
+        """
+        Returns whether the controller is active
+        :return: True if the controller active
+        """
+        return self._is_active()
+
+    @external(readonly=True)
     def getPreviousRegistry(self) -> Address:
         """
         gets the previous registry address

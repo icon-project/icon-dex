@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from contracts.formula.fixed_map_formula import FixedMapFormula
+from .fixed_map_formula import FixedMapFormula
 
 formula = FixedMapFormula()
 
