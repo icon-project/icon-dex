@@ -644,7 +644,7 @@ class TestConverter(IconIntegrateTestBase):
         with self.assertRaises(AssertionError):
             transaction_call(self, self.keys[1], converter_address, 'updateConnector',
                              {
-                                 '_token': self.connector_token1_address,
+                                 '_connectorToken': self.connector_token1_address,
                                  '_weight': 200000,
                                  '_enableVirtualBalance': 1,
                                  '_virtualBalance': 50
@@ -668,7 +668,7 @@ class TestConverter(IconIntegrateTestBase):
         with self.assertRaises(AssertionError):
             transaction_call(self, self.keys[0], converter_address, 'updateConnector',
                              {
-                                 '_token': self.connector_token2_address,
+                                 '_connectorToken': self.connector_token2_address,
                                  '_weight': 200000,
                                  '_enableVirtualBalance': 1,
                                  '_virtualBalance': 50
@@ -692,7 +692,7 @@ class TestConverter(IconIntegrateTestBase):
         with self.assertRaises(AssertionError):
             transaction_call(self, self.keys[0], converter_address, 'updateConnector',
                              {
-                                 '_token': self.connector_token1_address,
+                                 '_connectorToken': self.connector_token1_address,
                                  '_weight': 0,
                                  '_enableVirtualBalance': 0,
                                  '_virtualBalance': 0
@@ -716,7 +716,7 @@ class TestConverter(IconIntegrateTestBase):
         with self.assertRaises(AssertionError):
             transaction_call(self, self.keys[0], converter_address, 'updateConnector',
                              {
-                                 '_token': self.connector_token1_address,
+                                 '_connectorToken': self.connector_token1_address,
                                  '_weight': 1000001,
                                  '_enableVirtualBalance': 0,
                                  '_virtualBalance': 0
@@ -747,7 +747,7 @@ class TestConverter(IconIntegrateTestBase):
         with self.assertRaises(AssertionError):
             transaction_call(self, self.keys[0], converter_address, 'updateConnector',
                              {
-                                 '_token': self.connector_token2_address,
+                                 '_connectorToken': self.connector_token2_address,
                                  '_weight': 500001,
                                  '_enableVirtualBalance': 0,
                                  '_virtualBalance': 0
