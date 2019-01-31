@@ -21,7 +21,7 @@ from iconsdk.builder.transaction_builder import CallTransactionBuilder, DeployTr
 from iconsdk.builder.call_builder import CallBuilder
 from iconsdk.signed_transaction import SignedTransaction
 from iconsdk.wallet.wallet import KeyWallet
-from iconservice.base.address import GOVERNANCE_SCORE_ADDRESS
+from iconservice.base.address import GOVERNANCE_SCORE_ADDRESS, Address
 from tbears.libs.icon_integrate_test import IconIntegrateTestBase, SCORE_INSTALL_ADDRESS
 
 from contract_generator.builder import Builder
@@ -47,7 +47,7 @@ def get_content_as_bytes(score_name: str) -> bytes:
 
 
 def get_icx_balance(icon_integrate_test_base: IconIntegrateTestBase,
-                    address: 'Address',
+                    address: str,
                     icon_service: IconService = None) -> str:
     """Gets ICX coin balance of address
 
@@ -61,7 +61,7 @@ def get_icx_balance(icon_integrate_test_base: IconIntegrateTestBase,
             response = icon_service.get_balance(address)
         else:
             request = {
-                "address": address
+                "address": Address.from_string(address)
             }
             response = icon_integrate_test_base._query(request=request, method="icx_getBalance")
     except IconServiceBaseException as e:
@@ -115,7 +115,7 @@ def icx_call(icon_integrate_test_base: IconIntegrateTestBase,
              to_: str,
              method: str,
              params: dict = None,
-             icon_service: IconService = None) -> dict:
+             icon_service: IconService = None) -> any:
     """Calls SCORE's external function which is read-only by using SDK and returns the response
 
     :param icon_integrate_test_base: IconIntegrateTestBase

@@ -45,6 +45,7 @@ class TestNetwork(IconIntegrateTestBase):
 
     # todo: implement checking method which get path as a params and checking automatically
     def setUp(self):
+        self.icon_service = None
         self.network_owner_wallet = KeyWallet.create()
         self.network_owner_address = self.network_owner_wallet.get_address()
 
@@ -53,7 +54,16 @@ class TestNetwork(IconIntegrateTestBase):
         ]
         super().setUp(genesis_account_list)
 
-        self.icon_service = None
+        update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
+
+        # Adds import white list
+        params = {"importStmt": "{'iconservice.iconscore.icon_score_constant' : ['T']}"}
+        transaction_call(icon_integrate_test_base=super(),
+                         from_=self._test1,
+                         to_=str(GOVERNANCE_SCORE_ADDRESS),
+                         method="addImportWhiteList",
+                         params=params)
+
         # if you want to send request to network, uncomment next line
         # self.icon_service = IconService(HTTPProvider(self.TEST_HTTP_ENDPOINT_URI_V3))
 
@@ -501,7 +511,7 @@ class TestNetwork(IconIntegrateTestBase):
         # failure case: input the invalid path (when from is token)
         converting_st2_amount = 10
         invalid_path = "{0},{1}".format(self.smart_token_2_address,
-                                            self.smart_token_1_address)
+                                        self.smart_token_1_address)
         min_return = 1
         converting_params = {"path": invalid_path,
                              "minReturn": min_return}
@@ -536,7 +546,7 @@ class TestNetwork(IconIntegrateTestBase):
                           converting_icx_amount)
 
     def test_convertFor(self):
-        receiver_address = Address.from_string("hx" + "0" * 40)
+        receiver_address: Address = Address.from_string("hx" + "0" * 40)
         # success case: icx coin convert 'for'
         before_receiver_st2_amount = icx_call(icon_integrate_test_base=super(),
                                               from_=self.network_owner_wallet.get_address(),
@@ -573,7 +583,7 @@ class TestNetwork(IconIntegrateTestBase):
 
         # success case: token convert 'for'
         before_receiver_icx_amount = get_icx_balance(icon_integrate_test_base=super(),
-                                                     address=receiver_address)
+                                                     address=str(receiver_address))
 
         converting_st2_amount = 10
         buy_path = "{0},{1},{2}".format(str(self.smart_token_2_address),
@@ -596,7 +606,7 @@ class TestNetwork(IconIntegrateTestBase):
                          params=send_tx_params)
 
         after_receiver_icx_amount = get_icx_balance(icon_integrate_test_base=super(),
-                                                    address=receiver_address)
+                                                    address=str(receiver_address))
 
         received_icx_amount = int(after_receiver_icx_amount, 16) - int(before_receiver_icx_amount, 16)
         self.assertGreater(received_icx_amount, 0)
@@ -737,7 +747,7 @@ class TestNetwork(IconIntegrateTestBase):
         # test using ST1 converter
         # success case: convert st2 token to Icx coin
         before_client_icx_amount = get_icx_balance(icon_integrate_test_base=super(),
-                                                   address=Address.from_string(self.network_owner_address))
+                                                   address=self.network_owner_address)
 
         converting_st2_amount = 10
         cross_path = "{0},{1},{2}".format(self.smart_token_2_address,
@@ -760,7 +770,7 @@ class TestNetwork(IconIntegrateTestBase):
 
         # check client's Icx coin amount
         after_client_icx_amount = get_icx_balance(icon_integrate_test_base=super(),
-                                                  address=Address.from_string(self.network_owner_address))
+                                                  address=self.network_owner_address)
         received_icx_amount = int(after_client_icx_amount, 16) - int(before_client_icx_amount, 16)
         # todo: should check exact value
         self.assertGreater(received_icx_amount, 0)
@@ -867,7 +877,7 @@ class TestNetwork(IconIntegrateTestBase):
     def test_convert_with_long_path_sell_sell(self):
         # success case: convert st1 - st2 - icx
         before_client_icx_amount = get_icx_balance(icon_integrate_test_base=super(),
-                                                   address=Address.from_string(self.network_owner_address))
+                                                   address=self.network_owner_address)
         converting_st1_amount = 10
         long_path = "{0},{1},{2},{3},{4}".format(self.smart_token_1_address,
                                                  self.smart_token_1_address,
@@ -911,7 +921,7 @@ class TestNetwork(IconIntegrateTestBase):
 
         # check client icx coin amount
         after_client_icx_amount = get_icx_balance(icon_integrate_test_base=super(),
-                                                  address=Address.from_string(self.network_owner_address))
+                                                  address=self.network_owner_address)
 
         received_client_icx_amount = int(after_client_icx_amount, 16) - int(before_client_icx_amount, 16)
         # todo: should check exact value
@@ -982,10 +992,10 @@ class TestNetwork(IconIntegrateTestBase):
 
         # check st2 total supply
         st2_total_supply = icx_call(icon_integrate_test_base=super(),
-                                            from_=self.network_owner_wallet.get_address(),
-                                            to_=self.smart_token_2_address,
-                                            method="totalSupply",
-                                            params={})
+                                    from_=self.network_owner_wallet.get_address(),
+                                    to_=self.smart_token_2_address,
+                                    method="totalSupply",
+                                    params={})
 
         self.assertEqual(self._INITIAL_ST2_TOKEN_TOTAL_SUPPLY * 10 ** self._ST2_DECIMALS + received_st2_amount,
                          int(st2_total_supply, 16))
@@ -1105,7 +1115,7 @@ class TestNetwork(IconIntegrateTestBase):
     def test_convert_with_long_path_buy_cross(self):
         # success case: convert icx - st1 - icx
         before_client_icx_amount = get_icx_balance(icon_integrate_test_base=super(),
-                                                   address=Address.from_string(self.network_owner_address))
+                                                   address=self.network_owner_address)
         converting_icx_amount = 10
         long_path = "{0},{1},{2},{3},{4}".format(self.icx_token_address,
                                                  self.smart_token_1_address,
@@ -1126,7 +1136,7 @@ class TestNetwork(IconIntegrateTestBase):
         # check client's icx amount's difference between before with after converting
         # (should get less amount than before converting)
         after_client_icx_amount = get_icx_balance(icon_integrate_test_base=super(),
-                                                  address=Address.from_string(self.network_owner_address))
+                                                  address=self.network_owner_address)
         client_icx_amount_except_converting = int(before_client_icx_amount, 16) - converting_icx_amount
         received_icx_amount = int(after_client_icx_amount, 16) - client_icx_amount_except_converting
         # todo: should check exact value
