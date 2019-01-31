@@ -54,6 +54,10 @@ config = {
         "utility/utils.py",
         "utility/proxy_score.py",
     ],
+    "irc_token": [
+        "interfaces/__init__.py",
+        "interfaces/abc_irc_token.py",
+    ],
     "score_registry": [
         "interfaces/__init__.py",
         "interfaces/abc_score_registry.py",
@@ -87,7 +91,6 @@ config = {
         "interfaces/abc_irc_token.py",
         "interfaces/abc_score_registry.py",
         "interfaces/abc_smart_token.py",
-        "interfaces/abc_irc_token.py",
         "interfaces/abc_token_holder.py",
         "interfaces/abc_owned.py",
         "utility/__init__.py",

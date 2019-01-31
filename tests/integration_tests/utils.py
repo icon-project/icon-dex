@@ -33,7 +33,7 @@ def get_content_as_bytes(score_name: str):
     contracts_path = path.join(root_path, 'contracts')
 
     builder = Builder(contracts_path, [score_name])
-    zip_writer = ZipWriter()
+    zip_writer = ZipWriter('ZIP_DEFLATED')
     builder.build(zip_writer)
     contents_as_bytes = zip_writer.to_bytes()
     return contents_as_bytes
