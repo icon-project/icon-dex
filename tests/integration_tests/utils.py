@@ -15,9 +15,10 @@
 
 from os import path
 
-from iconsdk.icon_service import IconService
-from iconsdk.builder.transaction_builder import CallTransactionBuilder, DeployTransactionBuilder, TransactionBuilder
 from iconsdk.builder.call_builder import CallBuilder
+from iconsdk.builder.transaction_builder import CallTransactionBuilder, DeployTransactionBuilder, \
+    TransactionBuilder
+from iconsdk.icon_service import IconService
 from iconsdk.signed_transaction import SignedTransaction
 from iconsdk.wallet.wallet import KeyWallet
 from iconservice.base.address import GOVERNANCE_SCORE_ADDRESS
@@ -224,3 +225,8 @@ def update_governance(icon_integrate_test_base: IconIntegrateTestBase,
     assert 1 == tx_result['status']
 
 
+def setup_import_whitelist(test_base: IconIntegrateTestBase,
+                           from_: KeyWallet, icon_service=None):
+    transaction_call(test_base, from_, str(GOVERNANCE_SCORE_ADDRESS), "addImportWhiteList",
+                     {"importStmt": "{'iconservice.iconscore.icon_score_constant' : ['T']}"},
+                     icon_service)
