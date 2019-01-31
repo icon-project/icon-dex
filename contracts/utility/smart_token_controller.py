@@ -13,12 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from iconservice import *
-
-from ..interfaces.abc_smart_token import ABCSmartToken
 from .proxy_score import ProxyScore
 from .token_holder import TokenHolder
 from .utils import *
+from ..interfaces.abc_smart_token import ABCSmartToken
 
 # interface SCORE of `SmartToken`
 SmartToken = ProxyScore(ABCSmartToken)
@@ -71,6 +69,14 @@ class SmartTokenController(TokenHolder):
         """
         require(not self._is_active())
 
+    @external(readonly=True)
+    def isActive(self) -> bool:
+        """
+
+        :return:
+        """
+        return self._is_active()
+
     @external
     def transferTokenOwnership(self, _newOwner: Address) -> None:
         """
@@ -118,3 +124,12 @@ class SmartTokenController(TokenHolder):
         self.require_owner_only()
         smart_token = self.create_interface_score(self._token.get(), SmartToken)
         smart_token.withdrawTokens(_token, _to, _amount)
+
+    @external(readonly=True)
+    def getToken(self) -> Address:
+        """
+        Returns token address for the SCORE to manage
+
+        :return: token address
+        """
+        return self._token.get()
