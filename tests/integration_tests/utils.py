@@ -48,7 +48,14 @@ def get_content_as_bytes(score_name: str) -> bytes:
 
 def get_icx_balance(icon_integrate_test_base: IconIntegrateTestBase,
                     address: 'Address',
-                    icon_service: IconService = None):
+                    icon_service: IconService = None) -> str:
+    """Gets ICX coin balance of address
+
+    :param icon_integrate_test_base: IconIntegrateTestBase
+    :param address: target address
+    :param icon_service: IconService
+    :return: ICX coin balance of target address
+    """
     try:
         if icon_service is not None:
             response = icon_service.get_balance(address)
