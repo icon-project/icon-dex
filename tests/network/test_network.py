@@ -17,12 +17,9 @@ import json
 import unittest
 from random import SystemRandom
 from typing import TYPE_CHECKING
-from unittest.mock import Mock
-from unittest.mock import PropertyMock
-from unittest.mock import patch
+from unittest.mock import Mock, PropertyMock, patch
 
-from iconservice.base.exception import InvalidParamsException
-from iconservice.base.exception import RevertException
+from iconservice.base.exception import RevertException, InvalidParamsException
 from iconservice.base.message import Message
 
 from contracts.interfaces.abc_icx_token import ABCIcxToken

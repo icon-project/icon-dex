@@ -14,11 +14,12 @@
 # limitations under the License.
 
 from iconservice import ZERO_SCORE_ADDRESS
+from iconservice.base.address import GOVERNANCE_SCORE_ADDRESS
 from iconsdk.wallet.wallet import KeyWallet
 from tbears.libs.icon_integrate_test import IconIntegrateTestBase
 
 from contracts.interfaces.abc_score_registry import ABCScoreRegistry
-from tests.integration_tests.utils import get_content_as_bytes, deploy_score, icx_call, transaction_call
+from tests.integration_tests.utils import get_content_as_bytes, deploy_score, icx_call, transaction_call, update_governance
 
 
 class TestScoreRegistry(IconIntegrateTestBase):
@@ -29,12 +30,24 @@ class TestScoreRegistry(IconIntegrateTestBase):
         super().setUp()
 
         self.icon_service = None
-        # if you want to send request to network, uncomment next line
+        # If you want to send request to network, uncomment next line
         # self.icon_service = IconService(HTTPProvider(self.TEST_HTTP_ENDPOINT_URI_V3))
 
+        update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
+
+        # Adds import white list
+        params = {"importStmt": "{'iconservice.iconscore.icon_score_constant' : ['T']}"}
+        transaction_call(icon_integrate_test_base=super(),
+                         from_=self._test1,
+                         to_=str(GOVERNANCE_SCORE_ADDRESS),
+                         method="addImportWhiteList",
+                         params=params,
+                         icon_service=self.icon_service)
+
+        # Deploys score_registry SCORE
         tx_result = deploy_score(icon_integrate_test_base=super(),
                                  content_as_bytes=get_content_as_bytes("score_registry"), from_=self._test1, params={})
-        self.assertEqual(tx_result['status'], int(True))
+
         self.score_registry_address = tx_result['scoreAddress']
 
     def test_score_registry_property(self):

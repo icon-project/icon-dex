@@ -16,7 +16,7 @@
 import unittest
 from unittest.mock import patch
 
-from iconservice import Address, VarDB, ArrayDB, DictDB
+from iconservice import *
 
 from contracts.utility.storage import Storage
 from tests import create_db
