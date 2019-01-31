@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from iconservice import InterfaceScore
-from iconservice import interface
+from iconservice import *
 from iconservice.iconscore.icon_score_constant import T
 
 
