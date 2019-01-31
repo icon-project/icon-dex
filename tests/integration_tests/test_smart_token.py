@@ -19,8 +19,9 @@ from iconsdk.wallet.wallet import KeyWallet
 from tbears.libs.icon_integrate_test import IconIntegrateTestBase
 
 from tests.integration_tests import create_address
-from tests.integration_tests.utils import get_content_as_bytes, deploy_score, icx_call, transaction_call, \
-    update_governance
+from tests.integration_tests.utils import get_content_as_bytes, deploy_score, icx_call, \
+    transaction_call, \
+    update_governance, setup_import_whitelist
 
 
 class TestSmartToken(IconIntegrateTestBase):
@@ -28,7 +29,7 @@ class TestSmartToken(IconIntegrateTestBase):
 
     # TEST_HTTP_ENDPOINT_URI_V3 = "http://127.0.0.1:9000/api/v3"
 
-    def setUp(self):
+    def setUp(self, **kwargs):
         super().setUp()
 
         self.icon_service = None
@@ -38,13 +39,7 @@ class TestSmartToken(IconIntegrateTestBase):
         update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
 
         # Adds import white list
-        params = {"importStmt": "{'iconservice.iconscore.icon_score_constant' : ['T']}"}
-        transaction_call(icon_integrate_test_base=super(),
-                         from_=self._test1,
-                         to_=str(GOVERNANCE_SCORE_ADDRESS),
-                         method="addImportWhiteList",
-                         params=params,
-                         icon_service=self.icon_service)
+        setup_import_whitelist(self, self._test1)
 
         self.st_token_name = 'test_token'
         self.st_token_symbol = 'TST'

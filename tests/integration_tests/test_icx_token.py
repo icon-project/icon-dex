@@ -14,14 +14,15 @@
 # limitations under the License.
 
 from iconservice import ZERO_SCORE_ADDRESS
-from iconservice.base.address import Address, GOVERNANCE_SCORE_ADDRESS
+from iconservice.base.address import Address
 from iconservice.base.exception import RevertException
 from iconsdk.wallet.wallet import KeyWallet
 from tbears.libs.icon_integrate_test import IconIntegrateTestBase
 
 from tests.integration_tests import create_address
-from tests.integration_tests.utils import get_content_as_bytes, deploy_score, icx_call, transaction_call, \
-    icx_transfer_call, update_governance
+from tests.integration_tests.utils import get_content_as_bytes, deploy_score, icx_call, \
+    transaction_call, \
+    icx_transfer_call, update_governance, setup_import_whitelist
 
 
 class TestIcxToken(IconIntegrateTestBase):
@@ -29,7 +30,7 @@ class TestIcxToken(IconIntegrateTestBase):
 
     # TEST_HTTP_ENDPOINT_URI_V3 = "http://127.0.0.1:9000/api/v3"
 
-    def setUp(self):
+    def setUp(self, **kwargs):
         super().setUp()
 
         self.icon_service = None
@@ -39,13 +40,7 @@ class TestIcxToken(IconIntegrateTestBase):
         update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
 
         # Adds import white list
-        params = {"importStmt": "{'iconservice.iconscore.icon_score_constant' : ['T']}"}
-        transaction_call(icon_integrate_test_base=super(),
-                         from_=self._test1,
-                         to_=str(GOVERNANCE_SCORE_ADDRESS),
-                         method="addImportWhiteList",
-                         params=params,
-                         icon_service=self.icon_service)
+        setup_import_whitelist(self, self._test1)
 
         # Deploys score_registry SCORE
         tx_result = deploy_score(icon_integrate_test_base=super(),
