@@ -13,22 +13,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TYPE_CHECKING, Any
-
 from iconservice import ZERO_SCORE_ADDRESS
+from iconservice.base.address import Address, GOVERNANCE_SCORE_ADDRESS
+from iconsdk.wallet.wallet import KeyWallet
+from tbears.libs.icon_integrate_test import IconIntegrateTestBase
 
 from tests.integration_tests import create_address
-from tests.integration_tests.test_integrate_base import TestIntegrateBase
+from tests.integration_tests.utils import get_content_as_bytes, deploy_score, icx_call, \
+    transaction_call, \
+    update_governance, setup_import_whitelist
 
-if TYPE_CHECKING:
-    from iconservice.base.address import Address
 
-
-class TestSmartToken(TestIntegrateBase):
+class TestSmartToken(IconIntegrateTestBase):
     _TOKEN_INITIAL_TOTAL_SUPPLY_WITH_DECIMALS = 10000 * 10 ** 18
 
-    def setUp(self):
+    # TEST_HTTP_ENDPOINT_URI_V3 = "http://127.0.0.1:9000/api/v3"
+
+    def setUp(self, **kwargs):
         super().setUp()
+
+        self.icon_service = None
+        # If you want to send request to network, uncomment next line
+        # self.icon_service = IconService(HTTPProvider(self.TEST_HTTP_ENDPOINT_URI_V3))
+
+        update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
+
+        # Adds import white list
+        setup_import_whitelist(self, self._test1)
+
         self.st_token_name = 'test_token'
         self.st_token_symbol = 'TST'
         self.st_token_init_supply = hex(10000)
@@ -37,242 +49,207 @@ class TestSmartToken(TestIntegrateBase):
                          "_symbol": self.st_token_symbol,
                          "_initialSupply": self.st_token_init_supply,
                          "_decimals": self.st_token_decimals}
-        deploy_result = self._deploy_score("smart_token", deploy_params)
-        self.assertEqual(deploy_result.status, int(True))
-        self.smart_token_address = deploy_result.score_address
 
-    def _deploy_score(self, score_path: str, deploy_params: dict, update_score_addr: 'Address' = None) -> Any:
-        address = ZERO_SCORE_ADDRESS
-        if update_score_addr:
-            address = update_score_addr
+        # Deploys smart_token SCORE
+        tx_result = deploy_score(icon_integrate_test_base=super(), content_as_bytes=get_content_as_bytes("smart_token"),
+                                 from_=self._test1, params=deploy_params)
 
-        tx = self._make_deploy_tx("",
-                                  score_path,
-                                  self._owner,
-                                  address,
-                                  deploy_params=deploy_params)
+        self.smart_token_address = tx_result['scoreAddress']
 
-        prev_block, tx_results = self._make_and_req_block([tx])
-        self._write_precommit_state(prev_block)
-        return tx_results[0]
-
-    def _query_score(self, score_address: 'Address', method: str, params: dict = None):
+    def _get_icx_value(self, address: 'Address'):
         query_request = {
-            "version": self._version,
-            "from": self._owner,
-            "to": score_address,
-            "dataType": "call",
-            "data": {
-                "method": method,
-                "params": {} if params is None else params
-            }
+            "address": address
         }
-        return self._query(query_request)
+        return self._query(query_request, "icx_getBalance")
 
-    def _call_score(self, score_address: 'Address', sender_address: 'Address', method: str, params: dict = {}):
-        tx = self._make_score_call_tx(sender_address,
-                                      score_address,
-                                      method,
-                                      params)
+    def _icx_call_default(self, to_: str = None, method: str = None, params: dict = None):
+        return icx_call(icon_integrate_test_base=super(), from_=self._test1.get_address(),
+                        to_=to_, method=method, params=params, icon_service=self.icon_service)
 
-        prev_block, tx_results = self._make_and_req_block([tx])
-        self._write_precommit_state(prev_block)
-        return tx_results[0]
+    def _transaction_call_default(self, to_: str = None, method: str = None, params: dict = None, value: int = 0):
+        return transaction_call(icon_integrate_test_base=super(), from_=self._test1, to_=to_,
+                                method=method, params=params, value=value, icon_service=self.icon_service)
 
     def test_smart_token_property(self):
-        actual_token_name = self._query_score(self.smart_token_address, "name")
+        actual_token_name = self._icx_call_default(self.smart_token_address, "name")
         self.assertEqual(self.st_token_name, actual_token_name)
 
-        actual_token_symbol = self._query_score(self.smart_token_address, "symbol")
+        actual_token_symbol = self._icx_call_default(self.smart_token_address, "symbol")
         self.assertEqual(self.st_token_symbol, actual_token_symbol)
 
-        actual_total_supply = self._query_score(self.smart_token_address, "totalSupply")
-        self.assertEqual(self._TOKEN_INITIAL_TOTAL_SUPPLY_WITH_DECIMALS, actual_total_supply)
+        actual_total_supply = self._icx_call_default(self.smart_token_address, "totalSupply")
+        self.assertEqual(self._TOKEN_INITIAL_TOTAL_SUPPLY_WITH_DECIMALS, int(actual_total_supply, 0))
 
-        actual_owner_balance = self._query_score(self.smart_token_address, "balanceOf", {"_owner": str(self._owner)})
-        self.assertEqual(self._TOKEN_INITIAL_TOTAL_SUPPLY_WITH_DECIMALS, actual_owner_balance)
+        actual_owner_balance = self._icx_call_default(self.smart_token_address, "balanceOf",
+                                                      {"_owner": self._test1.get_address()})
+        self.assertEqual(self._TOKEN_INITIAL_TOTAL_SUPPLY_WITH_DECIMALS, int(actual_owner_balance, 0))
 
-        actual_owner = self._query_score(self.smart_token_address, "getOwner")
-        self.assertEqual(self._owner, actual_owner)
+        actual_owner = self._icx_call_default(self.smart_token_address, "getOwner")
+        self.assertEqual(self._test1.get_address(), actual_owner)
 
-        actual_new_owner = self._query_score(self.smart_token_address, "getNewOwner")
-        self.assertEqual(ZERO_SCORE_ADDRESS, actual_new_owner)
+        actual_new_owner = self._icx_call_default(self.smart_token_address, "getNewOwner")
+        self.assertEqual(str(ZERO_SCORE_ADDRESS), actual_new_owner)
 
     def test_smart_token_disable_transfer(self):
-        # success case: transfer_possibility's initial setting should be True
-        actual_transfer_possibility = self._query_score(self.smart_token_address, "getTransferPossibility")
-        self.assertEqual(True, actual_transfer_possibility)
+        # Success case: transfer_possibility's initial setting should be True
+        actual_transfer_possibility = self._icx_call_default(self.smart_token_address, "getTransferPossibility")
+        self.assertTrue(int(actual_transfer_possibility, 0))
 
-        # failure case: only owner can disable transfer
+        # Failure case: only owner can disable transfer
         send_tx_params = {"_disable": "0x1"}
-        tx_result = self._call_score(self.smart_token_address, self._genesis, "disableTransfer", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        self.assertRaises(AssertionError, transaction_call, super(), self._genesis, self.smart_token_address,
+                          "disableTransfer", send_tx_params)
 
-        # success case: owner can change transfer_possibility True -> False
+        # Success case: owner can change transfer_possibility True -> False
         send_tx_params = {"_disable": "0x1"}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "disableTransfer", send_tx_params)
-        self.assertEqual(True, tx_result.status)
+        transaction_call(super(), self._test1, self.smart_token_address,
+                         "disableTransfer", send_tx_params)
 
-        actual_transfer_possibility = self._query_score(self.smart_token_address, "getTransferPossibility")
-        self.assertEqual(False, actual_transfer_possibility)
+        actual_transfer_possibility = self._icx_call_default(self.smart_token_address, "getTransferPossibility")
+        self.assertFalse(int(actual_transfer_possibility, 0))
 
-        # success case: owner can change transfer_possibility False -> True
+        # Success case: owner can change transfer_possibility False -> True
         send_tx_params = {"_disable": "0x0"}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "disableTransfer", send_tx_params)
-        self.assertEqual(True, tx_result.status)
-
-        actual_transfer_possibility = self._query_score(self.smart_token_address, "getTransferPossibility")
-        self.assertEqual(True, actual_transfer_possibility)
+        transaction_call(super(), self._test1, self.smart_token_address, "disableTransfer", send_tx_params)
+        actual_transfer_possibility = self._icx_call_default(self.smart_token_address, "getTransferPossibility")
+        self.assertTrue(int(actual_transfer_possibility, 0))
 
     def test_smart_token_transfer(self):
         token_receiver = create_address()
         transfer_token = 10
 
-        # success case: transfer 10 smart token to receiver
+        # Success case: transfer 10 smart token to receiver
         send_tx_params = {"_to": str(token_receiver), "_value": hex(transfer_token)}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "transfer", send_tx_params)
-        self.assertEqual(True, tx_result.status)
+        self._transaction_call_default(self.smart_token_address, "transfer", send_tx_params)
 
-        # failure case: try to transfer when transfer possibility is False
+        # Failure case: try to transfer when transfer possibility is False
 
-        # change transfer possibility
+        # Changes transfer possibility
         send_tx_params = {"_disable": "0x1"}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "disableTransfer", send_tx_params)
-        self.assertEqual(True, tx_result.status)
+        self._transaction_call_default(self.smart_token_address, "disableTransfer", send_tx_params)
 
-        # transfer 10 smart token to receiver
+        # Transfers 10 smart token to receiver
         send_tx_params = {"_to": str(token_receiver), "_value": hex(transfer_token)}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "transfer", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        self.assertRaises(AssertionError, self._transaction_call_default, self.smart_token_address, "transfer",
+                          send_tx_params)
 
     def test_smart_token_issue(self):
         issue_balance = 10 * 10 ** 18
-        # failure case: only owner can issue the smart token
-        send_tx_params = {"_to": str(self._fee_treasury), "_amount": hex(issue_balance)}
-        tx_result = self._call_score(self.smart_token_address, self._genesis, "issue", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        # Failure case: only owner can issue the smart token
+        send_tx_params = {"_to": self._fee_treasury.get_address(), "_amount": hex(issue_balance)}
+        self.assertRaises(AssertionError, transaction_call, super(), self._genesis, self.smart_token_address, "issue",
+                          send_tx_params)
 
-        # failure case: try to issue and transfer to invalid address
+        # Failure case: try to issue and transfer to invalid address
         send_tx_params = {"_to": str(ZERO_SCORE_ADDRESS), "_amount": hex(issue_balance)}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "issue", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        self.assertRaises(AssertionError, self._transaction_call_default, self.smart_token_address, "issue",
+                          send_tx_params)
 
-        # success case: owner can issue smart token
-        send_tx_params = {"_to": str(self._fee_treasury), "_amount": hex(issue_balance)}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "issue", send_tx_params)
-        self.assertEqual(True, tx_result.status)
+        # Success case: owner can issue smart token
+        send_tx_params = {"_to": self._fee_treasury.get_address(), "_amount": hex(issue_balance)}
+        self._transaction_call_default(self.smart_token_address, "issue", send_tx_params)
 
-        # check the issued balance and total supply
-        actual_owner_balance = self._query_score(self.smart_token_address,
-                                                 "balanceOf",
-                                                 {"_owner": str(self._fee_treasury)})
-        self.assertEqual(issue_balance, actual_owner_balance)
-        actual_total_supply = self._query_score(self.smart_token_address, "totalSupply")
-        self.assertEqual(self._TOKEN_INITIAL_TOTAL_SUPPLY_WITH_DECIMALS + issue_balance, actual_total_supply)
+        # Checks the issued balance and total supply
+        actual_owner_balance = self._icx_call_default(self.smart_token_address, "balanceOf",
+                                                      {"_owner": self._fee_treasury.get_address()})
+        self.assertEqual(issue_balance, int(actual_owner_balance, 0))
+
+        actual_total_supply = self._icx_call_default(self.smart_token_address, "totalSupply")
+        self.assertEqual(self._TOKEN_INITIAL_TOTAL_SUPPLY_WITH_DECIMALS + issue_balance, int(actual_total_supply, 0))
 
     def test_smart_token_destroy(self):
         destroy_balance = 10 * 10 ** 18
         issue_balance = 10 * 10 ** 18
-        # issue smart token to fee treasury
-        send_tx_params = {"_to": str(self._fee_treasury), "_amount": hex(issue_balance)}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "issue", send_tx_params)
-        self.assertEqual(True, tx_result.status)
 
-        # failure case: try to input negative amount
-        send_tx_params = {"_from": str(self._owner), "_amount": hex(-1)}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "destroy", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        # Issues smart token to fee treasury
+        send_tx_params = {"_to": self._fee_treasury.get_address(), "_amount": hex(issue_balance)}
+        tx_result = self._transaction_call_default(self.smart_token_address, "issue", send_tx_params)
 
-        # failure case: address who has insufficient amount of token can not destroy
-        actual_owner_balance = self._query_score(self.smart_token_address,
-                                                 "balanceOf",
-                                                 {"_owner": str(self._genesis)})
-        self.assertEqual(0, actual_owner_balance)
+        # Failure case: try to input negative amount
+        send_tx_params = {"_from": self._test1.get_address(), "_amount": hex(-1)}
+        self.assertRaises(AssertionError, self._transaction_call_default, self.smart_token_address,
+                          "destroy", send_tx_params)
 
-        send_tx_params = {"_from": str(self._genesis), "_amount": hex(destroy_balance)}
-        tx_result = self._call_score(self.smart_token_address, self._genesis, "destroy", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        # Failure case: address who has insufficient amount of token can not destroy
+        actual_owner_balance = self._icx_call_default(self.smart_token_address, "balanceOf",
+                                                      {"_owner": self._genesis.get_address()})
+        self.assertEqual(0, int(actual_owner_balance, 0))
 
-        # failure case: if transaction sender and _from is different and not owner, should raise error
-        send_tx_params = {"_from": str(self._fee_treasury), "_amount": hex(destroy_balance)}
-        tx_result = self._call_score(self.smart_token_address, self._genesis, "destroy", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        send_tx_params = {"_from": self._genesis.get_address(), "_amount": hex(destroy_balance)}
+        self.assertRaises(AssertionError, transaction_call, super(), self._genesis, self.smart_token_address, "destroy",
+                          send_tx_params)
 
-        # success case: owner can destroy their own token
-        owner_balance_before_destroy = self._query_score(self.smart_token_address,
-                                                         "balanceOf",
-                                                         {"_owner": str(self._owner)})
-        total_supply_before_destroy = self._query_score(self.smart_token_address, "totalSupply")
+        # Failure case: if transaction sender and _from is different and not owner, should raise error
+        send_tx_params = {"_from": self._fee_treasury.get_address(), "_amount": hex(destroy_balance)}
+        self.assertRaises(AssertionError, transaction_call, super(), self._genesis, self.smart_token_address, "destroy",
+                          send_tx_params)
 
-        send_tx_params = {"_from": str(self._owner), "_amount": hex(destroy_balance)}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "destroy", send_tx_params)
-        self.assertEqual(True, tx_result.status)
+        # Success case: owner can destroy their own token
+        owner_balance_before_destroy = self._icx_call_default(self.smart_token_address, "balanceOf",
+                                                              {"_owner": self._test1.get_address()})
+        total_supply_before_destroy = self._icx_call_default(self.smart_token_address, "totalSupply")
 
-        owner_balance_after_destroy = self._query_score(self.smart_token_address,
-                                                        "balanceOf",
-                                                        {"_owner": str(self._owner)})
-        self.assertEqual(owner_balance_before_destroy - destroy_balance, owner_balance_after_destroy)
+        send_tx_params = {"_from": self._test1.get_address(), "_amount": hex(destroy_balance)}
+        self._transaction_call_default(self.smart_token_address, "destroy", send_tx_params)
 
-        total_supply_after_destroy = self._query_score(self.smart_token_address, "totalSupply")
-        self.assertEqual(total_supply_before_destroy - destroy_balance, total_supply_after_destroy)
+        owner_balance_after_destroy = self._icx_call_default(self.smart_token_address, "balanceOf",
+                                                             {"_owner": self._test1.get_address()})
+        self.assertEqual(int(owner_balance_before_destroy, 0) - destroy_balance, int(owner_balance_after_destroy, 0))
 
-        # success case: owner can destroy others token (other address has sufficient amount of token)
-        other_balance_before_destroy = self._query_score(self.smart_token_address,
-                                                         "balanceOf",
-                                                         {"_owner": str(self._fee_treasury)})
-        self.assertEqual(issue_balance, other_balance_before_destroy)
-        total_supply_before_destroy = self._query_score(self.smart_token_address, "totalSupply")
+        total_supply_after_destroy = self._icx_call_default(self.smart_token_address, "totalSupply")
+        self.assertEqual(int(total_supply_before_destroy, 0) - destroy_balance, int(total_supply_after_destroy, 0))
 
-        send_tx_params = {"_from": str(self._fee_treasury), "_amount": hex(issue_balance)}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "destroy", send_tx_params)
-        self.assertEqual(True, tx_result.status)
+        # Success case: owner can destroy others token (other address has sufficient amount of token)
+        other_balance_before_destroy = self._icx_call_default(self.smart_token_address, "balanceOf",
+                                                              {"_owner": self._fee_treasury.get_address()})
+        self.assertEqual(issue_balance, int(other_balance_before_destroy, 0))
+        total_supply_before_destroy = self._icx_call_default(self.smart_token_address, "totalSupply")
 
-        other_balance_after_destroy = self._query_score(self.smart_token_address,
-                                                        "balanceOf",
-                                                        {"_owner": str(self._fee_treasury)})
-        total_supply_after_destroy = self._query_score(self.smart_token_address, "totalSupply")
+        send_tx_params = {"_from": self._fee_treasury.get_address(), "_amount": hex(issue_balance)}
+        self._transaction_call_default(self.smart_token_address, "destroy", send_tx_params)
 
-        self.assertEqual(0, other_balance_after_destroy)
-        self.assertEqual(total_supply_before_destroy - issue_balance, total_supply_after_destroy)
+        other_balance_after_destroy = self._icx_call_default(self.smart_token_address, "balanceOf",
+                                                             {"_owner": self._fee_treasury.get_address()})
+        total_supply_after_destroy = self._icx_call_default(self.smart_token_address, "totalSupply")
+
+        self.assertEqual(0, int(other_balance_after_destroy, 0))
+        self.assertEqual(int(total_supply_before_destroy, 0) - issue_balance, int(total_supply_after_destroy, 0))
 
     def test_smart_token_transfer_ownership(self):
-        new_owner = create_address()
+        new_owner = KeyWallet.create()
 
-        # failure case: only owner can transfer ownership
-        send_tx_params = {"_newOwner": str(new_owner)}
-        tx_result = self._call_score(self.smart_token_address, self._genesis, "transferOwnerShip", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        # Failure case: only owner can transfer ownership
+        send_tx_params = {"_newOwner": new_owner.get_address()}
+        self.assertRaises(AssertionError, transaction_call, super(), self._genesis, self.smart_token_address,
+                          "transferOwnerShip", send_tx_params)
 
-        # failure case: cannot set new owner as previous owner
-        send_tx_params = {"_newOwner": str(self._owner)}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "transferOwnerShip", send_tx_params)
-        self.assertEqual(False, tx_result.status)
+        # Failure case: cannot set new owner as previous owner
+        send_tx_params = {"_newOwner": self._test1.get_address()}
+        self.assertRaises(AssertionError, transaction_call, super(), self._genesis, self.smart_token_address,
+                          "transferOwnerShip", send_tx_params)
 
-        # success case: owner can transfer ownership
-        send_tx_params = {"_newOwner": str(new_owner)}
-        tx_result = self._call_score(self.smart_token_address, self._owner, "transferOwnerShip", send_tx_params)
-        self.assertEqual(True, tx_result.status)
+        # Success case: owner can transfer ownership
+        send_tx_params = {"_newOwner": new_owner.get_address()}
+        self._transaction_call_default(self.smart_token_address, "transferOwnerShip", send_tx_params)
 
-        # check current owner, ownership can not be transferred until accept ownership
-        actual_owner = self._query_score(self.smart_token_address, "getOwner")
-        self.assertEqual(self._owner, actual_owner)
+        # Checks current owner, ownership can not be transferred until accept ownership
+        actual_owner = self._icx_call_default(self.smart_token_address, "getOwner")
+        self.assertEqual(self._test1.get_address(), actual_owner)
 
-        # failure case: except new owner, no one cannot accept ownership even owner
-        tx_result = self._call_score(self.smart_token_address, self._owner, "acceptOwnerShip", {})
-        self.assertEqual(False, tx_result.status)
+        # Failure case: except new owner, no one cannot accept ownership even owner
+        self.assertRaises(AssertionError, self._transaction_call_default, self.smart_token_address, "acceptOwnerShip",
+                          {})
 
-        tx_result = self._call_score(self.smart_token_address, self._genesis, "acceptOwnerShip", {})
-        self.assertEqual(False, tx_result.status)
+        self.assertRaises(AssertionError, transaction_call, super(), self._genesis, self.smart_token_address,
+                          "acceptOwnerShip", {})
 
-        # success case: accept ownership
-        tx_result = self._call_score(self.smart_token_address, new_owner, "acceptOwnerShip", {})
-        self.assertEqual(True, tx_result.status)
+        # Success case: accept ownership
+        tx_result = transaction_call(super(), new_owner, self.smart_token_address, "acceptOwnerShip", {})
 
-        # check event log
-        self.assertEqual(self._owner, tx_result.event_logs[0].indexed[1])
-        self.assertEqual(new_owner, tx_result.event_logs[0].indexed[2])
+        # Checks event log
+        self.assertEqual(self._test1.get_address(), tx_result["eventLogs"][0]["indexed"][1])
+        self.assertEqual(new_owner.get_address(), tx_result["eventLogs"][0]["indexed"][2])
 
-        # check current owner
-        actual_owner = self._query_score(self.smart_token_address, "getOwner")
-        self.assertEqual(new_owner, actual_owner)
-
+        # Checks current owner
+        actual_owner = self._icx_call_default(self.smart_token_address, "getOwner")
+        self.assertEqual(new_owner.get_address(), actual_owner)
