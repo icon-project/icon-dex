@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from iconservice import *
-
 from ..formula import formula
 from ..interfaces.abc_converter import ABCConverter
 from ..interfaces.abc_irc_token import ABCIRCToken
@@ -345,7 +343,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         token_supply = smart_token.totalSupply()
         connector_balance = self.getConnectorBalance(connector_token)
         require(return_amount < connector_balance or
-                      (return_amount == connector_balance and amount == token_supply))
+                (return_amount == connector_balance and amount == token_supply))
 
         # update virtual balance if relevant
         connector = self._connectors[connector_token]
@@ -455,6 +453,48 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         self._connector_tokens.put(_token)
 
         self._total_connector_weight.set(self._total_connector_weight.get() + _weight)
+
+    @external
+    def updateConnector(
+            self, _connectorToken: Address, _weight: int, _enableVirtualBalance: bool, _virtualBalance: int):
+        """
+        updates one of the token connectors
+        can only be called by the owner
+
+        :param _connectorToken: address of the connector token
+        :param _weight: constant connector weight, represented in ppm, 1-1000000
+        :param _enableVirtualBalance: true to enable virtual balance for the connector,
+            false to disable it
+        :param _virtualBalance: new connector's virtual balance
+        """
+        self.require_owner_only()
+        self._require_valid_connector(_connectorToken)
+        self._require_valid_connector_weight(_weight)
+
+        connector = self._connectors[_connectorToken]
+
+        new_total_weight = self._total_connector_weight.get() - connector.weight.get() + _weight
+        require(new_total_weight <= self._MAX_WEIGHT)
+
+        self._total_connector_weight.set(new_total_weight)
+        connector.weight.set(_weight)
+        connector.is_virtual_balance_enabled.set(_enableVirtualBalance)
+        connector.virtual_balance.set(_virtualBalance)
+
+    @external
+    def disableConnectorPurchases(self, _connectorToken: Address, _disable: bool):
+        """
+        disables purchasing with the given connector token in case the connector token got compromised
+        can only be called by the owner
+        note that selling is still enabled regardless of this flag and it cannot be disabled by the owner
+
+        :param _connectorToken: connector token contract address
+        :param _disable: true to disable the token, false to re-enable it
+        """
+        self.require_owner_only()
+        self._require_valid_connector(_connectorToken)
+
+        self._connectors[_connectorToken].is_purchase_enabled.set(not _disable)
 
     @external
     def updateRegistry(self):
@@ -621,6 +661,16 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         :return: True if the conversion is enabled
         """
         return self._conversions_enabled.get()
+
+    @external(readonly=True)
+    def getConnectorAt(self, _index: int) -> Address:
+        """
+        Returns connector address at given index
+        :param _index: index of connector array
+        :return: connector address at given index
+        """
+
+        return self._connector_tokens[_index]
 
     @external(readonly=True)
     def getConnector(self, _address: Address) -> dict:
