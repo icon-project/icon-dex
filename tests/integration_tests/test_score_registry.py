@@ -67,7 +67,7 @@ class TestScoreRegistry(IconIntegrateTestBase):
         self.assertEqual(self.score_registry_address, score_registry_address)
 
     def test_score_registry_register_and_unregister_address(self):
-        network_id = ABCScoreRegistry.BANCOR_NETWORK
+        network_id = ABCScoreRegistry.NETWORK
         network_address = "cx" + "1" * 40
 
         # success case: register network address
@@ -124,7 +124,7 @@ class TestScoreRegistry(IconIntegrateTestBase):
                           icon_service=self.icon_service)
 
         # failure case: try to unregister address which has not been registered
-        non_registered_id = ABCScoreRegistry.BANCOR_FORMULA
+        non_registered_id = 'abc'
         send_tx_params = {"_scoreName": non_registered_id}
         self.assertRaises(AssertionError, transaction_call, icon_integrate_test_base=super(), from_=self._test1,
                           to_=self.score_registry_address, method="unregisterAddress", params=send_tx_params,

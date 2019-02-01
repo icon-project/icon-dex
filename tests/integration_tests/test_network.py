@@ -318,7 +318,7 @@ class TestNetwork(IconIntegrateTestBase):
         self.assertEqual(hex(True), actual_icx_token_registered)
 
         # register network to score_registry
-        send_tx_params = {"_scoreName": "BancorNetwork", "_scoreAddress": str(self.network_score_address)}
+        send_tx_params = {"_scoreName": "Network", "_scoreAddress": str(self.network_score_address)}
         transaction_call(icon_integrate_test_base=super(),
                          from_=self.network_owner_wallet,
                          to_=self.score_registry_address,
@@ -330,7 +330,7 @@ class TestNetwork(IconIntegrateTestBase):
                                                      from_=self.network_owner_wallet.get_address(),
                                                      to_=self.score_registry_address,
                                                      method="getAddress",
-                                                     params={"_scoreName": "BancorNetwork"})
+                                                     params={"_scoreName": "Network"})
         self.assertEqual(str(self.network_score_address), actual_registered_network_address)
 
     def test_getExpectedReturn_short_path(self):

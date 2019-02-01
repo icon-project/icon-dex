@@ -58,54 +58,54 @@ class TestScoreRegistry(unittest.TestCase):
         self.assertEqual(self.score_address, actual_registered_address)
 
         # success case: search the score address which has not been registered (should return zero score address)
-        unregistered_score_name = self.registry_score.BANCOR_NETWORK
+        unregistered_score_name = self.registry_score.NETWORK
         actual_registered_address = self.registry_score.getAddress(unregistered_score_name)
         self.assertEqual(ZERO_SCORE_ADDRESS, actual_registered_address)
 
     def test_registerAddress(self):
         eoa_address = Address.from_string("hx" + "3" * 40)
-        bancor_network_id = self.registry_score.BANCOR_NETWORK
-        bancor_network_address = Address.from_string("cx" + "2" * 40)
+        network_id = self.registry_score.NETWORK
+        network_address = Address.from_string("cx" + "2" * 40)
 
         with patch_property(IconScoreBase, 'msg', Message(self.registry_owner)):
             # failure case: invalid register score address
             self.assertRaises(RevertException,
                               self.registry_score.registerAddress,
-                              bancor_network_id, ZERO_SCORE_ADDRESS)
+                              network_id, ZERO_SCORE_ADDRESS)
 
             # failure case: try to register eoa address
             self.assertRaises(RevertException,
                               self.registry_score.registerAddress,
-                              bancor_network_id, eoa_address)
+                              network_id, eoa_address)
 
             # failure case: score name is not in the SCORE_KEYS
             non_listed_id = "NON_LISTED_SCORE_ID"
             self.assertRaises(RevertException,
                               self.registry_score.registerAddress,
-                              non_listed_id, bancor_network_address)
+                              non_listed_id, network_address)
 
-            # success case: register bancor network
-            self.registry_score.registerAddress(bancor_network_id, bancor_network_address)
-            self.assertEqual(bancor_network_address,
-                             self.registry_score._score_address[bancor_network_id])
-            self.registry_score.AddressUpdate.assert_called_with(bancor_network_id, bancor_network_address)
+            # success case: register network
+            self.registry_score.registerAddress(network_id, network_address)
+            self.assertEqual(network_address,
+                             self.registry_score._score_address[network_id])
+            self.registry_score.AddressUpdate.assert_called_with(network_id, network_address)
 
     def test_unregisterAddress(self):
-        bancor_network_id = self.registry_score.BANCOR_NETWORK
-        bancor_network_address = Address.from_string("cx" + "2" * 40)
+        network_id = self.registry_score.NETWORK
+        network_address = Address.from_string("cx" + "2" * 40)
 
-        # register bancor network
-        self.registry_score._score_address[bancor_network_id] = bancor_network_address
+        # register network
+        self.registry_score._score_address[network_id] = network_address
 
         with patch_property(IconScoreBase, 'msg', Message(self.registry_owner)):
             # failure case: try to unregister not recorded score address
-            non_registered_id = self.registry_score.BANCOR_FORMULA
+            non_registered_id = 'abc'
             self.assertRaises(RevertException,
                               self.registry_score.unregisterAddress,
                               non_registered_id)
 
             # success case: unregister score address which has been registered
-            self.registry_score.unregisterAddress(bancor_network_id)
-            self.assertEqual(None, self.registry_score._score_address[bancor_network_id])
+            self.registry_score.unregisterAddress(network_id)
+            self.assertEqual(None, self.registry_score._score_address[network_id])
 
-            self.registry_score.AddressUpdate.assert_called_with(bancor_network_id, ZERO_SCORE_ADDRESS)
+            self.registry_score.AddressUpdate.assert_called_with(network_id, ZERO_SCORE_ADDRESS)

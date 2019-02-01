@@ -149,7 +149,7 @@ class TestConverter(unittest.TestCase):
                               self.score.address,
                               self.score._registry.get(),
                               'getAddress',
-                              [ScoreRegistry.BANCOR_NETWORK])
+                              [ScoreRegistry.NETWORK])
             self.score._convert.assert_called_with(
                 network_address, token, to_token, value, min_return)
 

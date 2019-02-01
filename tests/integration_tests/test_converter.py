@@ -54,7 +54,7 @@ class TestConverter(IconIntegrateTestBase):
 
         transaction_call(self, self.keys[0], score_address, 'registerAddress',
                          {
-                             '_scoreName': ABCScoreRegistry.BANCOR_NETWORK,
+                             '_scoreName': ABCScoreRegistry.NETWORK,
                              '_scoreAddress': network_address
                          })
 

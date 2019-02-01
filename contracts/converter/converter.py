@@ -235,7 +235,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         else:
             # verifies whether the token sender is the network
             registry = self.create_interface_score(self._registry.get(), ScoreRegistry)
-            network = registry.getAddress(ScoreRegistry.BANCOR_NETWORK)
+            network = registry.getAddress(ScoreRegistry.NETWORK)
             require(_from == network)
 
             # noinspection PyBroadException
