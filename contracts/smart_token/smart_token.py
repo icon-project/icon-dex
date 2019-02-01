@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from iconservice import *
-
 from ..interfaces.abc_smart_token import ABCSmartToken
 from ..irc_token.irc_token import IRCToken
 from ..utility.token_holder import TokenHolder
@@ -23,11 +21,12 @@ from ..utility.utils import *
 TAG = 'SmartToken'
 
 
+# noinspection PyPep8Naming
 class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
     _VERSION = '0.1'
 
     @eventlog
-    def NewSmartToken(self, _token: 'Address'):
+    def NewSmartToken(self, _token: Address):
         pass
 
     @eventlog

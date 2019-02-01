@@ -20,12 +20,12 @@ def require_positive_value(amount: int):
     require(amount > 0, "Amount should be greater than 0")
 
 
-def require_valid_address(address: 'Address'):
+def require_valid_address(address: Address):
     # todo: write revert message
     require(is_valid_address(address), "")
 
 
-def require_not_this(score_address: 'Address', address: 'Address'):
+def require_not_this(score_address: Address, address: Address):
     # todo: write revert message
     require(score_address != address, "")
 
@@ -41,7 +41,7 @@ def require(condition: bool, revert_message=None):
         revert(revert_message)
 
 
-def is_valid_address(address: 'Address'):
+def is_valid_address(address: Address):
     return address is not None and address != ZERO_SCORE_ADDRESS
 
 

@@ -36,7 +36,7 @@ class ABCScoreRegistry(ABC):
     SCORE_KEYS = [SCORE_FEATURES, SCORE_REGISTRY, BANCOR_NETWORK, BANCOR_FORMULA, BNT_TOKEN, BNT_CONVERTER]
 
     @abstractmethod
-    def getAddress(self, _scoreName: bytes) -> 'Address':
+    def getAddress(self, _scoreName: bytes) -> Address:
         """
         Returns score address
         :param _scoreName:

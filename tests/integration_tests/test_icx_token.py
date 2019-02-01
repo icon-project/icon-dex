@@ -48,7 +48,7 @@ class TestIcxToken(IconIntegrateTestBase):
 
         self.icx_token_address = tx_result['scoreAddress']
 
-    def _get_icx_value(self, address: 'Address'):
+    def _get_icx_value(self, address: Address):
         query_request = {
             "address": address
         }

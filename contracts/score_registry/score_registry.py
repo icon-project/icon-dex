@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from iconservice import *
-
 from ..interfaces.abc_score_registry import ABCScoreRegistry
 from ..utility.owned import Owned
 from ..utility.utils import *
@@ -22,10 +20,11 @@ from ..utility.utils import *
 TAG = 'ScoreRegistry'
 
 
+# noinspection PyPep8Naming
 class ScoreRegistry(Owned, ABCScoreRegistry):
 
     @eventlog(indexed=1)
-    def AddressUpdate(self, _contractName: str, _scoreAddress: 'Address'):
+    def AddressUpdate(self, _contractName: str, _scoreAddress: Address):
         pass
 
     def __init__(self, db: IconScoreDatabase) -> None:
@@ -40,7 +39,7 @@ class ScoreRegistry(Owned, ABCScoreRegistry):
         Owned.on_update(self)
 
     @external(readonly=True)
-    def getAddress(self, _scoreName: str) -> 'Address':
+    def getAddress(self, _scoreName: str) -> Address:
         if self._score_address[_scoreName] is None:
             return ZERO_SCORE_ADDRESS
         else:
@@ -51,7 +50,7 @@ class ScoreRegistry(Owned, ABCScoreRegistry):
         return self.SCORE_KEYS
 
     @external
-    def registerAddress(self, _scoreName: str, _scoreAddress: 'Address'):
+    def registerAddress(self, _scoreName: str, _scoreAddress: Address):
         self.require_owner_only()
         require_valid_address(_scoreAddress)
         require(_scoreAddress.is_contract, "only SCORE address can be registered")

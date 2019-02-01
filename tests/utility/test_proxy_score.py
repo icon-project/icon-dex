@@ -26,21 +26,21 @@ from tests import assert_inter_call
 class ABCToken1(ABC):
 
     @abstractmethod
-    def transfer(self, _to: 'Address', _value: int, _data: bytes = None):
+    def transfer(self, _to: Address, _value: int, _data: bytes = None):
         pass
 
 
 class ABCToken2(ABC):
 
     @abstractmethod
-    def transfer(self, _to: 'Address', _value: int, _data: bytes = None):
+    def transfer(self, _to: Address, _value: int, _data: bytes = None):
         pass
 
 
 class ABCToken3(ABCToken1):
 
     @abstractmethod
-    def transfer_from(self, _from: Address, _to: 'Address', _value: int, _data: bytes = None):
+    def transfer_from(self, _from: Address, _to: Address, _value: int, _data: bytes = None):
         pass
 
 

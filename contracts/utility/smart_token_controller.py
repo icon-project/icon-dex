@@ -41,7 +41,7 @@ class SmartTokenController(TokenHolder):
         super().__init__(db)
         self._token = VarDB('token', db, Address)
 
-    def on_install(self, _token: 'Address') -> None:
+    def on_install(self, _token: Address) -> None:
         require_valid_address(_token)
         TokenHolder.on_install(self)
         self._token.set(_token)

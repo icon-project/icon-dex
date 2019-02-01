@@ -13,13 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from iconservice import *
-
+from .owned import Owned
+from .utils import *
 from ..interfaces.abc_irc_token import ABCIRCToken
 from ..interfaces.abc_token_holder import ABCTokenHolder
 from ..utility.proxy_score import ProxyScore
-from .owned import Owned
-from .utils import *
 
 
 class TokenHolder(Owned, ABCTokenHolder):
@@ -33,7 +31,7 @@ class TokenHolder(Owned, ABCTokenHolder):
         Owned.on_update(self)
 
     @external
-    def withdrawTokens(self, _token: 'Address', _to: 'Address', _amount: int) -> None:
+    def withdrawTokens(self, _token: Address, _to: Address, _amount: int) -> None:
         self.require_owner_only()
         require_positive_value(_amount)
         require_not_this(self.address, _to)
