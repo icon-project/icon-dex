@@ -15,13 +15,16 @@
 
 from os import path
 
+from iconsdk.exception import IconServiceBaseException
+from iconsdk.icon_service import IconService
+from iconsdk.builder.transaction_builder import CallTransactionBuilder, DeployTransactionBuilder, TransactionBuilder
 from iconsdk.builder.call_builder import CallBuilder
 from iconsdk.builder.transaction_builder import CallTransactionBuilder, DeployTransactionBuilder, \
     TransactionBuilder
 from iconsdk.icon_service import IconService
 from iconsdk.signed_transaction import SignedTransaction
 from iconsdk.wallet.wallet import KeyWallet
-from iconservice.base.address import GOVERNANCE_SCORE_ADDRESS
+from iconservice.base.address import GOVERNANCE_SCORE_ADDRESS, Address
 from tbears.libs.icon_integrate_test import IconIntegrateTestBase, SCORE_INSTALL_ADDRESS
 
 from contract_generator.builder import Builder
@@ -40,10 +43,35 @@ def get_content_as_bytes(score_name: str) -> bytes:
     contracts_path = path.join(root_path, 'contracts')
 
     builder = Builder(contracts_path, [score_name])
-    zip_writer = ZipWriter('ZIP_DEFLATED')
+    zip_writer = ZipWriter(compression="ZIP_DEFLATED")
     builder.build(zip_writer)
     contents_as_bytes = zip_writer.to_bytes()
     return contents_as_bytes
+
+
+def get_icx_balance(icon_integrate_test_base: IconIntegrateTestBase,
+                    address: str,
+                    icon_service: IconService = None) -> str:
+    """Gets ICX coin balance of address
+
+    :param icon_integrate_test_base: IconIntegrateTestBase
+    :param address: target address
+    :param icon_service: IconService
+    :return: ICX coin balance of target address
+    """
+    try:
+        if icon_service is not None:
+            response = icon_service.get_balance(address)
+        else:
+            request = {
+                "address": Address.from_string(address)
+            }
+            response = icon_integrate_test_base._query(request=request, method="icx_getBalance")
+    except IconServiceBaseException as e:
+        response = e.message
+
+    # Sends the call request
+    return response
 
 
 def deploy_score(icon_integrate_test_base: IconIntegrateTestBase,
@@ -90,7 +118,7 @@ def icx_call(icon_integrate_test_base: IconIntegrateTestBase,
              to_: str,
              method: str,
              params: dict = None,
-             icon_service: IconService = None) -> dict:
+             icon_service: IconService = None) -> any:
     """Calls SCORE's external function which is read-only by using SDK and returns the response
 
     :param icon_integrate_test_base: IconIntegrateTestBase
