@@ -13,20 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ..interfaces.abc_smart_token import ABCSmartToken
+from ..interfaces.abc_flexible_token import ABCFlexibleToken
 from ..irc_token.irc_token import IRCToken
 from ..utility.token_holder import TokenHolder
 from ..utility.utils import *
 
-TAG = 'SmartToken'
+TAG = 'FlexibleToken'
 
 
 # noinspection PyPep8Naming
-class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
+class FlexibleToken(IRCToken, TokenHolder, ABCFlexibleToken):
     _VERSION = '0.1'
 
     @eventlog
-    def NewSmartToken(self, _token: Address):
+    def NewFlexibleToken(self, _token: Address):
         pass
 
     @eventlog
@@ -49,14 +49,14 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
         self._version.set(self._VERSION)
         self._transfer_possibility.set(True)
 
-        self.NewSmartToken(self.address)
+        self.NewFlexibleToken(self.address)
 
     def on_update(self) -> None:
         IRCToken.on_update(self)
         TokenHolder.on_update(self)
 
     def require_transfer_allowed(self):
-        require(self._transfer_possibility.get(), "This smart token cannot transfer")
+        require(self._transfer_possibility.get(), "This flexible token cannot transfer")
 
     @external
     def disableTransfer(self, _disable: bool) -> None:
@@ -64,7 +64,7 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
         self._transfer_possibility.set(not _disable)
 
     @external(readonly=True)
-    def getSmartTokenVersion(self) -> str:
+    def getFlexibleTokenVersion(self) -> str:
         return self._version.get()
 
     @external(readonly=True)
@@ -90,7 +90,7 @@ class SmartToken(IRCToken, TokenHolder, ABCSmartToken):
         require_positive_value(_amount)
         require(self._balances[_from] >= _amount, "Out of balance")
         require(self.msg.sender == _from or self.msg.sender == self._owner.get(),
-                "You are not token holder or smart token owner")
+                "You are not token holder or flexible token owner")
 
         self._balances[_from] -= _amount
         total_supply = self._total_supply.get()

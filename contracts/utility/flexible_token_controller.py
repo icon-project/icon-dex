@@ -16,19 +16,19 @@
 from .proxy_score import ProxyScore
 from .token_holder import TokenHolder
 from .utils import *
-from ..interfaces.abc_smart_token import ABCSmartToken
+from ..interfaces.abc_flexible_token import ABCFlexibleToken
 
-# interface SCORE of `SmartToken`
-SmartToken = ProxyScore(ABCSmartToken)
+# interface SCORE of `FlexibleToken`
+FlexibleToken = ProxyScore(ABCFlexibleToken)
 
 
 # noinspection PyPep8Naming,PyMethodOverriding
-class SmartTokenController(TokenHolder):
+class FlexibleTokenController(TokenHolder):
     """
     Once it accepts ownership of the token, it becomes the token's sole controller
     that can execute any of its functions.
 
-    The smart token must be set on construction and cannot be changed afterwards.
+    The flexible token must be set on construction and cannot be changed afterwards.
     Wrappers are provided (as opposed to a single 'execute' function)
     for each of the token's functions, for easier access.
 
@@ -54,8 +54,8 @@ class SmartTokenController(TokenHolder):
         returns whether the controller is active
         :return: True if the controller active
         """
-        smart_token = self.create_interface_score(self._token.get(), SmartToken)
-        return smart_token.getOwner() == self.address
+        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
+        return flexible_token.getOwner() == self.address
 
     def _require_active(self):
         """
@@ -86,8 +86,8 @@ class SmartTokenController(TokenHolder):
         :param _newOwner: new token owner
         """
         self.require_owner_only()
-        smart_token = self.create_interface_score(self._token.get(), SmartToken)
-        smart_token.transferOwnerShip(_newOwner)
+        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
+        flexible_token.transferOwnerShip(_newOwner)
 
     @external
     def acceptTokenOwnership(self) -> None:
@@ -96,8 +96,8 @@ class SmartTokenController(TokenHolder):
         can only be called by the contract owner
         """
         self.require_owner_only()
-        smart_token = self.create_interface_score(self._token.get(), SmartToken)
-        smart_token.acceptOwnerShip()
+        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
+        flexible_token.acceptOwnerShip()
 
     @external
     def disableTokenTransfers(self, _disable: bool) -> None:
@@ -108,8 +108,8 @@ class SmartTokenController(TokenHolder):
         :param _disable: true to disable transfers, false to enable them
         """
         self.require_owner_only()
-        smart_token = self.create_interface_score(self._token.get(), SmartToken)
-        smart_token.disableTransfer(_disable)
+        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
+        flexible_token.disableTransfer(_disable)
 
     @external
     def withdrawFromToken(self, _token: Address, _to: Address, _amount: int) -> None:
@@ -122,8 +122,8 @@ class SmartTokenController(TokenHolder):
         :param _amount: amount to withdraw
         """
         self.require_owner_only()
-        smart_token = self.create_interface_score(self._token.get(), SmartToken)
-        smart_token.withdrawTokens(_token, _to, _amount)
+        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
+        flexible_token.withdrawTokens(_token, _to, _amount)
 
     @external(readonly=True)
     def getToken(self) -> Address:

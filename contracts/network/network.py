@@ -16,7 +16,7 @@
 from ..interfaces.abc_converter import ABCConverter
 from ..interfaces.abc_icx_token import ABCIcxToken
 from ..interfaces.abc_irc_token import ABCIRCToken
-from ..interfaces.abc_smart_token import ABCSmartToken
+from ..interfaces.abc_flexible_token import ABCFlexibleToken
 from ..utility.proxy_score import ProxyScore
 from ..utility.token_holder import TokenHolder
 from ..utility.utils import *
@@ -26,7 +26,7 @@ TAG = 'Network'
 # interface SCOREs
 IRCToken = ProxyScore(ABCIRCToken)
 IcxToken = ProxyScore(ABCIcxToken)
-SmartToken = ProxyScore(ABCSmartToken)
+FlexibleToken = ProxyScore(ABCFlexibleToken)
 Converter = ProxyScore(ABCConverter)
 
 
@@ -63,9 +63,9 @@ class Network(TokenHolder):
         from_token_address = converted_path[0]
         for i in range(1, len(converted_path), 2):
             to_token_address = converted_path[i + 1]
-            # converted_path[i] is smart token address
-            smart_token = self.create_interface_score(converted_path[i], SmartToken)
-            converter = self.create_interface_score(smart_token.getOwner(), Converter)
+            # converted_path[i] is flexible token address
+            flexible_token = self.create_interface_score(converted_path[i], FlexibleToken)
+            converter = self.create_interface_score(flexible_token.getOwner(), Converter)
 
             amount = converter.getReturn(from_token_address, to_token_address, amount)["amount"]
             from_token_address = to_token_address
@@ -268,12 +268,12 @@ class Network(TokenHolder):
 
         data = dict()
         for i in range(1, len(path), 2):
-            smart_token_address = path[i]
+            flexible_token_address = path[i]
             to_token_address = path[i+1]
 
             to_token = self.create_interface_score(to_token_address, IRCToken)
-            smart_token = self.create_interface_score(smart_token_address, SmartToken)
-            converter_address = smart_token.getOwner()
+            flexible_token = self.create_interface_score(flexible_token_address, FlexibleToken)
+            converter_address = flexible_token.getOwner()
 
             amount_before_converting = to_token.balanceOf(self.address)
             data["toToken"] = str(to_token_address)
