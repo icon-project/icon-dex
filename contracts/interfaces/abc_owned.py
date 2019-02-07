@@ -23,7 +23,7 @@ class ABCOwned(ABC):
     """
 
     @abstractmethod
-    def getOwner(self) -> 'Address':
+    def getOwner(self) -> Address:
         """
         Return current SCORE owner
 
@@ -32,7 +32,7 @@ class ABCOwned(ABC):
         pass
 
     @abstractmethod
-    def transferOwnerShip(self, _newOwner: 'Address') -> None:
+    def transferOwnerShip(self, _newOwner: Address) -> None:
         """
         Allows transferring the contract ownership
         the new owner still needs to accept the transfer

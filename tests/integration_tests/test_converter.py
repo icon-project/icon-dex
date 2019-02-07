@@ -40,7 +40,7 @@ class TestConverter(IconIntegrateTestBase):
 
         self.registry_address = self.setup_registry(self.network_address)
 
-        self.token_address = self.setup_smart_token('Token1', 'TKN1', 2, 18)
+        self.token_address = self.setup_flexible_token('Token1', 'TKN1', 2, 18)
 
         self.connector_token1_address = self.setup_irc_token('IRC Token 1', 'IRC1', 1000000000, 18)
         self.connector_token2_address = self.setup_irc_token('IRC Token 2', 'IRC2', 2000000000, 18)
@@ -54,7 +54,7 @@ class TestConverter(IconIntegrateTestBase):
 
         transaction_call(self, self.keys[0], score_address, 'registerAddress',
                          {
-                             '_scoreName': ABCScoreRegistry.BANCOR_NETWORK,
+                             '_scoreName': ABCScoreRegistry.NETWORK,
                              '_scoreAddress': network_address
                          })
 
@@ -67,8 +67,8 @@ class TestConverter(IconIntegrateTestBase):
 
         return tx_result['scoreAddress']
 
-    def setup_smart_token(self, name: str, symbol: str, initial_supply: int, decimals: int):
-        tx_result = deploy_score(self, get_content_as_bytes("smart_token"), self.keys[0],
+    def setup_flexible_token(self, name: str, symbol: str, initial_supply: int, decimals: int):
+        tx_result = deploy_score(self, get_content_as_bytes("flexible_token"), self.keys[0],
                                  params={
                                      '_name': name,
                                      '_symbol': symbol,
@@ -94,14 +94,14 @@ class TestConverter(IconIntegrateTestBase):
         return tx_result['scoreAddress']
 
     def setup_converter(self,
-                        smart_token: Address,
+                        flexible_token: Address,
                         registry: Address,
                         max_conversion_fee: int,
                         connector_token: Address,
                         connector_wight: int):
         tx_result = deploy_score(self, get_content_as_bytes("converter"), self.keys[0],
                                  params={
-                                     '_token': str(smart_token),
+                                     '_token': str(flexible_token),
                                      '_registry': str(registry),
                                      '_maxConversionFee': max_conversion_fee,
                                      '_connectorToken': str(connector_token),

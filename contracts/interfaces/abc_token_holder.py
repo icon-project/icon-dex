@@ -25,7 +25,7 @@ class ABCTokenHolder(ABCOwned):
     """
 
     @abstractmethod
-    def withdrawTokens(self, _token: 'Address', _to: 'Address', _amount: int) -> None:
+    def withdrawTokens(self, _token: Address, _to: Address, _amount: int) -> None:
         """
         withdraws tokens held by the contract and sends them to an account
         can only be called by the owner

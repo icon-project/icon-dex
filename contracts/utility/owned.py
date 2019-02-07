@@ -18,10 +18,11 @@ from iconservice import *
 from ..interfaces.abc_owned import ABCOwned
 
 
+# noinspection PyPep8Naming
 class Owned(IconScoreBase, ABCOwned):
 
     @eventlog(indexed=2)
-    def OwnerUpdate(self, _prevOwner: 'Address', _newOwner: 'Address'):
+    def OwnerUpdate(self, _prevOwner: Address, _newOwner: Address):
         pass
 
     def __init__(self, db: IconScoreDatabase) -> None:
@@ -42,15 +43,15 @@ class Owned(IconScoreBase, ABCOwned):
             revert("Invalid owner")
 
     @external(readonly=True)
-    def getOwner(self) -> 'Address':
+    def getOwner(self) -> Address:
         return self._owner.get()
 
     @external(readonly=True)
-    def getNewOwner(self) -> 'Address':
+    def getNewOwner(self) -> Address:
         return self._new_owner.get()
 
     @external
-    def transferOwnerShip(self, _newOwner: 'Address'):
+    def transferOwnerShip(self, _newOwner: Address):
         self.require_owner_only()
         if _newOwner == self._owner.get():
             revert("New owner is already owner")

@@ -13,12 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from iconservice import *
-
 from ..interfaces.abc_converter import ABCConverter
 from ..interfaces.abc_icx_token import ABCIcxToken
 from ..interfaces.abc_irc_token import ABCIRCToken
-from ..interfaces.abc_smart_token import ABCSmartToken
+from ..interfaces.abc_flexible_token import ABCFlexibleToken
 from ..utility.proxy_score import ProxyScore
 from ..utility.token_holder import TokenHolder
 from ..utility.utils import *
@@ -28,7 +26,7 @@ TAG = 'Network'
 # interface SCOREs
 IRCToken = ProxyScore(ABCIRCToken)
 IcxToken = ProxyScore(ABCIcxToken)
-SmartToken = ProxyScore(ABCSmartToken)
+FlexibleToken = ProxyScore(ABCFlexibleToken)
 Converter = ProxyScore(ABCConverter)
 
 
@@ -65,9 +63,9 @@ class Network(TokenHolder):
         from_token_address = converted_path[0]
         for i in range(1, len(converted_path), 2):
             to_token_address = converted_path[i + 1]
-            # converted_path[i] is smart token address
-            smart_token = self.create_interface_score(converted_path[i], SmartToken)
-            converter = self.create_interface_score(smart_token.getOwner(), Converter)
+            # converted_path[i] is flexible token address
+            flexible_token = self.create_interface_score(converted_path[i], FlexibleToken)
+            converter = self.create_interface_score(flexible_token.getOwner(), Converter)
 
             amount = converter.getReturn(from_token_address, to_token_address, amount)["amount"]
             from_token_address = to_token_address
@@ -75,7 +73,7 @@ class Network(TokenHolder):
         return amount
 
     @external(readonly=True)
-    def getIcxTokenRegistered(self, _icxToken: 'Address') -> bool:
+    def getIcxTokenRegistered(self, _icxToken: Address) -> bool:
         """
         returns the information about icx token registration of a given token address
 
@@ -89,7 +87,7 @@ class Network(TokenHolder):
         converted_path = map(lambda address: address.strip(), path.split(","))
         return [Address.from_string(address) for address in converted_path]
 
-    def _convert_bytes_data(self, data: bytes, token_sender_address: 'Address'):
+    def _convert_bytes_data(self, data: bytes, token_sender_address: Address):
         """
         convert bytes data to a dictionary type data and check each key and the type of value
         this method does not check whether a value is valid or not
@@ -136,7 +134,7 @@ class Network(TokenHolder):
         require(len(path_set) == path_len // 2, "do not support circular path")
 
     @external
-    def registerIcxToken(self, _icxToken: 'Address', _register: bool):
+    def registerIcxToken(self, _icxToken: Address, _register: bool):
         """
         allows the owner to register/unregister Icx tokens
 
@@ -150,7 +148,7 @@ class Network(TokenHolder):
         self._icx_tokens[_icxToken] = _register
 
     @external
-    def tokenFallback(self, _from: 'Address', _value: int, _data: bytes):
+    def tokenFallback(self, _from: Address, _value: int, _data: bytes):
         """
         invoked when the contract receives tokens
         if the data is b'conversionResult', this regard as the result of conversion from a converter
@@ -200,7 +198,7 @@ class Network(TokenHolder):
 
     @external
     @payable
-    def convertFor(self, _path: str, _minReturn: int, _for: 'Address'):
+    def convertFor(self, _path: str, _minReturn: int, _for: Address):
         """
         converts the Icx token to any other token in the network by following
         a predefined conversion path and transfers the result tokens to a target account
@@ -228,7 +226,7 @@ class Network(TokenHolder):
 
         return self._convert_for_internal(converted_path, icx_amount, _minReturn, _for)
 
-    def _convert_for_internal(self, path: list, amount: int, min_return: int, _for: 'Address'):
+    def _convert_for_internal(self, path: list, amount: int, min_return: int, _for: Address):
         """
         converts token to any other token in the network
         by following a predefined conversion paths and transfers the result
@@ -252,7 +250,7 @@ class Network(TokenHolder):
 
         return amount
 
-    def _convert_by_path(self, path: list, amount: int, min_return: int, _for: 'Address'):
+    def _convert_by_path(self, path: list, amount: int, min_return: int, _for: Address):
         """
         executes the actual conversion by following the conversion path
 
@@ -270,12 +268,12 @@ class Network(TokenHolder):
 
         data = dict()
         for i in range(1, len(path), 2):
-            smart_token_address = path[i]
+            flexible_token_address = path[i]
             to_token_address = path[i+1]
 
             to_token = self.create_interface_score(to_token_address, IRCToken)
-            smart_token = self.create_interface_score(smart_token_address, SmartToken)
-            converter_address = smart_token.getOwner()
+            flexible_token = self.create_interface_score(flexible_token_address, FlexibleToken)
+            converter_address = flexible_token.getOwner()
 
             amount_before_converting = to_token.balanceOf(self.address)
             data["toToken"] = str(to_token_address)

@@ -17,10 +17,10 @@ from ..formula import formula
 from ..interfaces.abc_converter import ABCConverter
 from ..interfaces.abc_irc_token import ABCIRCToken
 from ..interfaces.abc_score_registry import ABCScoreRegistry
-from ..interfaces.abc_smart_token import ABCSmartToken
+from ..interfaces.abc_flexible_token import ABCFlexibleToken
 from ..utility.managed import Managed
 from ..utility.proxy_score import ProxyScore
-from ..utility.smart_token_controller import SmartTokenController
+from ..utility.flexible_token_controller import FlexibleTokenController
 from ..utility.utils import *
 
 TAG = 'Converter'
@@ -28,7 +28,7 @@ TRANSFER_DATA = b'conversionResult'
 CONNECTOR_DB_PREFIX = b'\x03'
 
 # interface SCOREs
-SmartToken = ProxyScore(ABCSmartToken)
+FlexibleToken = ProxyScore(ABCFlexibleToken)
 ScoreRegistry = ProxyScore(ABCScoreRegistry)
 IRCToken = ProxyScore(ABCIRCToken)
 
@@ -45,7 +45,7 @@ class Connector:
         self.weight = VarDB('weight', db, int)
         # true if virtual balance is enabled, false if not
         self.is_virtual_balance_enabled = VarDB('is_virtual_balance_enabled', db, bool)
-        # is purchase of the smart token enabled with the connector, can be set by the owner
+        # is purchase of the flexible token enabled with the connector, can be set by the owner
         self.is_purchase_enabled = VarDB('is_purchase_enabled', db, bool)
         # used to tell if the mapping element is defined
         self.is_set = VarDB('is_set', db, bool)
@@ -72,20 +72,20 @@ class ConnectorDict:
 
 
 # noinspection PyPep8Naming,PyMethodOverriding
-class Converter(ABCConverter, SmartTokenController, Managed):
+class Converter(ABCConverter, FlexibleTokenController, Managed):
     """
     Converter
 
-    The token converter, allows conversion between a smart token and other IRC2 tokens and between
+    The token converter, allows conversion between a flexible token and other IRC2 tokens and between
     different IRC2 tokens and themselves.
 
     IRC2 connector balance can be virtual, meaning that the calculations are based on the virtual
     balance instead of relying on the actual connector balance. This is a security mechanism that
     prevents the need to keep a very large (and valuable) balance in a single contract.
 
-    The converter is upgradable (just like any SmartTokenController).
+    The converter is upgradable (just like any FlexibleTokenController).
 
-    WARNING: It is NOT RECOMMENDED to use the converter with Smart Tokens that have less than
+    WARNING: It is NOT RECOMMENDED to use the converter with Flexible Tokens that have less than
     8 decimal digits or with very small numbers because of precision loss
     """
 
@@ -182,7 +182,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         """
         invoked when install
 
-        :param _token: smart token governed by the converter
+        :param _token: flexible token governed by the converter
         :param _registry: address of a contract registry contract
         :param _maxConversionFee: maximum conversion fee, represented in ppm
         :param _connectorToken: optional,
@@ -191,7 +191,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         """
         require_valid_address(_registry)
         self._require_valid_max_conversion_fee(_maxConversionFee)
-        SmartTokenController.on_install(self, _token)
+        FlexibleTokenController.on_install(self, _token)
 
         self._allow_registry_update.set(True)
         self._registry.set(_registry)
@@ -203,7 +203,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
             self.addConnector(_connectorToken, _connectorWeight, False)
 
     def on_update(self) -> None:
-        SmartTokenController.on_update(self)
+        FlexibleTokenController.on_update(self)
 
     @external
     def tokenFallback(self, _from: Address, _value: int, _data: bytes):
@@ -235,7 +235,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         else:
             # verifies whether the token sender is the network
             registry = self.create_interface_score(self._registry.get(), ScoreRegistry)
-            network = registry.getAddress(ScoreRegistry.BANCOR_NETWORK)
+            network = registry.getAddress(ScoreRegistry.NETWORK)
             require(_from == network)
 
             # noinspection PyBroadException
@@ -268,11 +268,11 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         require_positive_value(min_return)
         require(from_token != to_token)
 
-        smart_token = self._token.get()
+        flexible_token = self._token.get()
         # conversion between the token and one of its connectors
-        if to_token == smart_token:
+        if to_token == flexible_token:
             return self._buy(trader, from_token, amount, min_return)
-        elif from_token == smart_token:
+        elif from_token == flexible_token:
             return self._sell(trader, to_token, amount, min_return)
 
         # conversion between 2 connectors
@@ -300,19 +300,19 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         if connector.is_virtual_balance_enabled.get():
             connector.virtual_balance.set(connector.virtual_balance.get() + return_amount)
 
-        smart_token_address = self._token.get()
-        smart_token = self.create_interface_score(smart_token_address, SmartToken)
+        flexible_token_address = self._token.get()
+        flexible_token = self.create_interface_score(flexible_token_address, FlexibleToken)
 
-        # issue new funds to the caller in the smart token
-        smart_token.issue(trader, return_amount)
+        # issue new funds to the caller in the flexible token
+        flexible_token.issue(trader, return_amount)
 
         # dispatch the conversion event
         self.Conversion(
-            connector_token, smart_token_address, trader, amount, return_amount, fee_amount)
+            connector_token, flexible_token_address, trader, amount, return_amount, fee_amount)
 
-        # dispatch price data update for the smart token/connector
+        # dispatch price data update for the flexible token/connector
         self.PriceDataUpdate(connector_token,
-                             smart_token.totalSupply(),
+                             flexible_token.totalSupply(),
                              self.getConnectorBalance(connector_token),
                              connector.weight.get())
 
@@ -324,7 +324,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
         :param trader: convert requester. must be Network
         :param connector_token: connector token contract address
-        :param amount: amount to sell (in the smart token)
+        :param amount: amount to sell (in the flexible token)
         :param min_return: if the conversion results in an amount smaller the minimum return
             - it is cancelled, must be nonzero
         :return: sell return amount
@@ -335,12 +335,12 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         # ensure the trade gives something in return and meets the minimum requested amount
         require(return_amount >= min_return)
 
-        smart_token_address = self._token.get()
-        smart_token = self.create_interface_score(smart_token_address, SmartToken)
+        flexible_token_address = self._token.get()
+        flexible_token = self.create_interface_score(flexible_token_address, FlexibleToken)
 
         # ensure that the trade will only deplete the connector balance if the total supply is
         # depleted as well
-        token_supply = smart_token.totalSupply()
+        token_supply = flexible_token.totalSupply()
         connector_balance = self.getConnectorBalance(connector_token)
         require(return_amount < connector_balance or
                 (return_amount == connector_balance and amount == token_supply))
@@ -351,8 +351,8 @@ class Converter(ABCConverter, SmartTokenController, Managed):
             connector.virtual_balance.set(
                 safe_sub(connector.virtual_balance.get(), return_amount))
 
-        # destroy _sellAmount from the caller's balance in the smart token
-        smart_token.destroy(self.address, amount)
+        # destroy _sellAmount from the caller's balance in the flexible token
+        flexible_token.destroy(self.address, amount)
 
         # transfer funds to the caller in the connector token
         # the transfer might fail if the actual connector balance is smaller than
@@ -362,11 +362,11 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
         # dispatch the conversion event
         self.Conversion(
-            smart_token_address, connector_token, trader, amount, return_amount, fee_amount)
+            flexible_token_address, connector_token, trader, amount, return_amount, fee_amount)
 
-        # dispatch price data update for the smart token/connector
+        # dispatch price data update for the flexible token/connector
         self.PriceDataUpdate(connector_token,
-                             smart_token.totalSupply(),
+                             flexible_token.totalSupply(),
                              self.getConnectorBalance(connector_token),
                              connector.weight.get())
 
@@ -413,11 +413,11 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         irc_token.transfer(trader, return_amount, TRANSFER_DATA)
         # dispatch the conversion event
         # the fee is higher (magnitude = 2) since cross connector conversion equals 2 conversions
-        # (from / to the smart token)
+        # (from / to the flexible token)
         self.Conversion(from_token, to_token, trader, amount, return_amount, fee_amount)
-        # dispatch price data updates for the smart token / both connectors
-        smart_token = self.create_interface_score(self._token.get(), SmartToken)
-        token_supply = smart_token.totalSupply()
+        # dispatch price data updates for the flexible token / both connectors
+        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
+        token_supply = flexible_token.totalSupply()
         self.PriceDataUpdate(from_token, token_supply, self.getConnectorBalance(from_token),
                              from_connector.weight.get())
         self.PriceDataUpdate(to_token, token_supply, self.getConnectorBalance(to_token),
@@ -722,10 +722,10 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         require(_fromToken != _toToken)
 
         # conversion between the token and one of its connectors
-        smart_token = self._token.get()
-        if _toToken == smart_token:
+        flexible_token = self._token.get()
+        if _toToken == flexible_token:
             return self.getPurchaseReturn(_fromToken, _amount)
-        elif _fromToken == smart_token:
+        elif _fromToken == flexible_token:
             return self.getSaleReturn(_toToken, _amount)
 
         # conversion between 2 connectors
@@ -746,9 +746,9 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         connector = self._connectors[_connectorToken]
         require(connector.is_purchase_enabled.get())
 
-        smart_token = self.create_interface_score(self._token.get(), SmartToken)
+        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
 
-        token_supply = smart_token.totalSupply()
+        token_supply = flexible_token.totalSupply()
         connector_balance = self.getConnectorBalance(_connectorToken)
 
         calculated_amount = formula.calculate_purchase_return(
@@ -763,7 +763,7 @@ class Converter(ABCConverter, SmartTokenController, Managed):
         returns the expected return for selling the token for one of its connector tokens
 
         :param _connectorToken: connector token contract address
-        :param _amount: amount to sell (in the smart token)
+        :param _amount: amount to sell (in the flexible token)
         :return: expected sale return amount and conversion fee
         """
         self._require_active()
@@ -771,9 +771,9 @@ class Converter(ABCConverter, SmartTokenController, Managed):
 
         connector = self._connectors[_connectorToken]
 
-        smart_token = self.create_interface_score(self._token.get(), SmartToken)
+        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
 
-        token_supply = smart_token.totalSupply()
+        token_supply = flexible_token.totalSupply()
         connector_balance = self.getConnectorBalance(_connectorToken)
 
         calculated_amount = formula.calculate_sale_return(

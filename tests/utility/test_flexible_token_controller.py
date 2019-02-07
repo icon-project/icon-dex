@@ -20,29 +20,29 @@ from iconservice.base.message import Message
 from iconservice.iconscore.internal_call import InternalCall
 
 from contracts.icx_token.icx_token import IcxToken
-from contracts.utility.smart_token_controller import SmartTokenController
+from contracts.utility.flexible_token_controller import FlexibleTokenController
 from contracts.utility.token_holder import TokenHolder
 from contracts.utility.utils import *
 from tests import MultiPatch, patch_property, ScorePatcher, create_db, assert_inter_call
 
 
 # noinspection PyUnresolvedReferences
-class TestSmartTokenController(unittest.TestCase):
+class TestFlexibleTokenController(unittest.TestCase):
 
     def setUp(self):
         self.patcher = ScorePatcher(IcxToken)
         self.patcher.start()
 
         self.score_address = Address.from_string("cx" + "1" * 40)
-        self.smart_token_address = Address.from_string("cx" + "2" * 40)
-        self.score = SmartTokenController(create_db(self.score_address))
+        self.flexible_token_address = Address.from_string("cx" + "2" * 40)
+        self.score = FlexibleTokenController(create_db(self.score_address))
 
         self.owner = Address.from_string("hx" + "2" * 40)
         with MultiPatch([
             patch_property(IconScoreBase, 'msg', Message(self.owner)),
-            patch('contracts.utility.smart_token_controller.require_valid_address')
+            patch('contracts.utility.flexible_token_controller.require_valid_address')
         ]) as mocks:
-            self.score.on_install(self.smart_token_address)
+            self.score.on_install(self.flexible_token_address)
             TokenHolder.on_install.assert_called_with(self.score)
             mocks[1].assert_called()
 

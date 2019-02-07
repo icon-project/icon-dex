@@ -23,7 +23,7 @@ class Storage:
     field_info = list of tuple ('field name', type of container db, value type)
     e.g.)
         FIELDS = [
-            ('smart_token_address', VarDB, Address),
+            ('flexible_token_address', VarDB, Address),
             ('registry', VarDB, Address),
             ('prev_registry', VarDB, Address),
             ('conversion_whitelist', VarDB, Address),

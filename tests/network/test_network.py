@@ -46,7 +46,7 @@ class TestNetwork(unittest.TestCase):
 
         self.network_owner = Address.from_string("hx" + "1" * 40)
 
-        self.smart_token_address_list = [Address.from_string("cx" + str(i) * 40) for i in range(0, 3)]
+        self.flexible_token_address_list = [Address.from_string("cx" + str(i) * 40) for i in range(0, 3)]
         self.connector_token_list = [Address.from_string("cx" + str(i) * 40) for i in range(3, 7)]
         self.icx_token = Address.from_string("cx" + "7" * 40)
 
@@ -59,11 +59,11 @@ class TestNetwork(unittest.TestCase):
 
     def test_check_valid_path(self):
         # success case: input the valid path
-        path = [self.connector_token_list[0], self.smart_token_address_list[0], self.connector_token_list[1]]
+        path = [self.connector_token_list[0], self.flexible_token_address_list[0], self.connector_token_list[1]]
         self.network_score._require_valid_path(path)
 
         # failure case: input path whose length under 3
-        invalid_path = [self.connector_token_list[0], self.smart_token_address_list[0]]
+        invalid_path = [self.connector_token_list[0], self.flexible_token_address_list[0]]
         self.assertRaises(RevertException, self.network_score._require_valid_path, invalid_path)
 
         # failure case: input path whose length is more than 21
@@ -74,31 +74,31 @@ class TestNetwork(unittest.TestCase):
         self.assertRaises(RevertException, self.network_score._require_valid_path, invalid_path)
 
         # failure case: input path whose length is even
-        invalid_path = [self.connector_token_list[0], self.smart_token_address_list[0],
-                        self.connector_token_list[1], self.smart_token_address_list[1]]
+        invalid_path = [self.connector_token_list[0], self.flexible_token_address_list[0],
+                        self.connector_token_list[1], self.flexible_token_address_list[1]]
         self.assertRaises(RevertException, self.network_score._require_valid_path, invalid_path)
 
-        # failure case: input path which has the same smart token address in it
-        invalid_path = [self.connector_token_list[0], self.smart_token_address_list[0], self.connector_token_list[1],
-                        self.smart_token_address_list[0], self.connector_token_list[1]]
+        # failure case: input path which has the same flexible token address in it
+        invalid_path = [self.connector_token_list[0], self.flexible_token_address_list[0], self.connector_token_list[1],
+                        self.flexible_token_address_list[0], self.connector_token_list[1]]
         self.assertRaises(RevertException, self.network_score._require_valid_path, invalid_path)
 
-        # success case: input path which has the same smart token address in the 'from' or 'to' position in it
-        # path: [connector0 - smart token0 - smart token1 - smart token2, smart token0]
-        path = [self.connector_token_list[0], self.smart_token_address_list[0], self.smart_token_address_list[1],
-                self.smart_token_address_list[2], self.smart_token_address_list[0]]
+        # success case: input path which has the same flexible token address in the 'from' or 'to' position in it
+        # path: [connector0 - flexible token0 - flexible token1 - flexible token2, flexible token0]
+        path = [self.connector_token_list[0], self.flexible_token_address_list[0], self.flexible_token_address_list[1],
+                self.flexible_token_address_list[2], self.flexible_token_address_list[0]]
         self.network_score._require_valid_path(path)
 
-        # success case: input path which has the same smart tokens that only exist in 'from' or 'to' in it
-        path = [self.smart_token_address_list[0], self.smart_token_address_list[1], self.connector_token_list[0],
-                self.smart_token_address_list[2], self.smart_token_address_list[0]]
+        # success case: input path which has the same flexible tokens that only exist in 'from' or 'to' in it
+        path = [self.flexible_token_address_list[0], self.flexible_token_address_list[1], self.connector_token_list[0],
+                self.flexible_token_address_list[2], self.flexible_token_address_list[0]]
         self.network_score._require_valid_path(path)
 
     def test_check_and_convert_bytes_data(self):
         # failure case: input invalid JSON format data
         invalid_json_format = dict()
         invalid_json_format["path"] = "{0},{1},{2}".format(str(self.connector_token_list[0]),
-                                                           str(self.smart_token_address_list[0]),
+                                                           str(self.flexible_token_address_list[0]),
                                                            str(self.connector_token_list[1]))
         invalid_json_format["for"] = str(self.network_owner)
         invalid_json_format["minReturn"] = 10
@@ -110,7 +110,7 @@ class TestNetwork(unittest.TestCase):
         # failure case: input data which is not decoded to utf-8
         valid_json_format = dict()
         valid_json_format["path"] = "{0},{1},{2}".format(str(self.connector_token_list[0]),
-                                                         str(self.smart_token_address_list[0]),
+                                                         str(self.flexible_token_address_list[0]),
                                                          str(self.connector_token_list[1]))
 
         valid_json_format["for"] = str(self.network_owner)
@@ -125,7 +125,7 @@ class TestNetwork(unittest.TestCase):
         # failure case: input invalid path data (associated with '/')
         json_format = dict()
         json_format["path"] = "{0}/{1}/{2}".format(str(self.connector_token_list[0]),
-                                                   str(self.smart_token_address_list[0]),
+                                                   str(self.flexible_token_address_list[0]),
                                                    str(self.connector_token_list[1]))
         json_format["for"] = str(self.network_owner)
         json_format["minReturn"] = 10
@@ -153,7 +153,7 @@ class TestNetwork(unittest.TestCase):
         # failure case: input string type minReturn
         json_format = dict()
         json_format["path"] = "{0},{1},{2}".format(str(self.connector_token_list[0]),
-                                                   str(self.smart_token_address_list[0]),
+                                                   str(self.flexible_token_address_list[0]),
                                                    str(self.connector_token_list[1]))
         json_format["for"] = str(self.network_owner)
         json_format["minReturn"] = "10"
@@ -169,7 +169,7 @@ class TestNetwork(unittest.TestCase):
         token_sender = Address.from_string("hx" + "a" * 40)
         json_format = dict()
         json_format["path"] = "{0},{1},{2}".format(str(self.connector_token_list[0]),
-                                                   str(self.smart_token_address_list[0]),
+                                                   str(self.flexible_token_address_list[0]),
                                                    str(self.connector_token_list[1]))
         json_format["minReturn"] = 10
         stringed_valid_json_format = json.dumps(json_format)
@@ -200,7 +200,7 @@ class TestNetwork(unittest.TestCase):
         min_return = 10
         for_address = Address.from_string("hx" + "a" * 40)
         invalid_path = "{0}/{1}/{2}".format(str(self.icx_token),
-                                            str(self.smart_token_address_list[0]),
+                                            str(self.flexible_token_address_list[0]),
                                             str(self.connector_token_list[0]))
         with patch_property(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount)):
             self.assertRaises(InvalidParamsException,
@@ -222,7 +222,7 @@ class TestNetwork(unittest.TestCase):
         invalid_min_return = -1
         for_address = Address.from_string("hx" + "a" * 40)
         path = "{0},{1},{2}".format(str(self.icx_token),
-                                    str(self.smart_token_address_list[0]),
+                                    str(self.flexible_token_address_list[0]),
                                     str(self.connector_token_list[0]))
         with patch_property(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount)):
             self.assertRaises(RevertException,
@@ -233,7 +233,7 @@ class TestNetwork(unittest.TestCase):
         min_return = 10
         for_address = Address.from_string("hx" + "a" * 40)
         invalid_path = "{0},{1},{2}".format(str(self.connector_token_list[0]),
-                                            str(self.smart_token_address_list[0]),
+                                            str(self.flexible_token_address_list[0]),
                                             str(self.connector_token_list[1]))
         with patch_property(IconScoreBase, 'msg', Message(self.network_owner, value=icx_amount)):
             self.assertRaises(RevertException,
@@ -244,7 +244,7 @@ class TestNetwork(unittest.TestCase):
         min_return = 10
         for_address = Address.from_string("hx" + "a" * 40)
         path = "{0},{1},{2}".format(str(self.icx_token),
-                                    str(self.smart_token_address_list[0]),
+                                    str(self.flexible_token_address_list[0]),
                                     str(self.connector_token_list[1]))
         self.network_score._icx_tokens[self.icx_token] = True
         with MultiPatch([
@@ -253,7 +253,7 @@ class TestNetwork(unittest.TestCase):
         ]):
             self.network_score.convertFor(path, min_return, for_address)
             self.network_score.icx.transfer.assert_called_with(self.icx_token, icx_amount)
-            converted_path = [self.icx_token, self.smart_token_address_list[0], self.connector_token_list[1]]
+            converted_path = [self.icx_token, self.flexible_token_address_list[0], self.connector_token_list[1]]
             self.network_score._convert_for_internal.assert_called_with(converted_path,
                                                                         icx_amount,
                                                                         min_return,
@@ -266,7 +266,7 @@ class TestNetwork(unittest.TestCase):
         value = 10
         min_return = 5
         path = "{0},{1},{2}".format(str(self.connector_token_list[0]),
-                                    str(self.smart_token_address_list[0]),
+                                    str(self.flexible_token_address_list[0]),
                                     str(self.connector_token_list[1]))
         converted_path = [Address.from_string(address) for address in path.split(",")]
 
@@ -337,7 +337,7 @@ class TestNetwork(unittest.TestCase):
         irc_token_score_interface.transfer = PropertyMock()
 
         # success case: finally converted token is Icx token ( Icx token SCORE's 'withdrawTo' method should be called )
-        converted_path = [self.connector_token_list[0], self.smart_token_address_list[0], self.icx_token]
+        converted_path = [self.connector_token_list[0], self.flexible_token_address_list[0], self.icx_token]
         # '_convert_by_path' method returns 'to' token Address, and converted amount
         with MultiPatch([
             patch_property(IconScoreBase, 'msg', Message(self.network_owner)),
@@ -351,7 +351,7 @@ class TestNetwork(unittest.TestCase):
             icx_token_score_interface.withdrawTo.assert_called_with(convert_result_amount, for_address)
 
         # success case: finally converted token is irc token ( token SCORE's 'transfer' method should be called )
-        converted_path = [self.icx_token, self.smart_token_address_list[0], self.connector_token_list[1]]
+        converted_path = [self.icx_token, self.flexible_token_address_list[0], self.connector_token_list[1]]
         # '_convert_by_path' method returns 'to' token Address, and converted amount
         with MultiPatch([
             patch_property(IconScoreBase, 'msg', Message(self.network_owner)),
@@ -363,14 +363,14 @@ class TestNetwork(unittest.TestCase):
 
     def test_convert_by_path(self):
         # success case: check all other SCORE's methods called correctly
-        # in this path, 'smart token' is 1, 3, 'from token' is 0, 2, 'to token' is 2, 4 ( index )
-        converted_path = [self.connector_token_list[0], self.smart_token_address_list[0], self.connector_token_list[1],
-                          self.smart_token_address_list[1], self.connector_token_list[2]]
+        # in this path, 'flexible token' is 1, 3, 'from token' is 0, 2, 'to token' is 2, 4 ( index )
+        converted_path = [self.connector_token_list[0], self.flexible_token_address_list[0], self.connector_token_list[1],
+                          self.flexible_token_address_list[1], self.connector_token_list[2]]
         for_address = Address.from_string("hx" + "a" * 40)
 
         # this method substitutes 'create_interface_score' method of IconScoreBase
         def create_interface_score_mock(token_address, interface_score):
-            if interface_score.__name__ == 'ProxyScore(ABCSmartToken)':
+            if interface_score.__name__ == 'ProxyScore(ABCFlexibleToken)':
                 # add getOwner method to the token address instance
                 # this token instance operates as a converter interface score
                 token_address.getOwner = Mock(return_value="{0} converter address".format(token_address))
@@ -392,10 +392,10 @@ class TestNetwork(unittest.TestCase):
                 _convert_by_path(converted_path, amount, min_return, for_address)
             self.assertEqual(converted_path[-1], actual_to_token)
             self.assertEqual(amount, actual_amount)
-            # check smart token's 'getOwner' method have been called ( smart token's index is 1, 3 )
-            for i, smart_token in enumerate(converted_path):
+            # check flexible token's 'getOwner' method have been called ( flexible token's index is 1, 3 )
+            for i, flexible_token in enumerate(converted_path):
                 if i % 2 == 1:
-                    smart_token.getOwner.assert_called_once()
+                    flexible_token.getOwner.assert_called_once()
 
             # check 'from' token's 'transfer' method have been called ( from token's index is 0, 2 )
             for i, from_token in enumerate(converted_path):
@@ -418,7 +418,7 @@ class TestNetwork(unittest.TestCase):
         # failure case: input invalid path data ( associated with '/' )
         amount = 10
         invalid_path = "{0}/{1}/{2}".format(str(self.connector_token_list[0]),
-                                            str(self.smart_token_address_list[0]),
+                                            str(self.flexible_token_address_list[0]),
                                             str(self.connector_token_list[1]))
         self.assertRaises(InvalidParamsException,
                           self.network_score.getExpectedReturnByPath,
@@ -436,20 +436,20 @@ class TestNetwork(unittest.TestCase):
         # failure case: amount is less than 0
         invalid_amount = -1
         path = "{0},{1},{2}".format(str(self.connector_token_list[0]),
-                                    str(self.smart_token_address_list[0]),
+                                    str(self.flexible_token_address_list[0]),
                                     str(self.connector_token_list[1]))
         self.assertRaises(RevertException,
                           self.network_score.getExpectedReturnByPath,
                           path, invalid_amount)
 
         # success case: input valid path and amount
-        converted_path = [self.connector_token_list[0], self.smart_token_address_list[0], self.connector_token_list[1],
-                          self.smart_token_address_list[1], self.connector_token_list[2]]
+        converted_path = [self.connector_token_list[0], self.flexible_token_address_list[0], self.connector_token_list[1],
+                          self.flexible_token_address_list[1], self.connector_token_list[2]]
         stringed_path = ",".join([str(address) for address in converted_path])
         amount = 10
 
         def create_interface_score_mock(token_address, interface_score):
-            if interface_score.__name__ == "ProxyScore(ABCSmartToken)":
+            if interface_score.__name__ == "ProxyScore(ABCFlexibleToken)":
                 token_address.getOwner = Mock(return_value=token_address)
                 return token_address
 
@@ -464,7 +464,7 @@ class TestNetwork(unittest.TestCase):
 
             actual_amount = self.network_score.getExpectedReturnByPath(stringed_path, amount)
             expected_final_amount = amount + len(converted_path) - 2
-            # finally converted amount should be initial amount(10) + last smart token index number(3)
+            # finally converted amount should be initial amount(10) + last flexible token index number(3)
             self.assertEqual(expected_final_amount, actual_amount)
             expected_intermediate_amount = 10
             for i in range(1, len(converted_path), 2):

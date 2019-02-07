@@ -23,7 +23,7 @@ class ABCConverter(ABC):
     """
 
     @abstractmethod
-    def getReturn(self, _fromToken: 'Address', _toToken: 'Address', _amount: int) -> dict:
+    def getReturn(self, _fromToken: Address, _toToken: Address, _amount: int) -> dict:
         """
         Returns the expected return for converting a specific amount of _fromToken to _toToken
 
@@ -45,7 +45,7 @@ class ABCConverter(ABC):
         pass
 
     @abstractmethod
-    def getConnector(self, _address: 'Address') -> dict:
+    def getConnector(self, _address: Address) -> dict:
         """
         Returns connector information
 
@@ -55,7 +55,7 @@ class ABCConverter(ABC):
         pass
 
     @abstractmethod
-    def getConnectorBalance(self, _connectorToken: 'Address') -> int:
+    def getConnectorBalance(self, _connectorToken: Address) -> int:
         """
         Returns the connector's virtual balance if one is defined,
         otherwise returns the actual balance

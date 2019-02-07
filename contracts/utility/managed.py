@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from iconservice import *
-
 from .owned import Owned
 from .utils import *
 
@@ -27,7 +25,7 @@ class Managed(Owned):
     """
 
     @eventlog(indexed=2)
-    def ManagerUpdate(self, _prevManager: 'Address', _newManager: 'Address'):
+    def ManagerUpdate(self, _prevManager: Address, _newManager: Address):
         pass
 
     def __init__(self, db: IconScoreDatabase) -> None:
@@ -52,15 +50,15 @@ class Managed(Owned):
                 "Invalid sender")
 
     @external(readonly=True)
-    def getManager(self) -> 'Address':
+    def getManager(self) -> Address:
         return self._manager.get()
 
     @external(readonly=True)
-    def getNewManager(self) -> 'Address':
+    def getNewManager(self) -> Address:
         return self._new_manager.get()
 
     @external
-    def transferManagement(self, _newManager: 'Address'):
+    def transferManagement(self, _newManager: Address):
         """
         allows transferring the contract management
         the new manager still needs to accept the transfer

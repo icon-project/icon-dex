@@ -20,9 +20,9 @@ from .abc_token_holder import ABCTokenHolder
 
 
 # noinspection PyPep8Naming
-class ABCSmartToken(ABCIRCToken, ABCTokenHolder):
+class ABCFlexibleToken(ABCIRCToken, ABCTokenHolder):
     """
-    ISmartToken interface
+    FlexibleToken interface
     """
 
     @abstractmethod

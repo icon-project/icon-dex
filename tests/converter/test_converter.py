@@ -25,7 +25,7 @@ from iconservice.iconscore.internal_call import InternalCall
 from contracts.converter.converter import Converter, TRANSFER_DATA
 from contracts.formula import FixedMapFormula
 from contracts.score_registry.score_registry import ScoreRegistry
-from contracts.utility.smart_token_controller import SmartTokenController
+from contracts.utility.flexible_token_controller import FlexibleTokenController
 from tests import MultiPatch, patch_property, ScorePatcher, create_db, assert_inter_call
 
 
@@ -49,7 +49,7 @@ class TestConverter(unittest.TestCase):
         with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.on_install(token, registry, max_conversion_fee,
                                   self.initial_connector_token, self.initial_connector_weight)
-            SmartTokenController.on_install.assert_called_with(self.score, token)
+            FlexibleTokenController.on_install.assert_called_with(self.score, token)
             self.score._token.set(token)
 
             self.assertEqual(registry, self.score._registry.get())
@@ -149,7 +149,7 @@ class TestConverter(unittest.TestCase):
                               self.score.address,
                               self.score._registry.get(),
                               'getAddress',
-                              [ScoreRegistry.BANCOR_NETWORK])
+                              [ScoreRegistry.NETWORK])
             self.score._convert.assert_called_with(
                 network_address, token, to_token, value, min_return)
 
@@ -379,7 +379,7 @@ class TestConverter(unittest.TestCase):
         with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.withdrawTokens(self.initial_connector_token, to, amount)
             self.score._is_active.assert_called()
-            SmartTokenController.withdrawTokens.assert_called_with(
+            FlexibleTokenController.withdrawTokens.assert_called_with(
                 self.initial_connector_token, to, amount)
 
         self.score._is_active.reset_mock()
@@ -388,7 +388,7 @@ class TestConverter(unittest.TestCase):
         with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.withdrawTokens(self.initial_connector_token, to, amount)
             self.score._is_active.assert_called()
-            SmartTokenController.withdrawTokens.assert_called_with(
+            FlexibleTokenController.withdrawTokens.assert_called_with(
                 self.initial_connector_token, to, amount)
 
         self.score._is_active.reset_mock()
@@ -397,7 +397,7 @@ class TestConverter(unittest.TestCase):
         with patch_property(IconScoreBase, 'msg', Message(self.owner)):
             self.score.withdrawTokens(self.initial_connector_token, to, amount)
             self.score._is_active.assert_called()
-            SmartTokenController.withdrawTokens.assert_called_with(
+            FlexibleTokenController.withdrawTokens.assert_called_with(
                 self.initial_connector_token, to, amount)
 
     def test_withdrawTokens_failure(self):

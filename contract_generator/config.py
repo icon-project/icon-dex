@@ -26,12 +26,12 @@ value: list of dependency file paths
 """
 
 config = {
-    "smart_token": [
+    "flexible_token": [
         "interfaces/__init__.py",
         "interfaces/abc_irc_token.py",
         "interfaces/abc_token_holder.py",
         "interfaces/abc_owned.py",
-        "interfaces/abc_smart_token.py",
+        "interfaces/abc_flexible_token.py",
         "irc_token/__init__.py",
         "irc_token/irc_token.py",
         "utility/__init__.py",
@@ -69,7 +69,7 @@ config = {
     ],
     "network": [
         "interfaces/__init__.py",
-        "interfaces/abc_smart_token.py",
+        "interfaces/abc_flexible_token.py",
         "interfaces/abc_irc_token.py",
         "interfaces/abc_icx_token.py",
         "interfaces/abc_token_holder.py",
@@ -90,7 +90,7 @@ config = {
         "interfaces/abc_converter.py",
         "interfaces/abc_irc_token.py",
         "interfaces/abc_score_registry.py",
-        "interfaces/abc_smart_token.py",
+        "interfaces/abc_flexible_token.py",
         "interfaces/abc_token_holder.py",
         "interfaces/abc_owned.py",
         "utility/__init__.py",
@@ -98,7 +98,7 @@ config = {
         "utility/owned.py",
         "utility/utils.py",
         "utility/proxy_score.py",
-        "utility/smart_token_controller.py",
+        "utility/flexible_token_controller.py",
         "utility/token_holder.py"
     ]
 }

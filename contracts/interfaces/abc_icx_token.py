@@ -43,7 +43,7 @@ class ABCIcxToken(ABCIRCToken, ABCTokenHolder):
         pass
 
     @abstractmethod
-    def withdrawTo(self, _amount: int, _to: 'Address') -> None:
+    def withdrawTo(self, _amount: int, _to: Address) -> None:
         """
         Withdraw ICX from the account to a target account(_to)
 

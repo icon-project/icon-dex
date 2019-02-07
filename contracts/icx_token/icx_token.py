@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from iconservice import *
-
 from ..interfaces.abc_icx_token import ABCIcxToken
 from ..irc_token.irc_token import IRCToken
 from ..utility.token_holder import TokenHolder
@@ -23,6 +21,7 @@ from ..utility.utils import *
 TAG = 'IcxToken'
 
 
+# noinspection PyPep8Naming
 class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
 
     @eventlog
@@ -63,7 +62,7 @@ class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
         self.withdrawTo(_amount, self.msg.sender)
 
     @external
-    def withdrawTo(self, _amount: int, _to: 'Address'):
+    def withdrawTo(self, _amount: int, _to: Address):
         require_positive_value(_amount)
         if self._balances[self.msg.sender] < _amount:
             revert("Out of balance")
