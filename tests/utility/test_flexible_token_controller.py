@@ -117,3 +117,28 @@ class TestFlexibleTokenController(unittest.TestCase):
                 'withdrawTokens',
                 [token, to, amount]
             )
+
+    def test_isActive(self):
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call'),
+        ]) as mocks:
+            mocks[1].return_value = self.score.address
+            is_active = self.score.isActive()
+
+            self.assertEqual(True, is_active)
+
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(self.owner)),
+            patch.object(InternalCall, 'other_external_call'),
+        ]) as mocks:
+            mocks[1].return_value = ZERO_SCORE_ADDRESS
+            is_active = self.score.isActive()
+
+            self.assertEqual(False, is_active)
+
+    def test_getToken(self):
+        with patch.object(IconScoreBase, 'msg', Message(self.owner)):
+            token = self.score.getToken()
+
+            self.assertEqual(self.score._token.get(), token)

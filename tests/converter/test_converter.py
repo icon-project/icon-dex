@@ -40,17 +40,17 @@ class TestConverter(unittest.TestCase):
         self.score = Converter(create_db(self.score_address))
 
         self.owner = Address.from_string("hx" + os.urandom(20).hex())
-        token = Address.from_string("cx" + os.urandom(20).hex())
+        self.token = Address.from_string("cx" + os.urandom(20).hex())
         registry = Address.from_string("cx" + os.urandom(20).hex())
         max_conversion_fee = 1000000
         self.initial_connector_token = Address.from_string("cx" + os.urandom(20).hex())
         self.initial_connector_weight = 500000
 
         with patch_property(IconScoreBase, 'msg', Message(self.owner)):
-            self.score.on_install(token, registry, max_conversion_fee,
+            self.score.on_install(self.token, registry, max_conversion_fee,
                                   self.initial_connector_token, self.initial_connector_weight)
-            FlexibleTokenController.on_install.assert_called_with(self.score, token)
-            self.score._token.set(token)
+            FlexibleTokenController.on_install.assert_called_with(self.score, self.token)
+            self.score._token.set(self.token)
 
             self.assertEqual(registry, self.score._registry.get())
             self.assertEqual(registry, self.score._prev_registry.get())
@@ -121,7 +121,7 @@ class TestConverter(unittest.TestCase):
         ]):
             self.assertRaises(RevertException, self.score.tokenFallback, sender, value, b'None')
 
-    def test_tokenFallback_convert_called(self):
+    def test_tokenFallback_convert_called_wrong_params(self):
         # Mocks parent functions
         self.score.getOwner.return_value = self.owner
         self.score._is_active.return_value = True
@@ -130,6 +130,33 @@ class TestConverter(unittest.TestCase):
         network_address = Address.from_string("cx" + os.urandom(20).hex())
 
         to_token = Address.from_string("cx" + os.urandom(20).hex())
+
+        # missing param `minReturn`
+        data = {
+            'toToken': str(to_token),
+        }
+
+        token = self.initial_connector_token
+        value = 100
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(token)),
+            patch.object(InternalCall, 'other_external_call', return_value=network_address)
+        ]):
+
+            self.assertRaises(RevertException, self.score.tokenFallback,
+                              network_address, value, json_dumps(data).encode())
+
+            self.score._convert.assert_not_called()
+
+    def test_tokenFallback_buy_called(self):
+        # Mocks parent functions
+        self.score.getOwner.return_value = self.owner
+        self.score._is_active.return_value = True
+        self.score._buy = Mock()
+
+        network_address = Address.from_string("cx" + os.urandom(20).hex())
+
+        to_token = self.token
         min_return = 10
 
         data = {
@@ -150,7 +177,74 @@ class TestConverter(unittest.TestCase):
                               self.score._registry.get(),
                               'getAddress',
                               [ScoreRegistry.NETWORK])
-            self.score._convert.assert_called_with(
+            self.score._buy.assert_called_with(
+                network_address, token, value, min_return)
+
+    def test_tokenFallback_sell_called(self):
+        # Mocks parent functions
+        self.score.getOwner.return_value = self.owner
+        self.score._is_active.return_value = True
+        self.score._sell = Mock()
+
+        network_address = Address.from_string("cx" + os.urandom(20).hex())
+
+        to_token = self.initial_connector_token
+        min_return = 10
+
+        data = {
+            'toToken': str(to_token),
+            'minReturn': min_return
+        }
+
+        # success case
+        token = self.token
+        value = 100
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(token)),
+            patch.object(InternalCall, 'other_external_call', return_value=network_address)
+        ]):
+            self.score.tokenFallback(network_address, value, json_dumps(data).encode())
+            assert_inter_call(self,
+                              self.score.address,
+                              self.score._registry.get(),
+                              'getAddress',
+                              [ScoreRegistry.NETWORK])
+            self.score._sell.assert_called_with(
+                network_address, to_token, value, min_return)
+
+    def test_tokenFallback_cross_convert_called(self):
+        # Mocks parent functions
+        self.score.getOwner.return_value = self.owner
+        self.score._is_active.return_value = True
+        self.score._convert_cross_connector = Mock()
+
+        network_address = Address.from_string("cx" + os.urandom(20).hex())
+
+        to_token = Address.from_string("cx" + os.urandom(20).hex())
+        to_token_weight = 500000
+        self.score.addConnector(to_token, to_token_weight, False)
+
+        min_return = 10
+
+        data = {
+            'toToken': str(to_token),
+            'minReturn': min_return
+        }
+
+        # success case
+        token = self.initial_connector_token
+        value = 100
+        with MultiPatch([
+            patch_property(IconScoreBase, 'msg', Message(token)),
+            patch.object(InternalCall, 'other_external_call', return_value=network_address)
+        ]):
+            self.score.tokenFallback(network_address, value, json_dumps(data).encode())
+            assert_inter_call(self,
+                              self.score.address,
+                              self.score._registry.get(),
+                              'getAddress',
+                              [ScoreRegistry.NETWORK])
+            self.score._convert_cross_connector.assert_called_with(
                 network_address, token, to_token, value, min_return)
 
     def test_buy(self):
@@ -297,6 +391,45 @@ class TestConverter(unittest.TestCase):
             self.assertEqual(
                 False, self.score._connectors[connector_token].is_virtual_balance_enabled.get())
             self.assertEqual(True, self.score._connectors[connector_token].is_set.get())
+
+    def test_updateConnector(self):
+        self.score.require_owner_only.reset_mock()
+
+        connector_token = self.initial_connector_token
+        connector_weight = 100000
+
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
+            self.score.updateConnector(connector_token, connector_weight, True, 10000)
+            self.score.require_owner_only.assert_called()
+
+            self.assertEqual(connector_weight, self.score._connectors[connector_token].weight.get())
+            self.assertEqual(
+                True, self.score._connectors[connector_token].is_virtual_balance_enabled.get())
+            self.assertEqual(True, self.score._connectors[connector_token].is_set.get())
+
+    def test_updateConnector_wrong_max_weight(self):
+        self.score.require_owner_only.reset_mock()
+
+        connector_token = self.initial_connector_token
+        connector_weight = 1000001
+
+        self.assertRaises(RevertException,
+                          self.score.updateConnector,
+                          connector_token, connector_weight, True, 10000)
+
+    def test_disableConnectorPurchases(self):
+        self.score.require_owner_or_manager_only.reset_mock()
+
+        self.score._conversions_enabled.set(True)
+
+        with patch_property(IconScoreBase, 'msg', Message(self.owner)):
+            self.score.disableConnectorPurchases(self.initial_connector_token, True)
+            self.score.require_owner_only.assert_called()
+
+            connector_token = self.score._connectors[self.initial_connector_token]
+            self.assertEqual(False, connector_token.is_purchase_enabled.get())
+            self.score.disableConnectorPurchases(self.initial_connector_token, False)
+            self.assertEqual(True, connector_token.is_purchase_enabled.get())
 
     def test_updateRegistry(self):
         self.score._allow_registry_update.set(True)
@@ -452,6 +585,32 @@ class TestConverter(unittest.TestCase):
                 [self.score.address])
 
             self.assertEqual(result_balance, balance)
+
+    def test_getReturn(self):
+        amount = 1000
+
+        self.score.getPurchaseReturn = Mock()
+        self.score.getSaleReturn = Mock()
+        self.score.getCrossConnectorReturn = Mock()
+
+        from_token = Address.from_string("cx" + os.urandom(20).hex())
+        to_token = Address.from_string("cx" + os.urandom(20).hex())
+
+        with patch.object(IconScoreBase, 'msg', Message(self.owner)):
+            self.score.getReturn(from_token, to_token, amount)
+            self.score.getCrossConnectorReturn.assert_called_with(from_token, to_token, amount)
+
+        from_token = self.token
+        to_token = Address.from_string("cx" + os.urandom(20).hex())
+        with patch.object(IconScoreBase, 'msg', Message(self.owner)):
+            self.score.getReturn(from_token, to_token, amount)
+            self.score.getSaleReturn.assert_called_with(to_token, amount)
+
+        from_token = Address.from_string("cx" + os.urandom(20).hex())
+        to_token = self.token
+        with patch.object(IconScoreBase, 'msg', Message(self.owner)):
+            self.score.getReturn(from_token, to_token, amount)
+            self.score.getPurchaseReturn.assert_called_with(from_token, amount)
 
     def test_getPurchaseReturn(self):
         amount = 1000
