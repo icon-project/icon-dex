@@ -20,7 +20,7 @@ from tbears.libs.icon_integrate_test import IconIntegrateTestBase, Account
 
 from contracts.interfaces.abc_score_registry import ABCScoreRegistry
 from tests.integration_tests.utils import deploy_score, get_content_as_bytes, transaction_call, \
-    icx_call, update_governance, setup_import_whitelist
+    icx_call, update_governance
 
 
 class TestConverter(IconIntegrateTestBase):
@@ -32,9 +32,8 @@ class TestConverter(IconIntegrateTestBase):
                     in self.keys]
         super().setUp(accounts)
 
-        # Update governance and setup import whitelist
+        # Update governance
         update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
-        setup_import_whitelist(self, self._test1)
 
         self.network_address = self.setup_network()
 

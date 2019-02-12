@@ -14,7 +14,13 @@
 # limitations under the License.
 
 from iconservice import *
-from iconservice.iconscore.icon_score_constant import T
+
+# noinspection PyUnreachableCode
+# for type hinting
+if False:
+    from typing import TypeVar
+
+    T = TypeVar('T')
 
 
 class ProxyScore(type):
@@ -27,7 +33,7 @@ class ProxyScore(type):
     """
 
     @classmethod
-    def _create_proxy_class(mcs, abc_class: T) -> T:
+    def _create_proxy_class(mcs, abc_class: 'T') -> 'T':
         """
         Creates an interface SCORE related in given abc class,
 
@@ -61,7 +67,7 @@ class ProxyScore(type):
             interface_function.__isabstractmethod__ = False
         return interface_function
 
-    def __new__(mcs, abc_class: T) -> T:
+    def __new__(mcs, abc_class: 'T') -> 'T':
         """
         Retrieves an interface SCORE related in given abc class if the cache exists,
         otherwise creates a new one
