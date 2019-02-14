@@ -14,14 +14,13 @@
 # limitations under the License.
 
 from iconservice import ZERO_SCORE_ADDRESS
-from iconservice.base.address import Address, GOVERNANCE_SCORE_ADDRESS
+from iconservice.base.address import Address
 from iconsdk.wallet.wallet import KeyWallet
 from tbears.libs.icon_integrate_test import IconIntegrateTestBase
 
 from tests.integration_tests import create_address
 from tests.integration_tests.utils import get_content_as_bytes, deploy_score, icx_call, \
-    transaction_call, \
-    update_governance, setup_import_whitelist
+    transaction_call, update_governance
 
 
 class TestFlexibleToken(IconIntegrateTestBase):
@@ -37,9 +36,6 @@ class TestFlexibleToken(IconIntegrateTestBase):
         # self.icon_service = IconService(HTTPProvider(self.TEST_HTTP_ENDPOINT_URI_V3))
 
         update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
-
-        # Adds import white list
-        setup_import_whitelist(self, self._test1)
 
         self.st_token_name = 'test_token'
         self.st_token_symbol = 'TST'
@@ -163,7 +159,7 @@ class TestFlexibleToken(IconIntegrateTestBase):
 
         # Issues flexible token to fee treasury
         send_tx_params = {"_to": self._fee_treasury.get_address(), "_amount": hex(issue_balance)}
-        tx_result = self._transaction_call_default(self.flexible_token_address, "issue", send_tx_params)
+        self._transaction_call_default(self.flexible_token_address, "issue", send_tx_params)
 
         # Failure case: try to input negative amount
         send_tx_params = {"_from": self._test1.get_address(), "_amount": hex(-1)}

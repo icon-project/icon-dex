@@ -125,31 +125,32 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
 
     # verifies that the address belongs to one of the connector tokens
     def _require_valid_connector(self, address: Address):
-        require(self._connectors[address].is_set.get())
+        require(self._connectors[address].is_set.get(), 'invalid connector')
 
     # verifies that the address belongs to one of the convertible tokens
     def _require_valid_token(self, address: Address):
-        require(address == self._token.get() or self._connectors[address].is_set.get())
+        require(address == self._token.get() or self._connectors[address].is_set.get(),
+                'invalid token')
 
     # verifies maximum conversion fee
     def _require_valid_max_conversion_fee(self, conversion_fee: int):
-        require(0 <= conversion_fee <= self._MAX_CONVERSION_FEE)
+        require(0 <= conversion_fee <= self._MAX_CONVERSION_FEE, 'invalid max conversion fee')
 
     # verifies conversion fee
     def _require_valid_conversion_fee(self, conversion_fee: int):
-        require(0 <= conversion_fee <= self._max_conversion_fee.get())
+        require(0 <= conversion_fee <= self._max_conversion_fee.get(), 'invalid conversion fee')
 
     # verifies connector weight range
     def _require_valid_connector_weight(self, weight: int):
-        require(0 < weight <= self._MAX_WEIGHT)
+        require(0 < weight <= self._MAX_WEIGHT, 'invalid connector weight')
 
     # verifies the total weight is 100%
     def _require_max_total_weight_only(self):
-        require(self._total_connector_weight.get() == self._MAX_WEIGHT)
+        require(self._total_connector_weight.get() == self._MAX_WEIGHT, 'required max total weight')
 
     # verifies conversions aren't disabled
     def _require_conversions_allowed(self):
-        require(self._conversions_enabled.get())
+        require(self._conversions_enabled.get(), 'required conversions enabled')
 
     def __init__(self, db: IconScoreDatabase):
         super().__init__(db)
@@ -236,7 +237,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
             # verifies whether the token sender is the network
             registry = self.create_interface_score(self._registry.get(), ScoreRegistry)
             network = registry.getAddress(ScoreRegistry.NETWORK)
-            require(_from == network)
+            require(_from == network, '\'trader\' must be network only')
 
             # noinspection PyBroadException
             try:
@@ -266,7 +267,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         """
         self._require_conversions_allowed()
         require_positive_value(min_return)
-        require(from_token != to_token)
+        require(from_token != to_token, '\'from token\' and \'to token\' must not be same')
 
         flexible_token = self._token.get()
         # conversion between the token and one of its connectors
@@ -293,7 +294,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         return_amount = returns['amount']
         fee_amount = returns['fee']
         # ensure the trade gives something in return and meets the minimum requested amount
-        require(return_amount >= min_return)
+        require(return_amount >= min_return, 'returning amount less than minimum requested amount')
 
         # update virtual balance if relevant
         connector = self._connectors[connector_token]
@@ -333,7 +334,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         return_amount = returns['amount']
         fee_amount = returns['fee']
         # ensure the trade gives something in return and meets the minimum requested amount
-        require(return_amount >= min_return)
+        require(return_amount >= min_return, 'returning amount less than minimum requested amount')
 
         flexible_token_address = self._token.get()
         flexible_token = self.create_interface_score(flexible_token_address, FlexibleToken)
@@ -343,7 +344,8 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         token_supply = flexible_token.totalSupply()
         connector_balance = self.getConnectorBalance(connector_token)
         require(return_amount < connector_balance or
-                (return_amount == connector_balance and amount == token_supply))
+                (return_amount == connector_balance and amount == token_supply),
+                'returning amount does not meet connector balance condition')
 
         # update virtual balance if relevant
         connector = self._connectors[connector_token]
@@ -393,7 +395,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         return_amount = returns['amount']
         fee_amount = returns['fee']
         # ensure the trade gives something in return and meets the minimum requested amount
-        require(return_amount >= min_return)
+        require(return_amount >= min_return, 'returning amount less than minimum requested amount')
         # update the source token virtual balance if relevant
         from_connector = self._connectors[from_token]
         if from_connector.is_virtual_balance_enabled.get():
@@ -405,7 +407,8 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
                 safe_sub(to_connector.virtual_balance.get(), return_amount))
         # ensure that the trade won't deplete the connector balance
         to_connector_balance = self.getConnectorBalance(to_token)
-        require(return_amount < to_connector_balance)
+        require(return_amount < to_connector_balance,
+                'returning amount does not meet connector balance condition')
         # transfer funds to the caller in the to connector token
         # the transfer might fail if the actual connector balance is smaller than
         # the virtual balance
@@ -441,9 +444,10 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         require_not_this(self.address, _token)
         self._require_valid_connector_weight(_weight)
 
-        require(self._token.get() != _token and
-                not self._connectors[_token].is_set.get() and
-                self._total_connector_weight.get() + _weight <= self._MAX_WEIGHT)
+        require(self._token.get() != _token, 'the input token should not be the flexible token')
+        require(not self._connectors[_token].is_set.get(), 'the input token has already been set')
+        require(self._total_connector_weight.get() + _weight <= self._MAX_WEIGHT,
+                'total connector weight is overflow')
 
         self._connectors[_token].virtual_balance.set(0)
         self._connectors[_token].weight.set(_weight)
@@ -474,7 +478,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         connector = self._connectors[_connectorToken]
 
         new_total_weight = self._total_connector_weight.get() - connector.weight.get() + _weight
-        require(new_total_weight <= self._MAX_WEIGHT)
+        require(new_total_weight <= self._MAX_WEIGHT, 'total connector weight is overflow')
 
         self._total_connector_weight.set(new_total_weight)
         connector.weight.set(_weight)
@@ -503,7 +507,8 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         """
 
         # require that upgrading is allowed or that the caller is the owner
-        require(self._allow_registry_update.get() or self.msg.sender == self.getOwner())
+        require(self._allow_registry_update.get() or self.msg.sender == self.getOwner(),
+                'should be allowed updating or caller is the owner')
 
         # get the address of whichever registry the current registry is pointing to
         registry = self.create_interface_score(self._registry.get(), ScoreRegistry)
@@ -511,7 +516,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
 
         # if the new registry hasn't changed or is the zero address, revert
         require_valid_address(new_registry)
-        require(new_registry != self._registry.get())
+        require(new_registry != self._registry.get(), 'new registry should not be same with old one')
 
         # set the previous registry as current registry and current registry as newRegistry
         self._prev_registry.set(self._registry.get())
@@ -586,7 +591,8 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         :param _to: account to receive the new amount
         :param _amount: amount to withdraw
         """
-        require(not self._is_active() or not self._connectors[_token].is_set.get())
+        require(not self._is_active() or not self._connectors[_token].is_set.get(),
+                'withdrawing token should be inactive or not a connector token')
         super().withdrawTokens(_token, _to, _amount)
 
     @external(readonly=True)
@@ -719,7 +725,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         :param _amount: amount to convert, in fromToken
         :return: expected conversion return amount and conversion fee, in dict
         """
-        require(_fromToken != _toToken)
+        require(_fromToken != _toToken, '\'from token\' and \'to token\' must not be same')
 
         # conversion between the token and one of its connectors
         flexible_token = self._token.get()
@@ -744,7 +750,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         self._require_valid_connector(_connectorToken)
 
         connector = self._connectors[_connectorToken]
-        require(connector.is_purchase_enabled.get())
+        require(connector.is_purchase_enabled.get(), 'required purchase enabled')
 
         flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
 
@@ -800,7 +806,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
 
         from_connector = self._connectors[_fromToken]
         to_connector = self._connectors[_toToken]
-        require(to_connector.is_purchase_enabled.get())
+        require(to_connector.is_purchase_enabled.get(), 'required purchase enabled')
 
         from_connector_balance = self.getConnectorBalance(_fromToken)
         to_connector_balance = self.getConnectorBalance(_toToken)

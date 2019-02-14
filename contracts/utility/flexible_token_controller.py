@@ -61,13 +61,13 @@ class FlexibleTokenController(TokenHolder):
         """
         ensures that the controller is the token's owner
         """
-        require(self._is_active())
+        require(self._is_active(), 'required active')
 
     def _require_inactive(self):
         """
         ensures that the controller is not the token's owner
         """
-        require(not self._is_active())
+        require(not self._is_active(), 'required inactive')
 
     @external(readonly=True)
     def isActive(self) -> bool:

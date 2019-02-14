@@ -21,8 +21,7 @@ from tbears.libs.icon_integrate_test import IconIntegrateTestBase
 
 from tests.integration_tests import create_address
 from tests.integration_tests.utils import get_content_as_bytes, deploy_score, icx_call, \
-    transaction_call, \
-    icx_transfer_call, update_governance, setup_import_whitelist
+    transaction_call, icx_transfer_call, update_governance
 
 
 class TestIcxToken(IconIntegrateTestBase):
@@ -38,9 +37,6 @@ class TestIcxToken(IconIntegrateTestBase):
         # self.icon_service = IconService(HTTPProvider(self.TEST_HTTP_ENDPOINT_URI_V3))
 
         update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
-
-        # Adds import white list
-        setup_import_whitelist(self, self._test1)
 
         # Deploys score_registry SCORE
         tx_result = deploy_score(icon_integrate_test_base=super(),

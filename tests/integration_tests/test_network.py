@@ -56,14 +56,6 @@ class TestNetwork(IconIntegrateTestBase):
 
         update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
 
-        # Adds import white list
-        params = {"importStmt": "{'iconservice.iconscore.icon_score_constant' : ['T']}"}
-        transaction_call(icon_integrate_test_base=super(),
-                         from_=self._test1,
-                         to_=str(GOVERNANCE_SCORE_ADDRESS),
-                         method="addImportWhiteList",
-                         params=params)
-
         # if you want to send request to network, uncomment next line
         # self.icon_service = IconService(HTTPProvider(self.TEST_HTTP_ENDPOINT_URI_V3))
 

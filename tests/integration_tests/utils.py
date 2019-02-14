@@ -16,8 +16,6 @@
 from os import path
 
 from iconsdk.exception import IconServiceBaseException
-from iconsdk.icon_service import IconService
-from iconsdk.builder.transaction_builder import CallTransactionBuilder, DeployTransactionBuilder, TransactionBuilder
 from iconsdk.builder.call_builder import CallBuilder
 from iconsdk.builder.transaction_builder import CallTransactionBuilder, DeployTransactionBuilder, \
     TransactionBuilder
@@ -251,10 +249,3 @@ def update_governance(icon_integrate_test_base: IconIntegrateTestBase,
 
     assert 'status' in tx_result
     assert 1 == tx_result['status']
-
-
-def setup_import_whitelist(test_base: IconIntegrateTestBase,
-                           from_: KeyWallet, icon_service=None):
-    transaction_call(test_base, from_, str(GOVERNANCE_SCORE_ADDRESS), "addImportWhiteList",
-                     {"importStmt": "{'iconservice.iconscore.icon_score_constant' : ['T']}"},
-                     icon_service)

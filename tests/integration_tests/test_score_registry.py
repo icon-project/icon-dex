@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from iconservice import ZERO_SCORE_ADDRESS
-from iconservice.base.address import GOVERNANCE_SCORE_ADDRESS
 from iconsdk.wallet.wallet import KeyWallet
 from tbears.libs.icon_integrate_test import IconIntegrateTestBase
 
@@ -26,7 +25,7 @@ class TestScoreRegistry(IconIntegrateTestBase):
 
     # TEST_HTTP_ENDPOINT_URI_V3 = "http://127.0.0.1:9000/api/v3"
 
-    def setUp(self):
+    def setUp(self, **kwargs):
         super().setUp()
 
         self.icon_service = None
@@ -34,15 +33,6 @@ class TestScoreRegistry(IconIntegrateTestBase):
         # self.icon_service = IconService(HTTPProvider(self.TEST_HTTP_ENDPOINT_URI_V3))
 
         update_governance(icon_integrate_test_base=super(), from_=self._test1, params={})
-
-        # Adds import white list
-        params = {"importStmt": "{'iconservice.iconscore.icon_score_constant' : ['T']}"}
-        transaction_call(icon_integrate_test_base=super(),
-                         from_=self._test1,
-                         to_=str(GOVERNANCE_SCORE_ADDRESS),
-                         method="addImportWhiteList",
-                         params=params,
-                         icon_service=self.icon_service)
 
         # Deploys score_registry SCORE
         tx_result = deploy_score(icon_integrate_test_base=super(),
