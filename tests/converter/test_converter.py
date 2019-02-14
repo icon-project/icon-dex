@@ -260,7 +260,7 @@ class TestConverter(unittest.TestCase):
         min_return = 100
 
         purchase_return = {'amount': return_amount, 'fee': return_fee}
-        self.score.getPurchaseReturn = Mock(return_value=purchase_return)
+        self.score.get_purchase_return = Mock(return_value=purchase_return)
         self.score.getConnectorBalance = Mock(return_value=connector_balance)
         inter_call_return = Mock()
 
@@ -300,7 +300,7 @@ class TestConverter(unittest.TestCase):
         min_return = 100
 
         sale_return = {'amount': return_amount, 'fee': return_fee}
-        self.score.getSaleReturn = Mock(return_value=sale_return)
+        self.score.get_sale_return = Mock(return_value=sale_return)
         self.score.getConnectorBalance = Mock(return_value=connector_balance)
         inter_call_return = Mock()
 
@@ -340,7 +340,7 @@ class TestConverter(unittest.TestCase):
         min_return = 100
 
         convert_return = {'amount': return_amount, 'fee': return_fee}
-        self.score.getCrossConnectorReturn = Mock(return_value=convert_return)
+        self.score.get_cross_connector_return = Mock(return_value=convert_return)
         self.score.getConnectorBalance = Mock(return_value=connector_balance)
         inter_call_return = Mock()
 
@@ -589,28 +589,28 @@ class TestConverter(unittest.TestCase):
     def test_getReturn(self):
         amount = 1000
 
-        self.score.getPurchaseReturn = Mock()
-        self.score.getSaleReturn = Mock()
-        self.score.getCrossConnectorReturn = Mock()
+        self.score.get_purchase_return = Mock()
+        self.score.get_sale_return = Mock()
+        self.score.get_cross_connector_return = Mock()
 
         from_token = Address.from_string("cx" + os.urandom(20).hex())
         to_token = Address.from_string("cx" + os.urandom(20).hex())
 
         with patch.object(IconScoreBase, 'msg', Message(self.owner)):
             self.score.getReturn(from_token, to_token, amount)
-            self.score.getCrossConnectorReturn.assert_called_with(from_token, to_token, amount)
+            self.score.get_cross_connector_return.assert_called_with(from_token, to_token, amount)
 
         from_token = self.token
         to_token = Address.from_string("cx" + os.urandom(20).hex())
         with patch.object(IconScoreBase, 'msg', Message(self.owner)):
             self.score.getReturn(from_token, to_token, amount)
-            self.score.getSaleReturn.assert_called_with(to_token, amount)
+            self.score.get_sale_return.assert_called_with(to_token, amount)
 
         from_token = Address.from_string("cx" + os.urandom(20).hex())
         to_token = self.token
         with patch.object(IconScoreBase, 'msg', Message(self.owner)):
             self.score.getReturn(from_token, to_token, amount)
-            self.score.getPurchaseReturn.assert_called_with(from_token, amount)
+            self.score.get_purchase_return.assert_called_with(from_token, amount)
 
     def test_getPurchaseReturn(self):
         amount = 1000
@@ -622,7 +622,7 @@ class TestConverter(unittest.TestCase):
             patch.object(InternalCall, 'other_external_call', return_value=10000),
             patch.object(FixedMapFormula, 'calculate_purchase_return', return_value=1000)
         ]):
-            result = self.score.getPurchaseReturn(self.initial_connector_token, amount)
+            result = self.score.get_purchase_return(self.initial_connector_token, amount)
             self.assertEqual(1000, result['amount'])
             self.assertEqual(0, result['fee'])
 
@@ -635,7 +635,7 @@ class TestConverter(unittest.TestCase):
             patch.object(InternalCall, 'other_external_call', return_value=10000),
             patch.object(FixedMapFormula, 'calculate_purchase_return', return_value=1000)
         ]):
-            result = self.score.getPurchaseReturn(self.initial_connector_token, amount)
+            result = self.score.get_purchase_return(self.initial_connector_token, amount)
             self.assertEqual(990, result['amount'])
             self.assertEqual(10, result['fee'])
 
@@ -649,7 +649,7 @@ class TestConverter(unittest.TestCase):
             patch.object(InternalCall, 'other_external_call', return_value=10000),
             patch.object(FixedMapFormula, 'calculate_sale_return', return_value=1000)
         ]):
-            result = self.score.getSaleReturn(self.initial_connector_token, amount)
+            result = self.score.get_sale_return(self.initial_connector_token, amount)
             self.assertEqual(1000, result['amount'])
             self.assertEqual(0, result['fee'])
 
@@ -662,7 +662,7 @@ class TestConverter(unittest.TestCase):
             patch.object(InternalCall, 'other_external_call', return_value=10000),
             patch.object(FixedMapFormula, 'calculate_sale_return', return_value=1000)
         ]):
-            result = self.score.getSaleReturn(self.initial_connector_token, amount)
+            result = self.score.get_sale_return(self.initial_connector_token, amount)
             self.assertEqual(990, result['amount'])
             self.assertEqual(10, result['fee'])
 
@@ -679,7 +679,7 @@ class TestConverter(unittest.TestCase):
             patch_property(IconScoreBase, 'msg', Message(self.owner)),
             patch.object(FixedMapFormula, 'calculate_cross_connector_return', return_value=1000)
         ]):
-            result = self.score.getCrossConnectorReturn(
+            result = self.score.get_cross_connector_return(
                 self.initial_connector_token,
                 connector_token2,
                 amount)
@@ -694,7 +694,7 @@ class TestConverter(unittest.TestCase):
             patch_property(IconScoreBase, 'msg', Message(self.owner)),
             patch.object(FixedMapFormula, 'calculate_cross_connector_return', return_value=1000)
         ]):
-            result = self.score.getCrossConnectorReturn(
+            result = self.score.get_cross_connector_return(
                 self.initial_connector_token,
                 connector_token2,
                 amount)

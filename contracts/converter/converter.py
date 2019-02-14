@@ -15,12 +15,12 @@
 
 from ..formula import formula
 from ..interfaces.abc_converter import ABCConverter
+from ..interfaces.abc_flexible_token import ABCFlexibleToken
 from ..interfaces.abc_irc_token import ABCIRCToken
 from ..interfaces.abc_score_registry import ABCScoreRegistry
-from ..interfaces.abc_flexible_token import ABCFlexibleToken
+from ..utility.flexible_token_controller import FlexibleTokenController
 from ..utility.managed import Managed
 from ..utility.proxy_score import ProxyScore
-from ..utility.flexible_token_controller import FlexibleTokenController
 from ..utility.utils import *
 
 TAG = 'Converter'
@@ -290,7 +290,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
             - it is cancelled, must be nonzero
         :return: buy return amount
         """
-        returns = self.getPurchaseReturn(connector_token, amount)
+        returns = self.get_purchase_return(connector_token, amount, True)
         return_amount = returns['amount']
         fee_amount = returns['fee']
         # ensure the trade gives something in return and meets the minimum requested amount
@@ -330,7 +330,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
             - it is cancelled, must be nonzero
         :return: sell return amount
         """
-        returns = self.getSaleReturn(connector_token, amount)
+        returns = self.get_sale_return(connector_token, amount)
         return_amount = returns['amount']
         fee_amount = returns['fee']
         # ensure the trade gives something in return and meets the minimum requested amount
@@ -391,7 +391,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
             - it is cancelled, must be nonzero
         :return: return amount
         """
-        returns = self.getCrossConnectorReturn(from_token, to_token, amount)
+        returns = self.get_cross_connector_return(from_token, to_token, amount, True)
         return_amount = returns['amount']
         fee_amount = returns['fee']
         # ensure the trade gives something in return and meets the minimum requested amount
@@ -427,6 +427,93 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
                              to_connector.weight.get())
         return return_amount
 
+    def get_purchase_return(self, connector_token: Address, amount: int,
+                            from_conversion: bool = False) -> dict:
+        """
+        returns the expected return for buying the token for a connector token
+
+        :param connector_token: connector token contract address
+        :param amount: amount to deposit (in the connector token)
+        :param from_conversion: whether the call is from conversion
+        :return: expected purchase return amount and conversion fee
+        """
+        self._require_active()
+        self._require_valid_connector(connector_token)
+
+        connector = self._connectors[connector_token]
+        require(connector.is_purchase_enabled.get(), 'required purchase enabled')
+
+        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
+
+        token_supply = flexible_token.totalSupply()
+        connector_balance = self.getConnectorBalance(connector_token)
+        if from_conversion:
+            connector_balance -= amount
+
+        calculated_amount = formula.calculate_purchase_return(
+            token_supply, connector_balance, connector.weight.get(), amount)
+
+        final_amount = self.getFinalAmount(calculated_amount, 1)
+        return {'amount': final_amount, 'fee': safe_sub(calculated_amount, final_amount)}
+
+    def get_sale_return(self, connector_token: Address, amount: int) -> dict:
+        """
+        returns the expected return for selling the token for one of its connector tokens
+
+        :param connector_token: connector token contract address
+        :param amount: amount to sell (in the flexible token)
+        :return: expected sale return amount and conversion fee
+        """
+        self._require_active()
+        self._require_valid_connector(connector_token)
+
+        connector = self._connectors[connector_token]
+
+        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
+
+        token_supply = flexible_token.totalSupply()
+        connector_balance = self.getConnectorBalance(connector_token)
+
+        calculated_amount = formula.calculate_sale_return(
+            token_supply, connector_balance, connector.weight.get(), amount)
+
+        final_amount = self.getFinalAmount(calculated_amount, 1)
+        return {'amount': final_amount, 'fee': safe_sub(calculated_amount, final_amount)}
+
+    def get_cross_connector_return(self, from_token: Address, to_token: Address, amount: int,
+                                   from_conversion: bool = False) -> dict:
+        """
+        returns the expected return for selling one of the connector tokens for
+        another connector token
+
+        :param from_token: contract address of the connector token to convert from
+        :param to_token: contract address of the connector token to convert to
+        :param amount: amount to sell (in the from connector token)
+        :param from_conversion: whether the call is from conversion
+        :return: expected sale return amount and conversion fee (in the to connector token)
+        """
+        self._require_active()
+        self._require_valid_connector(from_token)
+        self._require_valid_connector(to_token)
+
+        from_connector = self._connectors[from_token]
+        to_connector = self._connectors[to_token]
+        require(to_connector.is_purchase_enabled.get(), 'required purchase enabled')
+
+        from_connector_balance = self.getConnectorBalance(from_token)
+        if from_conversion:
+            from_connector_balance -= amount
+        to_connector_balance = self.getConnectorBalance(to_token)
+
+        calculated_amount = formula.calculate_cross_connector_return(from_connector_balance,
+                                                                     from_connector.weight.get(),
+                                                                     to_connector_balance,
+                                                                     to_connector.weight.get(),
+                                                                     amount)
+
+        final_amount = self.getFinalAmount(calculated_amount, 2)
+        return {'amount': final_amount, 'fee': safe_sub(calculated_amount, final_amount)}
+
     @external
     def addConnector(self, _token: Address, _weight: int, _enableVirtualBalance: bool):
         """
@@ -459,8 +546,8 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         self._total_connector_weight.set(self._total_connector_weight.get() + _weight)
 
     @external
-    def updateConnector(
-            self, _connectorToken: Address, _weight: int, _enableVirtualBalance: bool, _virtualBalance: int):
+    def updateConnector(self, _connectorToken: Address, _weight: int, _enableVirtualBalance: bool,
+                        _virtualBalance: int):
         """
         updates one of the token connectors
         can only be called by the owner
@@ -516,7 +603,8 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
 
         # if the new registry hasn't changed or is the zero address, revert
         require_valid_address(new_registry)
-        require(new_registry != self._registry.get(), 'new registry should not be same with old one')
+        require(new_registry != self._registry.get(),
+                'new registry should not be same with old one')
 
         # set the previous registry as current registry and current registry as newRegistry
         self._prev_registry.set(self._registry.get())
@@ -730,95 +818,12 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         # conversion between the token and one of its connectors
         flexible_token = self._token.get()
         if _toToken == flexible_token:
-            return self.getPurchaseReturn(_fromToken, _amount)
+            return self.get_purchase_return(_fromToken, _amount)
         elif _fromToken == flexible_token:
-            return self.getSaleReturn(_toToken, _amount)
+            return self.get_sale_return(_toToken, _amount)
 
         # conversion between 2 connectors
-        return self.getCrossConnectorReturn(_fromToken, _toToken, _amount)
-
-    @external(readonly=True)
-    def getPurchaseReturn(self, _connectorToken: Address, _amount: int) -> dict:
-        """
-        returns the expected return for buying the token for a connector token
-
-        :param _connectorToken: connector token contract address
-        :param _amount: amount to deposit (in the connector token)
-        :return: expected purchase return amount and conversion fee
-        """
-        self._require_active()
-        self._require_valid_connector(_connectorToken)
-
-        connector = self._connectors[_connectorToken]
-        require(connector.is_purchase_enabled.get(), 'required purchase enabled')
-
-        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
-
-        token_supply = flexible_token.totalSupply()
-        connector_balance = self.getConnectorBalance(_connectorToken)
-
-        calculated_amount = formula.calculate_purchase_return(
-            token_supply, connector_balance, connector.weight.get(), _amount)
-
-        final_amount = self.getFinalAmount(calculated_amount, 1)
-        return {'amount': final_amount, 'fee': safe_sub(calculated_amount, final_amount)}
-
-    @external(readonly=True)
-    def getSaleReturn(self, _connectorToken: Address, _amount: int) -> dict:
-        """
-        returns the expected return for selling the token for one of its connector tokens
-
-        :param _connectorToken: connector token contract address
-        :param _amount: amount to sell (in the flexible token)
-        :return: expected sale return amount and conversion fee
-        """
-        self._require_active()
-        self._require_valid_connector(_connectorToken)
-
-        connector = self._connectors[_connectorToken]
-
-        flexible_token = self.create_interface_score(self._token.get(), FlexibleToken)
-
-        token_supply = flexible_token.totalSupply()
-        connector_balance = self.getConnectorBalance(_connectorToken)
-
-        calculated_amount = formula.calculate_sale_return(
-            token_supply, connector_balance, connector.weight.get(), _amount)
-
-        final_amount = self.getFinalAmount(calculated_amount, 1)
-        return {'amount': final_amount, 'fee': safe_sub(calculated_amount, final_amount)}
-
-    @external(readonly=True)
-    def getCrossConnectorReturn(self,
-                                _fromToken: Address, _toToken: Address, _amount: int) -> dict:
-        """
-        returns the expected return for selling one of the connector tokens for
-        another connector token
-
-        :param _fromToken: contract address of the connector token to convert from
-        :param _toToken: contract address of the connector token to convert to
-        :param _amount: amount to sell (in the from connector token)
-        :return: expected sale return amount and conversion fee (in the to connector token)
-        """
-        self._require_active()
-        self._require_valid_connector(_fromToken)
-        self._require_valid_connector(_toToken)
-
-        from_connector = self._connectors[_fromToken]
-        to_connector = self._connectors[_toToken]
-        require(to_connector.is_purchase_enabled.get(), 'required purchase enabled')
-
-        from_connector_balance = self.getConnectorBalance(_fromToken)
-        to_connector_balance = self.getConnectorBalance(_toToken)
-
-        calculated_amount = formula.calculate_cross_connector_return(from_connector_balance,
-                                                                     from_connector.weight.get(),
-                                                                     to_connector_balance,
-                                                                     to_connector.weight.get(),
-                                                                     _amount)
-
-        final_amount = self.getFinalAmount(calculated_amount, 2)
-        return {'amount': final_amount, 'fee': safe_sub(calculated_amount, final_amount)}
+        return self.get_cross_connector_return(_fromToken, _toToken, _amount)
 
     @external(readonly=True)
     def getFinalAmount(self, _amount: int, _magnitude: int) -> int:

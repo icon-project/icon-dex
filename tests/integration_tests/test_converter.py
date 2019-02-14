@@ -1053,54 +1053,6 @@ class TestConverter(IconIntegrateTestBase):
 
         self.assertGreater(return_value['amount'], 0)
 
-    def test_return_and_purchase_return(self):
-        """
-        verifies that getReturn returns a valid amount
-        """
-
-        converter_address = self.init_converter(True)
-
-        return_value = icx_call(self, self.keys[0].address, converter_address,
-                                'getReturn',
-                                {
-                                    '_fromToken': self.connector_token1_address,
-                                    '_toToken': self.token_address,
-                                    '_amount': 500,
-                                })
-
-        purchase_return_value = icx_call(self, self.keys[0].address, converter_address,
-                                         'getPurchaseReturn',
-                                         {
-                                             '_connectorToken': self.connector_token1_address,
-                                             '_amount': 500,
-                                         })
-
-        self.assertEqual(return_value['amount'], purchase_return_value['amount'])
-
-    def test_return_and_sale_return(self):
-        """
-        verifies that getReturn returns the same amount as getSaleReturn when converting from the token to a connector
-        """
-
-        converter_address = self.init_converter(True)
-
-        return_value = icx_call(self, self.keys[0].address, converter_address,
-                                'getReturn',
-                                {
-                                    '_fromToken': self.token_address,
-                                    '_toToken': self.connector_token1_address,
-                                    '_amount': 500,
-                                })
-
-        purchase_return_value = icx_call(self, self.keys[0].address, converter_address,
-                                         'getSaleReturn',
-                                         {
-                                             '_connectorToken': self.connector_token1_address,
-                                             '_amount': 500,
-                                         })
-
-        self.assertEqual(return_value['amount'], purchase_return_value['amount'])
-
     def test_return_with_invalid_from_token(self):
         """
         should throw when attempting to get the return with an invalid from token address
@@ -1230,31 +1182,6 @@ class TestConverter(IconIntegrateTestBase):
                          '_connectorToken': self.token_address,
                          '_amount': 500,
                      })
-
-    def test_return_and_cross_connector_return(self):
-        """
-        verifies that getReturn returns the same amount as getCrossConnectorReturn when converting between 2 connectors
-        """
-
-        converter_address = self.init_converter(True)
-
-        return_value = icx_call(self, self.keys[0].address, converter_address,
-                                'getReturn',
-                                {
-                                    '_fromToken': self.connector_token1_address,
-                                    '_toToken': self.connector_token2_address,
-                                    '_amount': 500,
-                                })
-
-        cross_return_value = icx_call(self, self.keys[0].address, converter_address,
-                                      'getCrossConnectorReturn',
-                                      {
-                                          '_fromToken': self.connector_token1_address,
-                                          '_toToken': self.connector_token2_address,
-                                          '_amount': 500,
-                                      })
-
-        self.assertEqual(return_value['amount'], cross_return_value['amount'])
 
     def test_update_registry(self):
         """
