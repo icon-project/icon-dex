@@ -26,7 +26,6 @@ Increases the token supply and sends the new tokens to an account can only be ca
 ##### Parameters
 
 - _to : account to receive the new amount
-
 - _amount : amount to increase the supply by
 
 #### destroy
@@ -41,7 +40,6 @@ Removes tokens from an account and decreases the token supply can be called by t
 ##### Parameters
 
 - _from: account to remove the amount from
-
 - _amount: amount to decrease the supply by
 
 ### Converter
@@ -112,137 +110,137 @@ expected conversion return amount and conversion fee
 
 2. Deploy Network SCORE and register it to the Registry SCORE by sending a transaction to call an external method of `registerAddress` on the Registry SCORE. You can check it by querying an external method of `getAddress` on the Registry SCORE. 
 
-   ##### registerAddress
+    ##### registerAddress
 
-   ```python
-   @external
-   def registerAddress(self, _scoreName: str, _scoreAddress: Address) -> None:
-   ```
+    ```python
+    @external
+    def registerAddress(self, _scoreName: str, _scoreAddress: Address) -> None:
+    ```
 
-   Register an address to Registry SCORE. 
+    Register an address to Registry SCORE. 
 
-   ###### Params 
+    ###### Params 
 
-   - _scoreName : SCORE name to be registered 
-   - _scoreAddress : SCORE address to be registered. In the case, puts in the deployed Network SCORE address. 
+    - _scoreName : SCORE name to be registered 
+    - _scoreAddress : SCORE address to be registered. In the case, puts in the deployed Network SCORE address. 
 
-   ##### getAddress 
+    ##### getAddress 
 
-   ```python
-   @external(readonly=True)
-   def getAddress(self, _scoreName: str) -> Address:
-   ```
+    ```python
+    @external(readonly=True)
+    def getAddress(self, _scoreName: str) -> Address:
+    ```
 
-   Gets an address from the SCORE name. The SCORE have already registered. If not it return ZERO SCORE ADDRESS. 
+    Gets an address from the SCORE name. The SCORE have already registered. If not it return ZERO SCORE ADDRESS. 
 
-   ###### Params 
+    ###### Params 
 
-   - _scoreName : the registered SCORE name 
+    - _scoreName : the registered SCORE name 
 
 3. Deploy ICX token SCORE, register it to the Network SCORE by sending a transaction to call an external method of `registerIcxToken` on the Network SCORE. And send ICX to the ICX token SCORE. 
 
-   ##### registerIcxToken
+    ##### registerIcxToken
 
-   ```python
-   @external
+    ```python
     @external
-       def registerIcxToken(self, _icxToken: Address, _register: bool) -> None:
-   ```
+    @external
+    def registerIcxToken(self, _icxToken: Address, _register: bool) -> None:
+    ```
 
-   Allows the owner to register/unregister Icx tokens.
+    Allows the owner to register/unregister Icx tokens.
 
-   ###### Params 
+    ###### Params 
 
-   - _icxToken: Icx token contract address
-   - _register: true to register, false to unregister
+    - _icxToken: Icx token contract address
+    - _register: true to register, false to unregister
 
-   ##### getIcxTokenRegistered
+    ##### getIcxTokenRegistered
 
-   ```python
+    ```python
     @external(readonly=True)
     def getIcxTokenRegistered(self, _icxToken: Address) -> bool:
-   ```
+    ```
 
-   returns the information about icx token registration of a given token address
+    returns the information about icx token registration of a given token address
 
-   ###### Params 
+    ###### Params 
 
-   - icxToken: icx token address that you want to check
+    - icxToken: icx token address that you want to check
 
-   ###### Returns
+    ###### Returns
 
-   - registration information. if returns true, that shows token is registered as an icx token in the network
+    - registration information. if returns true, that shows token is registered as an icx token in the network
 
 4. Deploy the Flexible token SCORE with four parameter which is _name, _symbol, _initialSupply, and _decimals for initializing.  
 
-   ##### on_install method of Flexible token SCORE
+    ##### on_install method of Flexible token SCORE
 
-   ```python
-   def on_install(self, _name: str, _symbol: str, _initialSupply: int, _decimals: int) -> None:
-   ```
+    ```python
+    def on_install(self, _name: str, _symbol: str, _initialSupply: int, _decimals: int) -> None:
+    ```
 
-   ###### Example
+    ###### Example
 
-   First, deploy the Flexible token named  `flexible_token_1` and symboled `FT1`.
+    First, deploy the Flexible token named  `flexible_token_1` and symboled `FT1`.
 
-   Params of deploying transaction are as below. 
+    Params of deploying transaction are as below. 
 
-   ```json
-   {
-       "_name": "flexible_token_1",
-       "_symbol": "FT1",
-       "_initialSupply": 2000,
-       "_decimals": 18
-   }
-   ```
+    ```json
+    {
+        "_name": "flexible_token_1",
+        "_symbol": "FT1",
+        "_initialSupply": 2000,
+        "_decimals": 18
+    }
+    ```
 
-   Second, deploy the other Flexible token named `flexible_token_2` and symboled `FT2`. Params of deploying transaction are as below. 
+    Second, deploy the other Flexible token named `flexible_token_2` and symboled `FT2`. Params of deploying transaction are as below. 
 
-   ```json
-   {
-       "_name": "flexible_token_2",
-       "_symbol": "FT2",
-       "_initialSupply": 1000,
-       "_decimals": 18
-   }
-   ```
+    ```json
+    {
+        "_name": "flexible_token_2",
+        "_symbol": "FT2",
+        "_initialSupply": 1000,
+        "_decimals": 18
+    }
+    ```
 
 5. Deploy Converter for flexible_token_1 and add a connector of ICX token. 
 
-   ![icx ft1 ft2](img/icx_ft1_ft2.png)
+    ![icx ft1 ft2](img/icx_ft1_ft2.png)
 
-   ##### on_install method of Converter SCORE
+    ##### on_install method of Converter SCORE
 
-   ```python
-   def on_install(self,
+    ```python
+    def on_install(self,
                   _token: Address,
                   _registry: Address,
                   _maxConversionFee: int,
                   _connectorToken: Address,
                   _connectorWeight: int):
-   ```
+    ```
 
-   ###### params
+    ###### params
 
-   - _token: flexible token governed by the converter
-   - _registry: address of a contract registry contract
-   -  _maxConversionFee: maximum conversion fee, represented in ppm
-   - _connectorToken: optional, initial connector, allows defining the first connector at deployment time
-   - _connectorWeight: optional, weight for the initial connector
+    - _token: flexible token governed by the converter
+    - _registry: address of a contract registry contract
+    -  _maxConversionFee: maximum conversion fee, represented in ppm
+    - _connectorToken: optional, initial connector, allows defining the first connector at deployment time
+    - _connectorWeight: optional, weight for the initial connector
 
-   ###### Example
+    ###### Example
 
-   Params of deploying transaction is as below. 
+    Params of deploying transaction is as below. 
 
-   ```json
-   {
-       "_token": str(self.flexible_token_1_address), 
-       "_registry": str(self.score_registry_address),
-       "_maxConversionFee": 0,
-       "_connectorToken": str(self.icx_token_address), 
-       "_connectorWeight": 500000
-   }
-   ```
+    ```json
+    {
+        "_token": str(self.flexible_token_1_address), 
+        "_registry": str(self.score_registry_address),
+        "_maxConversionFee": 0,
+        "_connectorToken": str(self.icx_token_address), 
+        "_connectorWeight": 500000
+    }
+    ```
 
 6. Add connector of flexible_token_2 by sending a transaction to call an external method of `addConnector` on Converter SCORE.
 
@@ -302,11 +300,11 @@ Notes that the converter should already own the source tokens.
 
 - _path: conversion path as string which is comma-delimited lists , see conversion path format as below.
 
-  Conversion path - 
+    Conversion path - 
 
-  [source token, flexible token, to token, flexible token, to token...]
+    [source token, flexible token, to token, flexible token, to token...]
 
-  **If the source token address of the path is not the icx token, raise error**.
+    **If the source token address of the path is not the icx token, raise error**.
 
 -  _minReturn: if the conversion results in an amount smaller than the minimum return - it is canceled, must be nonzero.
 
