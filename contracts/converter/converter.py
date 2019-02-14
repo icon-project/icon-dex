@@ -299,7 +299,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         # update virtual balance if relevant
         connector = self._connectors[connector_token]
         if connector.is_virtual_balance_enabled.get():
-            connector.virtual_balance.set(connector.virtual_balance.get() + return_amount)
+            connector.virtual_balance.set(connector.virtual_balance.get() + amount)
 
         flexible_token_address = self._token.get()
         flexible_token = self.create_interface_score(flexible_token_address, FlexibleToken)
@@ -399,7 +399,7 @@ class Converter(ABCConverter, FlexibleTokenController, Managed):
         # update the source token virtual balance if relevant
         from_connector = self._connectors[from_token]
         if from_connector.is_virtual_balance_enabled.get():
-            from_connector.virtual_balance.set(from_connector.virtual_balance.get() + return_amount)
+            from_connector.virtual_balance.set(from_connector.virtual_balance.get() + amount)
         # update the target token virtual balance if relevant
         to_connector = self._connectors[to_token]
         if to_connector.is_virtual_balance_enabled.get():
