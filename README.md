@@ -4,15 +4,15 @@ ICON DEX is a decentralized liquidity exchange network on Loopchain that allows 
 
 Through the use of multiple SCOREs in the network, Flexible Tokens can be created that hold one or more other tokens as connectors. By using a connector token model and algorithmically-calculated conversion rates, tokens are calculated their own prices and converted seamlessly. 
 
-The main ones are the Flexible Token and Converter. The Converter is responsible for converting between a token and its connectors. Flexible Token represents a converter aware IRC2 compliant token.
+The main ones are the Flexible Token and Converter. The Converter is responsible for converting between a token and its connectors. Flexible Token represents a converter aware *IRC-2* compliant token.
 
 This project refers to the Bancor Protocol™  [Whitepaper](https://www.bancor.network/whitepaper) for more information.
 
-## Component and main external methods
+## Component 
 
 ### Flexible token
 
-Flexible Tokens operate as regular tokens, in compliance with IRC2 token standard used on Loopchain, but include additional logic that allows users to always buy and sell them directly through their own SCOREs at prices that programmatically adjust to reflect supply and demand. For this, the main function of Flexible token is to increase or decrease the token supply. Then sends the new tokens to an account or removes tokens from an account to destroy them.  
+Flexible Tokens operate as regular tokens, in compliance with *IRC-2* token standard used on Loopchain, but include additional logic that allows users to always buy and sell them directly through their own SCOREs at prices that programmatically adjust to reflect supply and demand. For this, the main function of Flexible token is to increase or decrease the token supply. Then sends the new tokens to an account or removes tokens from an account to destroy them.  
 
 #### issue
 
@@ -44,7 +44,7 @@ Removes tokens from an account and decreases the token supply can be called by t
 
 ### Converter
 
-Converter allows conversion between a flexible token and other IRC2 tokens and between different IRC2 tokens and themselves. 
+Converter allows conversion between a flexible token and other *IRC-2* tokens and between different *IRC-2* tokens and themselves. 
 
 Converter has properties to use on converting such as connector tokens and their information, conversion fee and total connector weight. And by using connectors information, it excutes token conversion. Conversion includes buying the token by depositing one of its connector tokens and selling the token by withdrawing from one of its connector tokens.  
 
@@ -57,32 +57,33 @@ When the Token Converter receives tokens, tokenFallback external method is calle
 }
 ```
 
-IRC2 connector balance can be virtual, meaning that the calculations are based on the virtual balance instead of relying on the actual connector balance. This is a security mechanism that prevents the need to keep a very large (and valuable) balance in a single contract.
+*IRC-2* connector balance can be virtual, meaning that the calculations are based on the virtual balance instead of relying on the actual connector balance. This is a security mechanism that prevents the need to keep a very large (and valuable) balance in a single contract.
 
 ### Network  
 
-The network is the main entry point for token conversions to convert between any token (ICX, IRC2 and Flexible token) in the network to any other token in a single transaction by providing a conversion path.
+The network is the main entry point for token conversions to convert between any token (*ICX*, *IRC-2* and Flexible token) in the network to any other token in a single transaction by providing a conversion path.
 
 The conversion path is a data structure represented by a single array. It is used when converting a token to another token in the network when the conversion cannot necessarily be done by a single converter and might require multiple 'hops'. The path defines which converters should be used and which conversion should be done in each step.
 
-Conversion path format :
+##### Conversion path format :
 
 [source token, flexible token, to token, flexible token, to token...]
 
 Max Length of Conversion path should be **21** as using different 10 conversions.
 
-For example, the simplest path should be [source token, flexible token, to token]. The first element's of conversion path list is always the source token which is ICX token, IRC2 or Flexible token. And each 'hop' is represented by a 2-tuple flexible token and to token. 
+For example, the simplest path should be [source token, flexible token, to token]. The first element's of conversion path list is always the source token which is ICX token, *IRC-2* or Flexible token. And each 'hop' is represented by a 2-tuple flexible token and to token. 
 The Flexible token in the 2-tuple ones is only used as a pointer to a converter rather than converter (since converter addresses are more likely to change).
+
+## Main external methods
 
 #### getExpectedReturnByPath
 
 ```python
-@external
+@external(readonly=True)
 def getExpectedReturnByPath(self, _path: str, _amount: int) -> int:
 ```
 
-Returns the expected return amount for converting a specific amount by following
-a given conversion path. Notice that there is no support for circular paths.
+Returns the expected return amount for converting a specific amount by following a given conversion path. Notice that there is no support for circular paths.
 
 ##### Parameters
 
@@ -92,6 +93,64 @@ a given conversion path. Notice that there is no support for circular paths.
 ##### Return
 
 expected conversion return amount and conversion fee
+
+#### convert 
+
+```python
+@external
+@payable
+def convert(self, _path: str, _minReturn: int) -> int:
+```
+
+It converts the Icx token to any other token in the network by following a predefined conversion path and transfers the result tokens back to the sender. This method is used on converting from ICX token to IRC token.
+
+Notes that the converter should already own the source tokens.
+
+##### Params
+
+- _path: conversion path as string which is comma-delimited lists , see conversion path format as below.
+
+  Conversion path - 
+
+  [source token, flexible token, to token, flexible token, to token...]
+
+  **If the source token address of the path is not the icx token, raise error**.
+
+- _minReturn: if the conversion results in an amount smaller than the minimum return - it is canceled, must be nonzero.
+
+##### Return
+
+tokens issued in return 
+
+#### transfer
+
+```python
+@external
+def transfer(self, _to: Address, _value: int, _data: bytes = None) -> None:
+```
+
+An account attempt to get the token. 
+
+It is one of *IRC-2* compliant methods to be used on converting from IRC2 compliant token to token. 
+
+##### Params
+
+- _to  :  Network address
+- _value :  transfer amount 
+- _data : data as bytes having keys of 'path' and 'minReturn'.  The original data form is as below. 
+
+  ```json
+  {
+      "path": "cx863333129b4077652c352ae765d9c4084e35d3d1,cx8e91e81f3db177b7b591f20dac83b2204a7cbee0,cx8e91e81f3db177b7b591f20dac83b2204a7cbee0", 
+      "minReturn": 1
+  }
+  ```
+  - path :  conversion path as string which is comma-delimited lists.
+  - minReturn: if the conversion results in an amount smaller than the minimum return - it is canceled, must be nonzero.
+
+##### Return
+
+None
 
 ## How to deploy ICON Dex 
 
@@ -282,95 +341,13 @@ Params of sending a call transaction is as below.
 
 ![icx ft1 irc](./img/icx_ft1_irc.png)
 
-By calling the `convert` external method, it allows ICX to be converted into IRC. 
-
-#### convert 
-
-```python
-@external
-@payable
-def convert(self, _path: str, _minReturn: int) -> int:
-```
-
-It converts the Icx token to any other token in the network by following a predefined conversion path and transfers the result tokens back to the sender
-
-Notes that the converter should already own the source tokens.
-
-##### Params
-
-- _path: conversion path as string which is comma-delimited lists , see conversion path format as below.
-
-    Conversion path - 
-
-    [source token, flexible token, to token, flexible token, to token...]
-
-    **If the source token address of the path is not the icx token, raise error**.
-
--  _minReturn: if the conversion results in an amount smaller than the minimum return - it is canceled, must be nonzero.
-
-##### Return
-
-tokens issued in return 
-
-##### Example
-
-Params of sending a icx transaction is as below. 
-
-```json
-{
-    '_path': 'cx0819c52656fca9fbd018beea55dc854a8765d1a1,cx435a2e6d48307ec9acedc075c45fa437de06e5ff,cxf50ce11d73925ac0622daf4d171f92c7bff1570e',
-	'_minReturn': 1
-}
-
-```
-
-In the case, source token is 'cx0819c52656fca9fbd018beea55dc854a8765d1a1', flexible token only used as a pointer to a converter is 'cx435a2e6d48307ec9acedc075c45fa437de06e5ff', and to token is 'cxf50ce11d73925ac0622daf4d171f92c7bff1570e'.
+By calling the [`convert`](#convert) external method, it allows ICX to be converted into IRC. 
 
 ### Converting IRC token to IRC token
 
 ![irc ft1 irc](./img/irc_ft1_irc.png)
 
-By calling the `transfer` external method, it allows IRC to be converted into the other IRC. 
-
-#### transfer
-
-```python
-@external
-def transfer(self, _to: Address, _value: int, _data: bytes = None) -> None:
-```
-
-An account attempt to get the token. 
-
-##### Params
-
--  _to  :  Network address
--  _value :  transfer amount as hex string
-- _data : encoded hex string  from  JSON data of which keys are path and minReturn
-
-##### Return
-
-None
-
-##### Example
-
-Params of sending a call transaction is as below. 
-
-```json
-{
-    '_data': '0x7b2270617468223a20226378383633333333313239623430373736353263333532616537363564396334303834653335643364312c6378386539316538316633646231373762376235393166323064616338336232323034613763626565302c637838653931653831663364623137376237623539316632306461633833623232303461376362656530222c20226d696e52657475726e223a20317d',
-    '_to': 'cx91478f52ab928d8754f8de5699326b18824afc45',
-    '_value': '0xa'
-}
-```
-
-The original data form before encoding to hex string is JSON data of which keys are path and minReturn as below. 
-
-```json
-{
-    "path": "cx863333129b4077652c352ae765d9c4084e35d3d1,cx8e91e81f3db177b7b591f20dac83b2204a7cbee0,cx8e91e81f3db177b7b591f20dac83b2204a7cbee0", 
-    "minReturn": 1
-}
-```
+By calling the [`transfer`](#transfer) external method, it allows IRC token to be converted into the other IRC token. 
 
 ### Getting expected amount of the token 
 
