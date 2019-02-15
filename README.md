@@ -1,6 +1,6 @@
 # ICON DEX
 
-ICON DEX is a decentralized liquidity exchange network on Loopchain that allows users to buy and sell tokens without matching buyers and sellers in an exchange. 
+ICON DEX is a decentralized liquidity exchange network on ICON Network that allows users to buy and sell tokens without matching buyers and sellers in an exchange. 
 
 Through the use of multiple SCOREs in the network, Flexible Tokens can be created that hold one or more other tokens as connectors. By using a connector token model and algorithmically-calculated conversion rates, tokens are calculated their own prices and converted seamlessly. 
 
@@ -12,7 +12,7 @@ This project refers to the Bancor Protocol™  [Whitepaper](https://www.bancor.n
 
 ### Flexible token
 
-Flexible Tokens operate as regular tokens, in compliance with *IRC-2* token standard used on Loopchain, but include additional logic that allows users to always buy and sell them directly through their own SCOREs at prices that programmatically adjust to reflect supply and demand. For this, the main function of Flexible token is to increase or decrease the token supply. Then sends the new tokens to an account or removes tokens from an account to destroy them.  
+Flexible Tokens operate as regular tokens, in compliance with *IRC-2* token standard used on ICON Network, but include additional logic that allows users to always buy and sell them directly through their own SCOREs at prices that programmatically adjust to reflect supply and demand. For this, the main function of Flexible token is to increase or decrease the token supply. Then sends the new tokens to an account or removes tokens from an account to destroy them.  
 
 #### issue
 
@@ -146,6 +146,7 @@ It is one of *IRC-2* compliant methods to be used on converting from IRC2 compli
   }
   ```
   - path :  conversion path as string which is comma-delimited lists.
+
   - minReturn: if the conversion results in an amount smaller than the minimum return - it is canceled, must be nonzero.
 
 ##### Return
@@ -338,30 +339,6 @@ By calling the [`convert`](#convert) external method, it allows ICX to be conver
 
 By calling the [`transfer`](#transfer) external method, it allows IRC token to be converted into the other IRC token. 
 
-### Getting expected amount of the token 
-
-By querying the `getExpectedReturnByPath` which is read-only external method, it allows to get expected amount of the token. 
-
-#### getExpectedReturnByPath
-
-```python
-@external(readonly=True)
-def getExpectedReturnByPath(self, _path: str, _amount: int) -> int:
-```
-
-Returns the expected return amount for converting a specific amount by following
-a given conversion path.
-Notice that there is no support for circular paths
-
-##### Params
-
-- _path: conversion path, see conversion path format above
-- _amount: amount to convert from (in the initial source token) 
-
-##### Return
-
-expected conversion return amount and conversion fee
-
 ### Converting token to the other token with multiple converters
 
 ![long_path](./img/long_path.png)
@@ -373,15 +350,19 @@ expected conversion return amount and conversion fee
 
 #### case 1 : Converting ICX to IRC2 with multiple converters
 
-In the case, it excutes conversion same as converting ICX token to IRC token with one converter by calling the `convert` external method.
+In the case, it excutes conversion same as converting ICX token to IRC token with one converter by calling the [`convert`](#convert) external method.
 
 The difference is conversion path, see conversion path format above.
 
 #### case 2 : Converting IRC to ICX with muliple converters
 
-In the case, it excutes conversion same as converting IRC token to IRC token with one converter by calling the `transfer` external method.
+In the case, it excutes conversion same as converting IRC token to IRC token with one converter by calling the [`transfer`](#transfer) external method.
 
 The difference is conversion path, see conversion path format above.
+
+### Getting expected amount of the token 
+
+By querying the [`getExpectedReturnByPath`](#getExpectedReturnByPath) which is read-only external method, it allows to get expected amount of the token. 
 
 ## License 
 
