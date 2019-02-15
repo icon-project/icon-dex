@@ -156,184 +156,173 @@ None
 
 0. By using a builder in this project, makes target SCOREs and their dependencies write on you need to deploy. 
 
-```shell
-# Whites all of SCOREs in ICON DEX and their dependencies to the file system under the builder directory. 
-$ python build.py 
-# Whites SCOREs and their dependencies you write down to the file system under the builder directory. 
-$ python build.py <whitespace-delimited lists of SCOREs>
-# Cleans all files under the builder directory. 
-$ python build.py clean
-```
+    ```shell
+    # Whites all of SCOREs in ICON DEX and their dependencies to the file system under the builder directory. 
+    $ python build.py 
+    # Whites SCOREs and their dependencies you write down to the file system under the builder directory. 
+    $ python build.py <whitespace-delimited lists of SCOREs>
+    # Cleans all files under the builder directory. 
+    $ python build.py clean
+    ```
 
 1. Deploy Registry SCORE at first. 
 
 2. Deploy Network SCORE and register it to the Registry SCORE by sending a transaction to call an external method of `registerAddress` on the Registry SCORE. You can check it by querying an external method of `getAddress` on the Registry SCORE. 
 
-##### registerAddress
-
-```python
-@external
-def registerAddress(self, _scoreName: str, _scoreAddress: Address) -> None:
-```
-
-Register an address to Registry SCORE. 
-
-###### Params 
-
-- _scoreName : SCORE name to be registered 
-- _scoreAddress : SCORE address to be registered. In the case, puts in the deployed Network SCORE address. 
-
-##### getAddress 
-
-```python
-@external(readonly=True)
-def getAddress(self, _scoreName: str) -> Address:
-```
-
-Gets an address from the SCORE name. The SCORE have already registered. If not it return ZERO SCORE ADDRESS. 
-
-###### Params 
-
-- _scoreName : the registered SCORE name 
+    ##### registerAddress
+    
+    ```python
+    @external
+    def registerAddress(self, _scoreName: str, _scoreAddress: Address) -> None:
+    ```
+    
+    Register an address to Registry SCORE. 
+    
+    ###### Params 
+    - _scoreName : SCORE name to be registered 
+    - _scoreAddress : SCORE address to be registered. In the case, puts in the deployed Network SCORE address. 
+    
+    ##### getAddress 
+    
+    ```python
+    @external(readonly=True)
+    def getAddress(self, _scoreName: str) -> Address:
+    ```
+    
+    Gets an address from the SCORE name. The SCORE have already registered. If not it return ZERO SCORE ADDRESS. 
+    
+    ###### Params 
+    - _scoreName : the registered SCORE name 
 
 3. Deploy ICX token SCORE, register it to the Network SCORE by sending a transaction to call an external method of `registerIcxToken` on the Network SCORE. And send ICX to the ICX token SCORE. 
 
-##### registerIcxToken
-
-```python
-@external
-@external
-def registerIcxToken(self, _icxToken: Address, _register: bool) -> None:
-```
-
-Allows the owner to register/unregister Icx tokens.
-
-###### Params 
-
-- _icxToken: Icx token contract address
-- _register: true to register, false to unregister
-
-##### getIcxTokenRegistered
-
-```python
-@external(readonly=True)
-def getIcxTokenRegistered(self, _icxToken: Address) -> bool:
-```
-
-returns the information about icx token registration of a given token address
-
-###### Params 
-
-- icxToken: icx token address that you want to check
-
-###### Returns
-
-- registration information. if returns true, that shows token is registered as an icx token in the network
+    ##### registerIcxToken
+    
+    ```python
+    @external
+    @external
+    def registerIcxToken(self, _icxToken: Address, _register: bool) -> None:
+    ```
+    
+    Allows the owner to register/unregister Icx tokens.
+    
+    ###### Params 
+    - _icxToken: Icx token contract address
+    - _register: true to register, false to unregister
+    
+    ##### getIcxTokenRegistered
+    
+    ```python
+    @external(readonly=True)
+    def getIcxTokenRegistered(self, _icxToken: Address) -> bool:
+    ```
+    
+    returns the information about icx token registration of a given token address
+    
+    ###### Params 
+    - icxToken: icx token address that you want to check
+    
+    ###### Returns
+    - registration information. if returns true, that shows token is registered as an icx token in the network
 
 4. Deploy the Flexible token SCORE with four parameter which is _name, _symbol, _initialSupply, and _decimals for initializing.  
 
-##### on_install method of Flexible token SCORE
-
-```python
-def on_install(self, _name: str, _symbol: str, _initialSupply: int, _decimals: int) -> None:
-```
-
-###### Example
-
-First, deploy the Flexible token named  `flexible_token_1` and symboled `FT1`.
-
-Params of deploying transaction are as below. 
-
-```json
-{
-    "_name": "flexible_token_1",
-    "_symbol": "FT1",
-    "_initialSupply": 2000,
-    "_decimals": 18
-}
-```
-
-Second, deploy the other Flexible token named `flexible_token_2` and symboled `FT2`. Params of deploying transaction are as below. 
-
-```json
-{
-    "_name": "flexible_token_2",
-    "_symbol": "FT2",
-    "_initialSupply": 1000,
-    "_decimals": 18
-}
-```
+    ##### on_install method of Flexible token SCORE
+    
+    ```python
+    def on_install(self, _name: str, _symbol: str, _initialSupply: int, _decimals: int) -> None:
+    ```
+    
+    ###### Example
+    First, deploy the Flexible token named  `flexible_token_1` and symboled `FT1`.
+    Params of deploying transaction are as below. 
+    
+    ```json
+    {
+        "_name": "flexible_token_1",
+        "_symbol": "FT1",
+        "_initialSupply": 2000,
+        "_decimals": 18
+    }
+    ```
+    
+    Second, deploy the other Flexible token named `flexible_token_2` and symboled `FT2`. Params of deploying transaction are as below. 
+    
+    ```json
+    {
+        "_name": "flexible_token_2",
+        "_symbol": "FT2",
+        "_initialSupply": 1000,
+        "_decimals": 18
+    }
+    ```
 
 5. Deploy Converter for flexible_token_1 and add a connector of ICX token. 
 
-![icx ft1 ft2](img/icx_ft1_ft2.png)
+    ![icx ft1 ft2](img/icx_ft1_ft2.png)
 
-##### on_install method of Converter SCORE
-
-```python
-def on_install(self,
-              _token: Address,
-              _registry: Address,
-              _maxConversionFee: int,
-              _connectorToken: Address,
-              _connectorWeight: int):
-```
-
-###### params
-
-- _token: flexible token governed by the converter
-- _registry: address of a contract registry contract
--  _maxConversionFee: maximum conversion fee, represented in ppm
-- _connectorToken: optional, initial connector, allows defining the first connector at deployment time
-- _connectorWeight: optional, weight for the initial connector
-
-###### Example
-
-Params of deploying transaction is as below. 
-
-```json
-{
-    "_token": str(self.flexible_token_1_address), 
-    "_registry": str(self.score_registry_address),
-    "_maxConversionFee": 0,
-    "_connectorToken": str(self.icx_token_address), 
-    "_connectorWeight": 500000
-}
-```
+    ##### on_install method of Converter SCORE
+    
+    ```python
+    def on_install(self,
+                  _token: Address,
+                  _registry: Address,
+                  _maxConversionFee: int,
+                  _connectorToken: Address,
+                  _connectorWeight: int):
+    ```
+    
+    ###### params
+    - _token: flexible token governed by the converter
+    - _registry: address of a contract registry contract
+    -  _maxConversionFee: maximum conversion fee, represented in ppm
+    - _connectorToken: optional, initial connector, allows defining the first connector at deployment time
+    - _connectorWeight: optional, weight for the initial connector
+    
+    ###### Example
+    Params of deploying transaction is as below. 
+    
+    ```json
+    {
+        "_token": str(self.flexible_token_1_address), 
+        "_registry": str(self.score_registry_address),
+        "_maxConversionFee": 0,
+        "_connectorToken": str(self.icx_token_address), 
+        "_connectorWeight": 500000
+    }
+    ```
 
 6. Add connector of flexible_token_2 by sending a transaction to call an external method of `addConnector` on Converter SCORE.
 
-##### addConnector
-
-```python
-@external
-def addConnector(self, 
-             _token: Address, 
-             _weight: int, 
-             _enableVirtualBalance: bool) -> None:
-```
-
-Defines a new connector for the token. It can only be called by the owner while the converter is inactive.
-
-###### Params
-
-- _token: address of the connector token
-- _weight: constant connector weight, represented in ppm, 1-1000000
-- _enableVirtualBalance: true to enable virtual balance for the connector,
- ​    false to disable it
-
-###### Examples 
-
-Params of sending a call transaction is as below. 
-
-```json
-{
-   "_token": str(self.flexible_token_2_address),
-   "_weight": 500000,
-   "_enableVirtualBalance": 0
-}
-```
-
+    ##### addConnector
+    
+    ```python
+    @external
+    def addConnector(self, 
+                 _token: Address, 
+                 _weight: int, 
+                 _enableVirtualBalance: bool) -> None:
+    ```
+    
+    Defines a new connector for the token. It can only be called by the owner while the converter is inactive.
+    
+    ###### Params
+    - _token: address of the connector token
+    - _weight: constant connector weight, represented in ppm, 1-1000000
+    - _enableVirtualBalance: true to enable virtual balance for the connector,
+     ​    false to disable it
+    
+    ###### Examples 
+    Params of sending a call transaction is as below. 
+    
+    ```json
+    {
+       "_token": str(self.flexible_token_2_address),
+       "_weight": 500000,
+       "_enableVirtualBalance": 0
+    }
+    ```
+    
 
 ## How to convert token to the other token 
 
