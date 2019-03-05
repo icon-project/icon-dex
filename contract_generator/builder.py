@@ -39,8 +39,11 @@ class Builder:
         for c in contracts if contracts else config:
             contract = Contract(name=c, path_list=[])
             self._append_contract_on_path_list(contract)
-            self._append_notice_on_path_list(contract)
-            self._append_dependencies_on_path_list(contract, config[c])
+            dependencies = config[c]
+            if config[c][-1] == "NOTICE":
+                self._append_notice_on_path_list(contract)
+                dependencies = config[c][:-1]
+            self._append_dependencies_on_path_list(contract, dependencies)
             self.contract_list.append(contract)
 
     def build(self, writer: Writer) -> None:
