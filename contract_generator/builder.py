@@ -39,7 +39,11 @@ class Builder:
         for c in contracts if contracts else config:
             contract = Contract(name=c, path_list=[])
             self._append_contract_on_path_list(contract)
-            self._append_dependencies_on_path_list(contract, config[c])
+            dependencies = config[c]
+            if config[c][-1] == "NOTICE":
+                self._append_notice_on_path_list(contract)
+                dependencies = config[c][:-1]
+            self._append_dependencies_on_path_list(contract, dependencies)
             self.contract_list.append(contract)
 
     def build(self, writer: Writer) -> None:
@@ -88,3 +92,12 @@ class Builder:
             path_tuple = (cur_file_path, new_file_path)
             contract.path_list.append(path_tuple)
 
+    @staticmethod
+    def _append_notice_on_path_list(contract) -> None:
+        """Appends  the NOTICE file on path list as a tuple
+
+        :param contract: contact in namedtuple
+        :return: None
+        """
+        notice_path_tuple = 'NOTICE', path.join(contract.name, 'NOTICE')
+        contract.path_list.append(notice_path_tuple)

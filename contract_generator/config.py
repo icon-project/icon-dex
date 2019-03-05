@@ -39,6 +39,7 @@ config = {
         "utility/token_holder.py",
         "utility/utils.py",
         "utility/proxy_score.py",
+        "NOTICE"
     ],
     "icx_token": [
         "interfaces/__init__.py",
@@ -53,6 +54,7 @@ config = {
         "utility/token_holder.py",
         "utility/utils.py",
         "utility/proxy_score.py",
+        "NOTICE"
     ],
     "irc_token": [
         "interfaces/__init__.py",
@@ -66,6 +68,7 @@ config = {
         "utility/owned.py",
         "utility/utils.py",
         "utility/proxy_score.py",
+        "NOTICE"
     ],
     "network": [
         "interfaces/__init__.py",
@@ -80,8 +83,8 @@ config = {
         "utility/token_holder.py",
         "utility/utils.py",
         "utility/proxy_score.py",
-    ]
-    ,
+        "NOTICE"
+    ],
     "converter": [
         "formula/__init__.py",
         "formula/fixed_map_formula.py",
@@ -99,6 +102,7 @@ config = {
         "utility/utils.py",
         "utility/proxy_score.py",
         "utility/flexible_token_controller.py",
-        "utility/token_holder.py"
+        "utility/token_holder.py",
+        "NOTICE"
     ]
 }
