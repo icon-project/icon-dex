@@ -37,7 +37,7 @@ class IcxToken(IRCToken, TokenHolder, ABCIcxToken):
         super().__init__(db)
 
     def on_install(self) -> None:
-        IRCToken.on_install(self, 'icx_token', 'ICX', 0, 18)
+        IRCToken.on_install(self, 'ICX Token', 'ICXT', 0, 18)
         TokenHolder.on_install(self)
 
     def on_update(self) -> None:
