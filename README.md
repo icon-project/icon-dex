@@ -362,7 +362,102 @@ The difference is conversion path, see conversion path format above.
 
 ### Getting expected amount of the token 
 
-By querying the [`getExpectedReturnByPath`](#getExpectedReturnByPath) which is read-only external method, it allows to get expected amount of the token. 
+By querying the [`getExpectedReturnByPath`](#getExpectedReturnByPath) which is read-only external method, it allows to get expected amount of the token.
+
+## Samples for Testnet ([Euljiro](https://github.com/icon-project/icon-project.github.io/blob/master/docs/icon_network.md#testnet-for-exchanges))
+
+### Contracts
+
+#### 1. DEX System Contracts
+
+- Network: `cx313ef3c3e3862b2261914b517a55133799d637a8`
+- Registry: `cxd277ff7ca945d080caa59817023e79e1abffae1b`
+- ICXToken (ICXT): `cx917060cdce5346f8d5b8f755fcaa2beb20b33b26`
+
+#### 2. Sample Tokens
+
+- TOKEN ONE (TK1): `cx0e8dde341e84c31062567ea4249d5f7052332da0`
+- TOKEN TWO (TK2): `cx90faecce66a112e2d499cf12f18370e56d8fe3b6`
+
+#### 3. Sample Converter Set (between ICXT and TK1) 
+  
+- ICXT-TK1 Flexible Token (ICXT-TK1): `cx0db2449d56fb8f394e54bc5669fd15a4d35ce799`
+- Converter: `cxa121a2829bf0be3f4b3e6bfcce76129790a82d44`
+- Initial Reserves: 
+    - 100,000 ICXT with 25% Weight
+    - 3,000,000 TK1 with 75% Weight
+    - ICX:TK1 = 10:1
+
+#### 4. Sample Converter Set (between TK1 and TK2) 
+  
+- TK1-TK2 Flexible Token (TK1-TK2): `cx671ec22a85225190648c716f54c5cee412521814`
+- Converter: `cx6a622e5af96b1b02f489afa9972ce30bee2ae459`
+- Initial Reserves: 
+    - 1,000,000 TK1 with 50% Weight
+    - 4,000,000 TK2 with 50% Weight
+    - TK1:TK2 = 4:1
+
+### Examples
+
+#### 1. Conversion from 10,000 ICXs to TK1
+
+- Json RPC Params
+  - to: `NETWORK`
+  - value: `10,000(ICX)`
+  - data.method: `"convert"`
+  - data.params._path: `FROM_TOKEN(ICXT)`, `FLEXIBLE_TOKEN(ICXT-TK1)`, `TO_TOKEN(TK1)`
+  - data.params.__minReturn: `MINIMUM_ALLOWABLE_AMOUNT`
+  
+  ```
+  ...
+  
+  "to": "cx313ef3c3e3862b2261914b517a55133799d637a8",
+  "value": "0x21e19e0c9bab2400000",
+  "dataType": "call",
+  "data": {
+    "method": "convert",
+    "params": {
+      "_path": "cx917060cdce5346f8d5b8f755fcaa2beb20b33b26,cx0db2449d56fb8f394e54bc5669fd15a4d35ce799,cx0e8dde341e84c31062567ea4249d5f7052332da0",
+      "_minReturn": "0x21e19e0c9bab240000"
+    }
+  },
+  
+  ...
+
+  ```
+  
+  > https://trackerdev.icon.foundation/transaction/0x846f33d9f39e6a13c127151d32ab07c4bfa5b08a248f3b6e8a920652bcafddee
+ 
+
+#### 2. Conversion from 10,000 ICXs to TK2
+
+- Json RPC Params
+  - to: `NETWORK`
+  - value: `10,000(ICX)`
+  - data.method: `"convert"`
+  - data.params._path: `ICXT`, `ICXT-TK1`, `TK1`, `TK1-TK2`, `TK2`
+  - data.params.__minReturn: `MINIMUM_ALLOWABLE_AMOUNT`
+  
+  ```
+  ...
+  
+  "to": "cx313ef3c3e3862b2261914b517a55133799d637a8",
+  "value": "0x21e19e0c9bab2400000",
+  "dataType": "call",
+  "data": {
+    "method": "convert",
+    "params": {
+      "_path": "cx917060cdce5346f8d5b8f755fcaa2beb20b33b26,cx0db2449d56fb8f394e54bc5669fd15a4d35ce799,cx0e8dde341e84c31062567ea4249d5f7052332da0,cx671ec22a85225190648c716f54c5cee412521814,cx90faecce66a112e2d499cf12f18370e56d8fe3b6",
+      "_minReturn": "0x21e19e0c9bab240000"
+    }
+  },
+  
+  ...
+
+  ```
+  
+  > https://trackerdev.icon.foundation/transaction/0x42e12be4099863ae16f28487ce9dba14149be40974104f5e05d8fecd265ba1fb
+
 
 ## License 
 
